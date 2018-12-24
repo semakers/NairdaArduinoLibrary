@@ -4,7 +4,7 @@ Creada por Nombre Autor, Fecha
 Lanzado bajo licencia---
 */
 
-#include "arduino.h"
+//#include "arduino.h"
 #include "nairda.h"
 #include "linked/LinkedList.h"
 #include "softpwm/SoftPWM.h"
@@ -16,45 +16,106 @@ Lanzado bajo licencia---
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
 
-int projectInit=100;
-int endServos=101;
-int endDC=102;
-int endLeds=103;
+
+short int okResponse=100;
+short int projectInit=100;
+short int endServos=101;
+short int endDC=102;
+short int endLeds=103; 
+short int endAnalogics=104; 
+short int endDigitals=105;
+short int endUltrasonics=106;
 bool declaratedDescriptor=false;
 bool declaratedServos=false;
 bool declaratedDC=false;
 bool declaratedLeds=false;
+bool declaratedAnalogics=false;
+bool declaratedDigitals=false;
+bool declaratedUltrasonics=false;
 bool executeServo=false;
 bool executeDC=false;
 bool executeLed=false;
 int i;
+int tempValue;
 
-bool executeServoBoolean[2];
 bool executeDCBoolean[3];
-
-int executeServoBuffer[3];
-int executeDCBuffer[3];
+short int executeDCBuffer[3];
 
 bool servoBoolean[7];
 bool dcBoolean[3];
+bool ultraosnicBoolean;
 
-int servoBuffer[7];
-int dcBuffer[3];
+short int servoBuffer[7];
+short int dcBuffer[3];
+
+
+class analogic{
+  public:
+  int pin;
+
+  analogic(int cpin){
+    pin=cpin;
+  }
+
+ void sendValue(){ 
+   int tempRead=map(analogRead(pin),0,1023,0,100);
+   Serial.write((char)tempRead);
+   delay(5);
+   Serial.write((char)tempRead);
+ }
+
+};
+
+class ultrasonic{
+  public:
+  int trigger;
+  int echo;
+
+  ultrasonic(int ctrigger,int cecho){
+    trigger=ctrigger;
+    echo=cecho;
+    pinMode(trigger,OUTPUT);
+    pinMode(echo,INPUT);
+  }
+
+  void sendValue(){
+    digitalWrite(trigger,LOW); //Por cuestión de estabilización del sensor
+    delayMicroseconds(5);
+    digitalWrite(trigger, HIGH); //envío del pulso ultrasónico
+    delayMicroseconds(10);
+    int tiempo = pulseIn(echo, HIGH);  //funcion para medir el tiempo y guardarla en la variable "tiempo"
+    int tempRead= tiempo/58;
+    if(tempRead>100)tempRead=100;
+    Serial.write((char)tempRead);
+    delay(5);
+    Serial.write((char)tempRead);
+  }
+
+};
+
+class digital{
+  public:
+  int pin;
+
+  digital(int cpin){
+    pin=cpin;
+    pinMode(pin, INPUT);
+  }
+
+  void sendValue(){
+    int tempRead=digitalRead(pin);
+    Serial.write((char)tempRead);
+    delay(5);
+    Serial.write((char)tempRead);
+  }
+};
 
 class servo {
   public:
-    int pin;
-    int pmin;
-    int pmax;
-    int dpos;
     Servo cservo;
     
     servo(int cpin,int cpmin, int cpmax,int cdpos){
-      pin=cpin;
-      pmin=cpmin;
-      pmax=cpmax;
-      dpos=cdpos;
-      SoftPWMEnd(pin);
+      SoftPWMEnd(cpin);
       cservo.attach(cpin, cpmin, cpmax);
       cservo.write(cdpos);
     }
@@ -62,6 +123,11 @@ class servo {
     void setPos(int pos){
       cservo.write(map(pos, 0, 99, 0, 180));
     }
+
+    void off(){
+      cservo.detach();
+    }
+
 };
 
 class dc {
@@ -135,12 +201,6 @@ void cleanDCBoolean(){
   }
 }
 
-void cleanExecuteServoBoolean(){
-  for(int j=0;j<2;j++){
-    executeServoBoolean[j]=false;
-  }
-}
-
 void cleanExecuteDCBoolean(){
   for(int j=0;j<3;j++){
     executeDCBoolean[j]=false;
@@ -150,40 +210,93 @@ void cleanExecuteDCBoolean(){
 LinkedList<servo*> listServos = LinkedList<servo*>();
 LinkedList<dc*> listDC = LinkedList<dc*>();
 LinkedList<led*> listLeds = LinkedList<led*>();
-int tempValue;
+LinkedList<analogic*> listAnalogics = LinkedList<analogic*>();
+LinkedList<digital*> listDigitals = LinkedList<digital*>();
+LinkedList<ultrasonic*> listUltrasonics = LinkedList<ultrasonic*>();
 
 
 
-void nairdaBegin(long int baudRate){
+
+void nairdaBegin(long int bauds){
+  Serial.begin(bauds);
   SoftPWMBegin();
-  cleanServoBoolean();
-  cleanDCBoolean();
-  cleanExecuteServoBoolean();
-  cleanExecuteDCBoolean();
-  Serial.begin(baudRate);
 }
 
-
+void reset(){
+    for(int i=2;i<20;i++){
+      SoftPWMEnd(i);
+    }
+    for(int i=0;i<listServos.size();i++){
+        listServos.get(i)->off();
+    }
+    for(int i=0;i<listServos.size();i++){
+        listServos.remove(0);
+    }
+     for(int i=0;i<listDC.size();i++){
+        listDC.remove(0);
+    }
+     for(int i=0;i<listLeds.size();i++){
+        listLeds.remove(0);
+    }
+     for(int i=0;i<listAnalogics.size();i++){
+        listAnalogics.remove(0);
+    }
+     for(int i=0;i<listDigitals.size();i++){
+        listDigitals.remove(0);
+    }
+     for(int i=0;i<listUltrasonics.size();i++){
+        listUltrasonics.remove(0);
+    }
+    cleanServoBoolean();
+    cleanDCBoolean();
+    cleanExecuteDCBoolean();
+    declaratedServos=false;
+    declaratedDC=false;
+    declaratedLeds=false;
+    declaratedAnalogics=false;
+    declaratedDigitals=false;
+    declaratedUltrasonics=false;
+    declaratedDescriptor=false;
+    executeServo=false;
+    executeDC=false;
+    executeLed=false;
+}
 
 void nairdaLoop(){
-  if(Serial.available()){
+  if(Serial.available()) {
 	tempValue=Serial.read();
     if(tempValue==projectInit){
+      //pinMode(8,OUTPUT);
+      //digitalWrite(8,HIGH);
+      //reset();
       asm volatile ( "jmp 0");  
       //Serial.println("Se limpriaron las listas");
     }
-    else if(tempValue==endServos){
+    if(tempValue==endServos){
+      
       declaratedServos=true;
+      
       //Serial.println("Se han agregado todos los servos");
     }
     else if(tempValue==endDC){
       declaratedDC=true;
+      
       //Serial.println("Se han agregado todos los motores DC");
     }
     else if(tempValue==endLeds){
       declaratedLeds=true;
       //Serial.println("Se han agregado todos los leds");
+    }
+    else if(tempValue==endAnalogics){
+      declaratedAnalogics=true;
+    }
+    else if(tempValue==endDigitals){
+      declaratedDigitals=true;
+    }
+    else if(tempValue==endUltrasonics){
+      declaratedUltrasonics=true;
       declaratedDescriptor=true;
+      Serial.write((char)okResponse);
     }
 
     if(declaratedDescriptor==false && tempValue<100){
@@ -218,15 +331,16 @@ void nairdaLoop(){
           servoBuffer[6]=tempValue;
           servo* tempServo=new servo(servoBuffer[0],(servoBuffer[1]*100)+servoBuffer[2],(servoBuffer[3]*100)+servoBuffer[4],(servoBuffer[5]*100)+servoBuffer[6]); 
           listServos.add(tempServo);
-          /*Serial.print("se agrego el servo ");
-          Serial.print(tempServo->pin);
+          cleanServoBoolean();
+          
+          /*Serial.print(tempServo->pin);
           Serial.print(" : ");
           Serial.print(tempServo->pmin);
           Serial.print(" : ");
           Serial.print(tempServo->pmax);
           Serial.print(" : ");
           Serial.println(tempServo->dpos);*/
-          cleanServoBoolean();
+          
         }
       }
       else if(declaratedDC==false && tempValue<100){
@@ -244,13 +358,15 @@ void nairdaLoop(){
           dcBuffer[2]=tempValue;
           dc* tempDC=new dc(dcBuffer[0],dcBuffer[1],dcBuffer[2]);
           listDC.add(tempDC);
+          cleanDCBoolean();
+          
           /*Serial.print("se agrego el motor DC ");
           Serial.print(tempDC->a);
           Serial.print(" : ");
           Serial.print(tempDC->b);
           Serial.print(" : ");
           Serial.println(tempDC->pwm);*/
-          cleanDCBoolean();
+          
         }
 
       }
@@ -260,39 +376,66 @@ void nairdaLoop(){
         //Serial.print("se agrego el led ");
         //Serial.println(tempLed->pin);
       }
+      else if(declaratedAnalogics==false && tempValue<100){
+        analogic* tempAnalogic=new analogic(tempValue);
+        listAnalogics.add(tempAnalogic);
+      }
+      else if(declaratedDigitals==false && tempValue<100){
+        digital* tempDigital=new digital(tempValue);
+        listDigitals.add(tempDigital);
+      }
+      else if(declaratedUltrasonics==false && tempValue<100){
+        if(!ultraosnicBoolean){
+          ultraosnicBoolean=true;
+          i=tempValue;
+        }
+        else {
+          ultrasonic* tempUltrasonic=new ultrasonic(i,tempValue);
+          listUltrasonics.add(tempUltrasonic);
+          ultraosnicBoolean=false;
+        }
+      }
     }
     else{
       if(executeServo==false &&executeDC==false && executeLed==false){
-        if(tempValue>=0 && tempValue<listServos.size() && listServos.size()>0){
-          //ejecutar servo
-          //Serial.print("Preparado para ejecutar el servo ");
-          //Serial.println(listServos.get(tempValue)->pin);
-          executeServoBuffer[0]=tempValue;
+        int indexServos=listServos.size();
+        int indexMotors=indexServos+listDC.size();
+        int indexLeds=indexMotors+listLeds.size();
+        int indexAnalogics=indexLeds+listAnalogics.size();
+        int indexDigitals=indexAnalogics+listDigitals.size();
+        int indexUltraosnics=indexDigitals+listUltrasonics.size();
+
+        if(tempValue>=0 && tempValue<indexServos && listServos.size()>0){
+          i=tempValue;
           executeServo=true;
         }
-        else if(tempValue>=listServos.size() && tempValue<(listServos.size()+listDC.size()) && listDC.size()>0){
-          //ejecutar motor DC
-          executeDCBuffer[0]=tempValue-listServos.size();
+        else if(tempValue>=indexServos && tempValue<indexMotors && listDC.size()>0){
+          executeDCBuffer[0]=tempValue-indexServos;
           executeDC=true;
         }
-        else if(tempValue>=(listServos.size()+listDC.size()) && tempValue<(listServos.size()+listDC.size()+listLeds.size()) && listLeds.size()>0){
-          //ejecutar led
-          //Serial.print("preparado para ejecutar el led ");
-          //Serial.println(listLeds.get(tempValue-(listServos.size()+listDC.size()))->pin);
-          i=tempValue-(listServos.size()+listDC.size());
+        else if(tempValue>=indexMotors && tempValue<indexLeds && listLeds.size()>0){
+          i=tempValue-indexMotors;
           executeLed=true;
+        }
+       else if(tempValue>=indexLeds && tempValue<indexAnalogics && listAnalogics.size()>0){
+          int tempPin=tempValue-indexLeds;
+          listAnalogics.get(tempPin)->sendValue();
+        }
+        else if(tempValue>=indexAnalogics && tempValue<indexDigitals && listDigitals.size()>0){
+          int tempPin=tempValue-indexAnalogics;
+          listDigitals.get(tempPin)->sendValue();
+        }
+        else if(tempValue>=indexDigitals && tempValue<indexUltraosnics && listUltrasonics.size()>0){
+          int tempPin=tempValue-indexDigitals;
+          listUltrasonics.get(tempPin)->sendValue();
         }
       }
       else{
         if(executeServo==true){
           //adquirir valores para la ejecucion del servo
-          if(!executeServoBoolean[0]){
-            executeServoBoolean[0]=true;
-            listServos.get(executeServoBuffer[0])->setPos(tempValue);
-            cleanExecuteServoBoolean();
+            listServos.get(i)->setPos(tempValue);
             executeServo=false;
           }
-        }
         else if(executeDC==true){
           //adquirir valores para la ejecucion del motor
           if(!executeDCBoolean[0]){
@@ -317,9 +460,11 @@ void nairdaLoop(){
         }
         else if(executeLed==true){
             listLeds.get(i)->setPWM(tempValue);
+            //Serial.print((char)okResponse);
             //Serial.print(" se ejecuto");
           executeLed=false;
         }
+        
       }
     }
   }
