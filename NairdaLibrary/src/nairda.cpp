@@ -83,8 +83,10 @@ class ultrasonic{
     delayMicroseconds(5);
     digitalWrite(trigger, HIGH); //envío del pulso ultrasónico
     delayMicroseconds(10);
-    int tiempo = pulseIn(echo, HIGH);  //funcion para medir el tiempo y guardarla en la variable "tiempo"
-    int tempRead= tiempo/58;
+
+    digitalWrite(trigger, LOW);
+    long int tiempo = pulseIn(echo, HIGH);  //funcion para medir el tiempo y guardarla en la variable "tiempo"
+    long int tempRead= tiempo*10 / 292 /2;;
     if(tempRead>100)tempRead=100;
     Serial.write((char)tempRead);
     delay(5);
