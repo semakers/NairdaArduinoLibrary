@@ -17,7 +17,6 @@ Lanzado bajo licencia---
 #endif
 
 
-short int okResponse=100;
 short int projectInit=100;
 short int endServos=101;
 short int endDC=102;
@@ -224,55 +223,13 @@ void nairdaBegin(long int bauds){
   SoftPWMBegin();
 }
 
-void reset(){
-    for(int i=2;i<20;i++){
-      SoftPWMEnd(i);
-    }
-    for(int i=0;i<listServos.size();i++){
-        listServos.get(i)->off();
-    }
-    for(int i=0;i<listServos.size();i++){
-        listServos.remove(0);
-    }
-     for(int i=0;i<listDC.size();i++){
-        listDC.remove(0);
-    }
-     for(int i=0;i<listLeds.size();i++){
-        listLeds.remove(0);
-    }
-     for(int i=0;i<listAnalogics.size();i++){
-        listAnalogics.remove(0);
-    }
-     for(int i=0;i<listDigitals.size();i++){
-        listDigitals.remove(0);
-    }
-     for(int i=0;i<listUltrasonics.size();i++){
-        listUltrasonics.remove(0);
-    }
-    cleanServoBoolean();
-    cleanDCBoolean();
-    cleanExecuteDCBoolean();
-    declaratedServos=false;
-    declaratedDC=false;
-    declaratedLeds=false;
-    declaratedAnalogics=false;
-    declaratedDigitals=false;
-    declaratedUltrasonics=false;
-    declaratedDescriptor=false;
-    executeServo=false;
-    executeDC=false;
-    executeLed=false;
-}
+
 
 void nairdaLoop(){
   if(Serial.available()) {
 	tempValue=Serial.read();
     if(tempValue==projectInit){
-      //pinMode(8,OUTPUT);
-      //digitalWrite(8,HIGH);
-      //reset();
       asm volatile ( "jmp 0");  
-      //Serial.println("Se limpriaron las listas");
     }
     if(tempValue==endServos){
       
@@ -298,7 +255,6 @@ void nairdaLoop(){
     else if(tempValue==endUltrasonics){
       declaratedUltrasonics=true;
       declaratedDescriptor=true;
-      Serial.write((char)okResponse);
     }
 
     if(declaratedDescriptor==false && tempValue<100){
