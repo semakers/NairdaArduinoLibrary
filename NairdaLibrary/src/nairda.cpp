@@ -16,7 +16,7 @@ Lanzado bajo licencia---
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
 
-
+HardwareSerial *serial;
 short int projectInit=100;
 short int endServos=101;
 short int endDC=102;
@@ -58,9 +58,9 @@ class analogic{
 
  void sendValue(){ 
    int tempRead=map(analogRead(pin),0,1023,0,100);
-   Serial.write((char)tempRead);
+   serial->write((char)tempRead);
    delay(5);
-   Serial.write((char)tempRead);
+   serial->write((char)tempRead);
  }
 
 };
@@ -79,17 +79,17 @@ class ultrasonic{
 
   void sendValue(){
     digitalWrite(trigger,LOW); //Por cuestión de estabilización del sensor
-    delayMicroseconds(5);
+    delayMicroseconds(4);
     digitalWrite(trigger, HIGH); //envío del pulso ultrasónico
     delayMicroseconds(10);
-
     digitalWrite(trigger, LOW);
+
     long int tiempo = pulseIn(echo, HIGH);  //funcion para medir el tiempo y guardarla en la variable "tiempo"
-    long int tempRead= tiempo*10 / 292 /2;;
+    long int tempRead=  tiempo/58.4;
     if(tempRead>100)tempRead=100;
-    Serial.write((char)tempRead);
+    serial->write((char)tempRead);
     delay(5);
-    Serial.write((char)tempRead);
+    serial->write((char)tempRead);
   }
 
 };
@@ -105,9 +105,9 @@ class digital{
 
   void sendValue(){
     int tempRead=digitalRead(pin);
-    Serial.write((char)tempRead);
+    serial->write((char)tempRead);
     delay(5);
-    Serial.write((char)tempRead);
+    serial->write((char)tempRead);
   }
 };
 
@@ -155,20 +155,20 @@ class dc {
           digitalWrite(a,HIGH);
           digitalWrite(b,LOW);
           SoftPWMSet(pwm,map(vel,0,99,0,255));
-          //Serial.print("izquierda");
+          //serial->print("izquierda");
 
         break;
         case 1:
           digitalWrite(a,LOW);
           digitalWrite(b,LOW);
           SoftPWMSet(pwm,0);
-          //Serial.print("detener");
+          //serial->print("detener");
         break;
         case 2:
           digitalWrite(a,LOW);
           digitalWrite(b,HIGH);
           SoftPWMSet(pwm,map(vel,0,99,0,255));
-          //Serial.print("izquierda");
+          //serial->print("izquierda");
         break;
       }
     }
@@ -218,16 +218,17 @@ LinkedList<ultrasonic*> listUltrasonics = LinkedList<ultrasonic*>();
 
 
 
-void nairdaBegin(long int bauds){
-  Serial.begin(bauds);
+void nairdaBegin(long int bauds,HardwareSerial *refSer){
+  serial=refSer;
+  serial->begin(bauds);
   SoftPWMBegin();
 }
 
 
 
 void nairdaLoop(){
-  if(Serial.available()) {
-	tempValue=Serial.read();
+  if(serial->available()) {
+	tempValue=serial->read();
     if(tempValue==projectInit){
       asm volatile ( "jmp 0");  
     }
@@ -235,16 +236,16 @@ void nairdaLoop(){
       
       declaratedServos=true;
       
-      //Serial.println("Se han agregado todos los servos");
+      //serial->println("Se han agregado todos los servos");
     }
     else if(tempValue==endDC){
       declaratedDC=true;
       
-      //Serial.println("Se han agregado todos los motores DC");
+      //serial->println("Se han agregado todos los motores DC");
     }
     else if(tempValue==endLeds){
       declaratedLeds=true;
-      //Serial.println("Se han agregado todos los leds");
+      //serial->println("Se han agregado todos los leds");
     }
     else if(tempValue==endAnalogics){
       declaratedAnalogics=true;
@@ -291,13 +292,13 @@ void nairdaLoop(){
           listServos.add(tempServo);
           cleanServoBoolean();
           
-          /*Serial.print(tempServo->pin);
-          Serial.print(" : ");
-          Serial.print(tempServo->pmin);
-          Serial.print(" : ");
-          Serial.print(tempServo->pmax);
-          Serial.print(" : ");
-          Serial.println(tempServo->dpos);*/
+          /*serial->print(tempServo->pin);
+          serial->print(" : ");
+          serial->print(tempServo->pmin);
+          serial->print(" : ");
+          serial->print(tempServo->pmax);
+          serial->print(" : ");
+          serial->println(tempServo->dpos);*/
           
         }
       }
@@ -318,12 +319,12 @@ void nairdaLoop(){
           listDC.add(tempDC);
           cleanDCBoolean();
           
-          /*Serial.print("se agrego el motor DC ");
-          Serial.print(tempDC->a);
-          Serial.print(" : ");
-          Serial.print(tempDC->b);
-          Serial.print(" : ");
-          Serial.println(tempDC->pwm);*/
+          /*serial->print("se agrego el motor DC ");
+          serial->print(tempDC->a);
+          serial->print(" : ");
+          serial->print(tempDC->b);
+          serial->print(" : ");
+          serial->println(tempDC->pwm);*/
           
         }
 
@@ -331,8 +332,8 @@ void nairdaLoop(){
       else if(declaratedLeds==false && tempValue<100){
         led* tempLed =new led(tempValue);
         listLeds.add(tempLed);
-        //Serial.print("se agrego el led ");
-        //Serial.println(tempLed->pin);
+        //serial->print("se agrego el led ");
+        //serial->println(tempLed->pin);
       }
       else if(declaratedAnalogics==false && tempValue<100){
         analogic* tempAnalogic=new analogic(tempValue);
@@ -405,11 +406,11 @@ void nairdaLoop(){
             executeDCBuffer[2]=tempValue;
             listDC.get(executeDCBuffer[0])->setVel(executeDCBuffer[1]);
             listDC.get(executeDCBuffer[0])->setMove(executeDCBuffer[2]);
-            /*Serial.print(" se ejecuto el motor");
-            Serial.print(" : ");
-            Serial.print(executeDCBuffer[1]);
-            Serial.print(" : ");
-            Serial.println(executeDCBuffer[2]); */
+            /*serial->print(" se ejecuto el motor");
+            serial->print(" : ");
+            serial->print(executeDCBuffer[1]);
+            serial->print(" : ");
+            serial->println(executeDCBuffer[2]); */
             cleanExecuteDCBoolean();
             executeDC=false;
           }
@@ -418,8 +419,8 @@ void nairdaLoop(){
         }
         else if(executeLed==true){
             listLeds.get(i)->setPWM(tempValue);
-            //Serial.print((char)okResponse);
-            //Serial.print(" se ejecuto");
+            //serial->print((char)okResponse);
+            //serial->print(" se ejecuto");
           executeLed=false;
         }
         
