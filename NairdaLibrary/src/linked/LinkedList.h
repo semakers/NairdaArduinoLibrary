@@ -13,6 +13,8 @@
 #ifndef LinkedList_h
 #define LinkedList_h
 
+#include <stddef.h>
+
 template<class T>
 struct ListNode
 {
@@ -37,8 +39,11 @@ protected:
 
 	ListNode<T>* getNode(int index);
 
+	ListNode<T>* findEndOfSortedString(ListNode<T> *p, int (*cmp)(T &, T &));
+
 public:
 	LinkedList();
+	LinkedList(int sizeIndex, T _t); //initiate list size and default value
 	~LinkedList();
 
 	/*
@@ -63,7 +68,6 @@ public:
 	virtual bool unshift(T);
 	/*
 		Set the object at index, with T;
-		Increment _size;
 	*/
 	virtual bool set(int index, T);
 	/*
@@ -92,14 +96,24 @@ public:
 	*/
 	virtual void clear();
 
+	/*
+		Sort the list, given a comparison function
+	*/
+	virtual void sort(int (*cmp)(T &, T &));
+
+		// add support to array brakets [] operator
+	inline T& operator[](int index); 
+	inline T& operator[](size_t& i) { return this->get(i); }
+  	inline const T& operator[](const size_t& i) const { return this->get(i); }
+
 };
 
 // Initialize LinkedList with false values
 template<typename T>
 LinkedList<T>::LinkedList()
 {
-	root=false;
-	last=false;
+	root=NULL;
+	last=NULL;
 	_size=0;
 
 	lastNodeGot = root;
@@ -112,13 +126,13 @@ template<typename T>
 LinkedList<T>::~LinkedList()
 {
 	ListNode<T>* tmp;
-	while(root!=false)
+	while(root!=NULL)
 	{
 		tmp=root;
 		root=root->next;
 		delete tmp;
 	}
-	last = false;
+	last = NULL;
 	_size=0;
 	isCached = false;
 }
@@ -155,12 +169,19 @@ ListNode<T>* LinkedList<T>::getNode(int index){
 		return current;
 	}
 
-	return false;
+	return NULL;
 }
 
 template<typename T>
 int LinkedList<T>::size(){
 	return _size;
+}
+
+template<typename T>
+LinkedList<T>::LinkedList(int sizeIndex, T _t){
+	for (int i = 0; i < sizeIndex; i++){
+		add(_t);
+	}
 }
 
 template<typename T>
@@ -189,7 +210,7 @@ bool LinkedList<T>::add(T _t){
 
 	ListNode<T> *tmp = new ListNode<T>();
 	tmp->data = _t;
-	tmp->next = false;
+	tmp->next = NULL;
 	
 	if(root){
 		// Already have elements inserted
@@ -224,6 +245,12 @@ bool LinkedList<T>::unshift(T _t){
 	return true;
 }
 
+
+template<typename T>
+T& LinkedList<T>::operator[](int index) {
+	return getNode(index)->data;
+}
+
 template<typename T>
 bool LinkedList<T>::set(int index, T _t){
 	// Check if index position is in bounds
@@ -245,7 +272,7 @@ T LinkedList<T>::pop(){
 		ListNode<T> *tmp = getNode(_size - 2);
 		T ret = tmp->next->data;
 		delete(tmp->next);
-		tmp->next = false;
+		tmp->next = NULL;
 		last = tmp;
 		_size--;
 		return ret;
@@ -253,8 +280,8 @@ T LinkedList<T>::pop(){
 		// Only one element left on the list
 		T ret = root->data;
 		delete(root);
-		root = false;
-		last = false;
+		root = NULL;
+		last = NULL;
 		_size = 0;
 		return ret;
 	}
@@ -318,6 +345,75 @@ template<typename T>
 void LinkedList<T>::clear(){
 	while(size() > 0)
 		shift();
+}
+
+template<typename T>
+void LinkedList<T>::sort(int (*cmp)(T &, T &)){
+	if(_size < 2) return; // trivial case;
+
+	for(;;) {	
+
+		ListNode<T> **joinPoint = &root;
+
+		while(*joinPoint) {
+			ListNode<T> *a = *joinPoint;
+			ListNode<T> *a_end = findEndOfSortedString(a, cmp);
+	
+			if(!a_end->next	) {
+				if(joinPoint == &root) {
+					last = a_end;
+					isCached = false;
+					return;
+				}
+				else {
+					break;
+				}
+			}
+
+			ListNode<T> *b = a_end->next;
+			ListNode<T> *b_end = findEndOfSortedString(b, cmp);
+
+			ListNode<T> *tail = b_end->next;
+
+			a_end->next = NULL;
+			b_end->next = NULL;
+
+			while(a && b) {
+				if(cmp(a->data, b->data) <= 0) {
+					*joinPoint = a;
+					joinPoint = &a->next;
+					a = a->next;	
+				}
+				else {
+					*joinPoint = b;
+					joinPoint = &b->next;
+					b = b->next;	
+				}
+			}
+
+			if(a) {
+				*joinPoint = a;
+				while(a->next) a = a->next;
+				a->next = tail;
+				joinPoint = &a->next;
+			}
+			else {
+				*joinPoint = b;
+				while(b->next) b = b->next;
+				b->next = tail;
+				joinPoint = &b->next;
+			}
+		}
+	}
+}
+
+template<typename T>
+ListNode<T>* LinkedList<T>::findEndOfSortedString(ListNode<T> *p, int (*cmp)(T &, T &)) {
+	while(p->next && cmp(p->data, p->next->data) <= 0) {
+		p = p->next;
+	}
+	
+	return p;
 }
 
 #endif
