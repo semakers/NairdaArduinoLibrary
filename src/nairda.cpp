@@ -7,6 +7,7 @@ Lanzado bajo licencia---
 //#include "arduino.h"
 #include "nairda.h"
 #include "linked/LinkedList.h"
+#include "ping/NewPing.h"
 #include "softpwm/SoftPWM.h"
 #if defined(ARDUINO_ARCH_AVR)
 #include "avr/Servo.h"
@@ -67,25 +68,14 @@ class analogic{
 
 class ultrasonic{
   public:
-  int trigger;
-  int echo;
+  NewPing* sonar;
 
-  ultrasonic(int ctrigger,int cecho){
-    trigger=ctrigger;
-    echo=cecho;
-    pinMode(trigger,OUTPUT);
-    pinMode(echo,INPUT);
+  ultrasonic(int trigger,int echo){
+    sonar =new NewPing(trigger,echo,100);
   }
 
-  void sendValue(){
-    digitalWrite(trigger,LOW); //Por cuestión de estabilización del sensor
-    delayMicroseconds(4);
-    digitalWrite(trigger, HIGH); //envío del pulso ultrasónico
-    delayMicroseconds(10);
-    digitalWrite(trigger, LOW);
-
-    long int tiempo = pulseIn(echo, HIGH);  //funcion para medir el tiempo y guardarla en la variable "tiempo"
-    long int tempRead=  tiempo/58.4;
+  void sendValue(){ //funcion para medir el tiempo y guardarla en la variable "tiempo"
+    long int tempRead=  sonar->ping_cm();
     if(tempRead>100)tempRead=100;
     serial->write((char)tempRead);
     delay(5);
