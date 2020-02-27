@@ -10,7 +10,7 @@
 #endif
 
 
-void nairdaBegin(long int bauds,HardwareSerial *refSer);
+void nairdaBegin(long int bauds);
 void nairdaLoop();
 
 #endif
