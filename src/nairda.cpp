@@ -8,6 +8,9 @@ Lanzado bajo licencia---
 #include "nairda.h"
 #include "linked/LinkedList.h"
 #include "softpwm/SoftPWM.h"
+#ifndef __AVR_ATmega168__  
+#include "ping/NewPing.h"
+#endif
 #if defined(ARDUINO_ARCH_AVR)
 #include "avr/Servo.h"
 #elif defined(ARDUINO_ARCH_SAM)
@@ -66,6 +69,8 @@ class analogic{
 
 };
 
+#ifdef __AVR_ATmega168__  
+
 class ultrasonic{
   public:
   int trigger;
@@ -91,7 +96,38 @@ class ultrasonic{
     Serial.write((char)tempRead);
   }
 
+  void off(){
+    //free(sonar);
+    //sonar->timer_stop();
+  }
+
 };
+#else
+
+class ultrasonic{
+  public:
+  NewPing* sonar;
+
+  ultrasonic(int trigger,int echo){
+    sonar =new NewPing(trigger,echo,100);
+  }
+
+  void sendValue(){ //funcion para medir el tiempo y guardarla en la variable "tiempo"
+    long int tempRead=  sonar->ping_cm();
+    if(tempRead>100)tempRead=100;
+    Serial.write((char)tempRead);
+    delay(5);
+    Serial.write((char)tempRead);
+  }
+
+  void off(){
+    free(sonar);
+    //sonar->timer_stop();
+  }
+
+};
+
+#endif
 
 class digital{
   public:
@@ -170,6 +206,13 @@ class dc {
         break;
       }
     }
+
+
+    void off(){
+      SoftPWMEnd(a);
+      SoftPWMEnd(b);
+      SoftPWMEnd(pwm);
+    }
     
 };
 
@@ -184,6 +227,11 @@ class led {
 
     void setPWM(int pwm){
       SoftPWMSetPercent(pin,pwm);
+    }
+
+    void off(){
+      SoftPWMSet(pin,0);
+      SoftPWMEnd(pin);
     }
 
 };
@@ -213,7 +261,85 @@ LinkedList<analogic*> listAnalogics = LinkedList<analogic*>();
 LinkedList<digital*> listDigitals = LinkedList<digital*>();
 LinkedList<ultrasonic*> listUltrasonics = LinkedList<ultrasonic*>();
 
+#ifndef __AVR_ATmega168__
 
+void freeServos(){
+  for(int i=0;i<listServos.size();i++){
+    listServos.get(i)->off();
+    free(listServos.get(i));
+  }
+  listServos.clear();
+  
+}
+
+void freeDc(){
+  for(int i=0;i<listDC.size();i++){
+    listDC.get(i)->off();
+    free(listDC.get(i));
+  }
+  listDC.clear();
+  
+}
+
+void freeLeds(){
+  for(int i=0;i<listLeds.size();i++){
+    listLeds.get(i)->off();
+    free(listLeds.get(i));
+  }
+  listLeds.clear();
+  
+}
+
+
+void freeAnalogics(){
+  for(int i=0;i<listAnalogics.size();i++){
+    free(listAnalogics.get(i));
+  }
+  listAnalogics.clear();
+  
+}
+
+void freeUltrasonics(){
+  for(int i=0;i<listUltrasonics.size();i++){
+    listUltrasonics.get(i)->off();
+    free(listUltrasonics.get(i));
+  }
+  listUltrasonics.clear();
+  
+}
+
+
+void freeDigitals(){
+  for(int i=0;i<listDigitals.size();i++){
+    free(listDigitals.get(i));
+  }
+  listDigitals.clear();
+  
+}
+
+
+void resetMemory(){
+  declaratedDescriptor=false;
+  declaratedServos=false;
+  declaratedDC=false;
+  declaratedLeds=false;
+  declaratedAnalogics=false;
+  declaratedDigitals=false;
+  declaratedUltrasonics=false;
+  executeServo=false;
+  executeDC=false;
+  executeLed=false;
+  cleanServoBoolean();
+  cleanDCBoolean();
+  cleanExecuteDCBoolean();
+  freeServos();
+  freeDc();
+  freeLeds();
+  freeAnalogics();
+  freeUltrasonics();
+  freeDigitals();
+}
+#endif
 
 
 void nairdaBegin(long int bauds){
@@ -227,10 +353,11 @@ void nairdaLoop(){
   if(Serial.available()) {
 	tempValue=Serial.read();
     if(tempValue==projectInit){
-      //pinMode(8,OUTPUT);
-      //digitalWrite(8,HIGH);
-      //reset();
-      asm volatile ( "jmp 0");  
+       #ifdef __AVR_ATmega32U4__
+        resetMemory();
+      #else
+      asm volatile ( "jmp 0");
+      #endif
       //Serial.println("Se limpriaron las listas");
     }
     if(tempValue==endServos){
