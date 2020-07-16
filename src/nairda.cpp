@@ -383,6 +383,10 @@ void nairdaBegin(long int bauds)
   SoftPWMBegin();
 }
 
+uint8_t getMapedPin(uint8_t pin){
+  return (pin>=70)?(A0+(pin-70)):pin;
+}
+
 void nairdaLoop()
 {
 
@@ -492,7 +496,7 @@ void nairdaLoop()
         {
           servoBoolean[6] = true;
           servoBuffer[6] = tempValue;
-          servo *tempServo = new servo(servoBuffer[0], (servoBuffer[1] * 100) + servoBuffer[2], (servoBuffer[3] * 100) + servoBuffer[4], (servoBuffer[5] * 100) + servoBuffer[6]);
+          servo *tempServo = new servo(getMapedPin(servoBuffer[0]), (servoBuffer[1] * 100) + servoBuffer[2], (servoBuffer[3] * 100) + servoBuffer[4], (servoBuffer[5] * 100) + servoBuffer[6]);
           listServos.add(tempServo);
           cleanServoBoolean();
 
@@ -522,7 +526,7 @@ void nairdaLoop()
         {
           dcBoolean[2] = true;
           dcBuffer[2] = tempValue;
-          dc *tempDC = new dc(dcBuffer[0], dcBuffer[1], dcBuffer[2]);
+          dc *tempDC = new dc(getMapedPin(dcBuffer[0]), getMapedPin(dcBuffer[1]), getMapedPin(dcBuffer[2]));
           listDC.add(tempDC);
           cleanDCBoolean();
 
@@ -536,19 +540,19 @@ void nairdaLoop()
       }
       else if (declaratedLeds == false && tempValue < 100)
       {
-        led *tempLed = new led(tempValue);
+        led *tempLed = new led(getMapedPin(tempValue));
         listLeds.add(tempLed);
         //Serial.print("se agrego el led ");
         //Serial.println(tempLed->pin);
       }
       else if (declaratedAnalogics == false && tempValue < 100)
       {
-        analogic *tempAnalogic = new analogic(tempValue);
+        analogic *tempAnalogic = new analogic(getMapedPin(tempValue));
         listAnalogics.add(tempAnalogic);
       }
       else if (declaratedDigitals == false && tempValue < 100)
       {
-        digital *tempDigital = new digital(tempValue);
+        digital *tempDigital = new digital(getMapedPin(tempValue));
         listDigitals.add(tempDigital);
       }
       else if (declaratedUltrasonics == false && tempValue < 100)
@@ -560,7 +564,7 @@ void nairdaLoop()
         }
         else
         {
-          ultrasonic *tempUltrasonic = new ultrasonic(i, tempValue);
+          ultrasonic *tempUltrasonic = new ultrasonic(getMapedPin(i), getMapedPin(tempValue));
           listUltrasonics.add(tempUltrasonic);
           ultraosnicBoolean = false;
         }
