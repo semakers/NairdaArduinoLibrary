@@ -376,7 +376,7 @@ void resetMemory()
 
 void nairdaBegin(long int bauds)
 {
-#ifdef __AVR_ATmega32U4__
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
@@ -386,7 +386,7 @@ void nairdaBegin(long int bauds)
 void nairdaLoop()
 {
 
-#ifdef __AVR_ATmega32U4__
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   int serialAvailable = Serial.available();
   int serial1Available = Serial1.available();
   if (serialAvailable > 0 || serial1Available > 0)
