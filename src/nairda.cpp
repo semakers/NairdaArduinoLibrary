@@ -18,6 +18,7 @@ Lanzado bajo licencia---
 #else
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
+#define CURRENT_VERSION 1
 
 short int okResponse = 100;
 short int projectInit = 100;
@@ -27,6 +28,7 @@ short int endLeds = 103;
 short int endAnalogics = 104;
 short int endDigitals = 105;
 short int endUltrasonics = 106;
+short int versionCommand = 107;
 bool declaratedDescriptor = false;
 bool declaratedServos = false;
 bool declaratedDC = false;
@@ -414,6 +416,9 @@ void nairdaLoop()
       asm volatile("jmp 0");
 #endif
       //Serial.println("Se limpriaron las listas");
+    }
+    if(tempValue == versionCommand){
+      Serial.write(((char)CURRENT_VERSION));
     }
     if (tempValue == endServos)
     {
