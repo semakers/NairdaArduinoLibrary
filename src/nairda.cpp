@@ -65,8 +65,15 @@ public:
   void sendValue()
   {
     char tempread = (char)analogRead(pin) / 10;
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write((tempread >= 100) ? 100 : tempread);
+    #endif
+
     Serial.write((tempread >= 100) ? 100 : tempread);
     delay(5);
+     #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write((tempread >= 100) ? 100 : tempread);
+    #endif
     Serial.write((tempread >= 100) ? 100 : tempread);
   }
 };
@@ -125,8 +132,16 @@ public:
     long int tempRead = sonar->ping_cm();
     if (tempRead > 100)
       tempRead = 100;
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write((char)tempRead);
+    #endif
+
     Serial.write((char)tempRead);
     delay(5);
+
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write((char)tempRead);
+    #endif
     Serial.write((char)tempRead);
   }
 
@@ -153,8 +168,14 @@ public:
   void sendValue()
   {
     int tempRead = digitalRead(pin);
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write((char)tempRead);
+    #endif
     Serial.write((char)tempRead);
     delay(5);
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write((char)tempRead);
+    #endif
     Serial.write((char)tempRead);
   }
 };
@@ -422,6 +443,9 @@ void nairdaLoop()
       //Serial.println("Se limpriaron las listas");
     }
     if(tempValue == versionCommand){
+      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write(((char)CURRENT_VERSION));
+    #endif
       Serial.write(((char)CURRENT_VERSION));
     }
     if (tempValue == endServos)
