@@ -73,7 +73,7 @@ public:
       Serial1.write((tempread >= 100) ? 100 : tempread);
     #endif
 
-    Serial.write((tempread >= 100) ? 100 : tempread);
+    Serial.write((tempread >= 100) ? 100 :(tempread<0)?0: tempread);
     /*delay(5);
      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write((tempread >= 100) ? 100 : tempread);
