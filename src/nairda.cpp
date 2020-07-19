@@ -64,17 +64,21 @@ public:
 
   void sendValue()
   {
-    char tempread = (char)analogRead(pin) / 10;
+    #ifndef __AVR_ATmega168__
+      char tempread = map(analogRead(pin),0,1023,0,100);
+    #else
+      char tempread = analogRead(pin)/10;
+    #endif
     #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write((tempread >= 100) ? 100 : tempread);
     #endif
 
     Serial.write((tempread >= 100) ? 100 : tempread);
-    delay(5);
+    /*delay(5);
      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write((tempread >= 100) ? 100 : tempread);
     #endif
-    Serial.write((tempread >= 100) ? 100 : tempread);
+    Serial.write((tempread >= 100) ? 100 : tempread);*/
   }
 };
 
@@ -105,8 +109,8 @@ public:
     if (tempRead > 100)
       tempRead = 100;
     Serial.write((char)tempRead);
-    delay(5);
-    Serial.write((char)tempRead);
+    /*delay(5);
+    Serial.write((char)tempRead);*/
   }
 
   void off()
@@ -137,12 +141,12 @@ public:
     #endif
 
     Serial.write((char)tempRead);
-    delay(5);
+    /*delay(5);
 
     #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write((char)tempRead);
     #endif
-    Serial.write((char)tempRead);
+    Serial.write((char)tempRead);*/
   }
 
   void off()
@@ -172,11 +176,11 @@ public:
       Serial1.write((char)tempRead);
     #endif
     Serial.write((char)tempRead);
-    delay(5);
+    /*delay(5);
     #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write((char)tempRead);
     #endif
-    Serial.write((char)tempRead);
+    Serial.write((char)tempRead);*/
   }
 };
 
@@ -405,6 +409,8 @@ void nairdaBegin(long int bauds)
 }
 
 uint8_t getMapedPin(uint8_t pin){
+  
+
   return (pin>=70)?(A0+(pin-70)):pin;
 }
 
