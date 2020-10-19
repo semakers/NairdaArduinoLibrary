@@ -265,17 +265,17 @@ int32_t getMapValue()
 
 int32_t getAnalogicValue()
 {
-    listEepromAnalogics.get(nextByte())->getValue();
+   return listEepromAnalogics.get(nextByte())->getValue();
 }
 
 int32_t getDigitalValue()
 {
-    listEepromDigitals.get(nextByte())->getValue();
+   return listEepromDigitals.get(nextByte())->getValue();
 }
 
 int32_t getUltraValue()
 {
-    listEepromUltrasonics.get(nextByte())->getValue();
+    return listEepromUltrasonics.get(nextByte())->getValue();
 }
 
 int32_t getInputValue(uint8_t firstByte)
