@@ -6,6 +6,7 @@ Lanzado bajo licencia---
 
 //#include "arduino.h"
 #include "nairda.h"
+#include "loadFromEeprom.h"
 #include "linked/LinkedList.h"
 #include "softpwm/SoftPWM.h"
 #ifndef __AVR_ATmega168__
@@ -20,15 +21,7 @@ Lanzado bajo licencia---
 #endif
 #define CURRENT_VERSION 1
 
-short int okResponse = 100;
-short int projectInit = 100;
-short int endServos = 101;
-short int endDC = 102;
-short int endLeds = 103;
-short int endAnalogics = 104;
-short int endDigitals = 105;
-short int endUltrasonics = 106;
-short int versionCommand = 107;
+
 bool declaratedDescriptor = false;
 bool declaratedServos = false;
 bool declaratedDC = false;
@@ -52,233 +45,6 @@ bool ultraosnicBoolean;
 short int servoBuffer[7];
 short int dcBuffer[3];
 
-class analogic
-{
-public:
-  int pin;
-
-  analogic(int cpin)
-  {
-    pin = cpin;
-  }
-
-  void sendValue()
-  {
-    #ifndef __AVR_ATmega168__
-      char tempread = map(analogRead(pin),0,1023,0,100);
-    #else
-      char tempread = analogRead(pin)/10;
-    #endif
-    Serial.write((tempread >= 100) ? 100 :(tempread<0)?0: tempread);
-    /*delay(5);
-     #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write((tempread >= 100) ? 100 : tempread);
-    #endif
-    Serial.write((tempread >= 100) ? 100 : tempread);*/
-  }
-};
-
-#ifdef __AVR_ATmega168__
-
-class ultrasonic
-{
-public:
-  int trigger;
-  int echo;
-
-  ultrasonic(int ctrigger, int cecho)
-  {
-    trigger = ctrigger;
-    echo = cecho;
-    pinMode(trigger, OUTPUT);
-    pinMode(echo, INPUT);
-  }
-
-  void sendValue()
-  {
-    digitalWrite(trigger, LOW); //Por cuestión de estabilización del sensor
-    delayMicroseconds(5);
-    digitalWrite(trigger, HIGH); //envío del pulso ultrasónico
-    delayMicroseconds(10);
-    int tiempo = pulseIn(echo, HIGH); //funcion para medir el tiempo y guardarla en la variable "tiempo"
-    int tempRead = tiempo / 58;
-    if (tempRead > 100)
-      tempRead = 100;
-    Serial.write((char)tempRead);
-    /*delay(5);
-    Serial.write((char)tempRead);*/
-  }
-
-  void off()
-  {
-    //free(sonar);
-    //sonar->timer_stop();
-  }
-};
-#else
-
-class ultrasonic
-{
-public:
-  NewPing *sonar;
-
-  ultrasonic(int trigger, int echo)
-  {
-    sonar = new NewPing(trigger, echo, 100);
-  }
-
-  void sendValue()
-  { //funcion para medir el tiempo y guardarla en la variable "tiempo"
-    long int tempRead = sonar->ping_cm();
-    if (tempRead > 100)
-      tempRead = 100;
-    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write((char)tempRead);
-    #endif
-
-    Serial.write((char)tempRead);
-    /*delay(5);
-
-    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write((char)tempRead);
-    #endif
-    Serial.write((char)tempRead);*/
-  }
-
-  void off()
-  {
-    free(sonar);
-    //sonar->timer_stop();
-  }
-};
-
-#endif
-
-class digital
-{
-public:
-  int pin;
-
-  digital(int cpin)
-  {
-    pin = cpin;
-    pinMode(pin, INPUT);
-  }
-
-  void sendValue()
-  {
-    int tempRead = digitalRead(pin);
-    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write((char)tempRead);
-    #endif
-    Serial.write((char)tempRead);
-    /*delay(5);
-    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write((char)tempRead);
-    #endif
-    Serial.write((char)tempRead);*/
-  }
-};
-
-class servo
-{
-public:
-  Servo cservo;
-
-  servo(int cpin, int cpmin, int cpmax, int cdpos)
-  {
-    cservo.attach(cpin, cpmin, cpmax);
-    cservo.write(cdpos);
-  }
-
-  void setPos(int pos)
-  {
-    cservo.write(map(pos, 0, 99, 0, 180));
-  }
-
-  void off()
-  {
-    cservo.detach();
-  }
-};
-
-class dc
-{
-public:
-  int a, b, pwm;
-  int vel;
-
-  dc(int ca, int cb, int cpwm)
-  {
-    pinMode(ca, OUTPUT);
-    pinMode(cb, OUTPUT);
-    SoftPWMSet(cpwm, 0);
-    a = ca;
-    b = cb;
-    pwm = cpwm;
-  }
-
-  void setVel(int cvel)
-  {
-    vel = cvel;
-  }
-
-  void setMove(int mode)
-  {
-    switch (mode)
-    {
-    case 0:
-      digitalWrite(a, HIGH);
-      digitalWrite(b, LOW);
-      SoftPWMSetPercent(pwm, vel);
-      //Serial.print("izquierda");
-
-      break;
-    case 1:
-      digitalWrite(a, LOW);
-      digitalWrite(b, LOW);
-      SoftPWMSetPercent(pwm, 0);
-      //Serial.print("detener");
-      break;
-    case 2:
-      digitalWrite(a, LOW);
-      digitalWrite(b, HIGH);
-      SoftPWMSetPercent(pwm, vel);
-      //Serial.print("izquierda");
-      break;
-    }
-  }
-
-  void off()
-  {
-    SoftPWMEnd(a);
-    SoftPWMEnd(b);
-    SoftPWMEnd(pwm);
-  }
-};
-
-class led
-{
-public:
-  int pin;
-  led(int cpin)
-  {
-    pinMode(cpin, OUTPUT);
-    SoftPWMSet(cpin, 0);
-    pin = cpin;
-  }
-
-  void setPWM(int pwm)
-  {
-    SoftPWMSetPercent(pin, pwm);
-  }
-
-  void off()
-  {
-    SoftPWMSet(pin, 0);
-    SoftPWMEnd(pin);
-  }
-};
 
 void cleanServoBoolean()
 {
@@ -397,6 +163,7 @@ void resetMemory()
 
 void nairdaBegin(long int bauds)
 {
+  loaddEepromDescriptor();
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
