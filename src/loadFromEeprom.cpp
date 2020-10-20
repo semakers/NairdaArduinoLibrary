@@ -29,10 +29,13 @@ LinkedList<variable *> listEepromVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
 uint32_t currentOffset = 0;
-uint8_t memory[10] = {};
+uint8_t memory[15] = {101,102,13,103,104,105,106,108,124,0,109,0,0,0,99};
 
 uint8_t nextByte()
 {
+    if(currentOffset==15){
+        while(1){};
+    }
     static uint8_t auxByte = memory[currentOffset];
     currentOffset++;
     return auxByte;
