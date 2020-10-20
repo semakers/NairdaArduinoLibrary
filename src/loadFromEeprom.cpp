@@ -1,13 +1,23 @@
 #include "loadFromEeprom.h"
 #include "nairda.h"
 
-typedef struct
+
+
+class repeatBegin
 {
+public:
     uint32_t offsetStart;
     uint32_t offsetEnd;
     uint8_t loop;
     uint32_t times;
-} repeatBegin;
+    repeatBegin(uint32_t cOffsetStart,uint32_t cOffsetEnd,uint8_t cLoop,uint32_t cTimes)
+    {
+        offsetStart=cOffsetStart;
+        offsetEnd=cOffsetEnd;
+        loop=cLoop;
+        times=cTimes;
+    }
+};
 
 void nextServo();
 void nextDC();
@@ -29,15 +39,21 @@ LinkedList<variable *> listEepromVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
 uint32_t currentOffset = 0;
-uint8_t memory[28] = {101,102,13,103,104,105,106,108,124,0,109,0,0,0,50,120,109,0,0,2,0,124,0,109,0,0,0,0};
+//uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 1, 109, 0, 0, 0, 0, 2, 2, 2, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
+uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 0, 109, 0, 0, 0, 5, 0, 0, 45, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
+
+
 
 uint8_t nextByte()
 {
-    if(currentOffset==28){
-        while(1){};
+    if (currentOffset == 45)
+    {
+        while (1)
+        {
+        };
     }
     uint8_t auxByte = memory[currentOffset];
-    Serial.println(auxByte);
+    //Serial.println(auxByte);
     //delay(250);
     currentOffset++;
     return auxByte;
@@ -273,12 +289,12 @@ int32_t getMapValue()
 
 int32_t getAnalogicValue()
 {
-   return listEepromAnalogics.get(nextByte())->getValue();
+    return listEepromAnalogics.get(nextByte())->getValue();
 }
 
 int32_t getDigitalValue()
 {
-   return listEepromDigitals.get(nextByte())->getValue();
+    return listEepromDigitals.get(nextByte())->getValue();
 }
 
 int32_t getUltraValue()
@@ -382,7 +398,8 @@ repeatBegin *findRepeatBegin(uint32_t repeatStartOffset)
     return NULL;
 }
 
-uint8_t findRepeatBeginIndex(uint32_t repeatStartOffset){
+uint8_t findRepeatBeginIndex(uint32_t repeatStartOffset)
+{
     for (uint8_t i = 0; i < listRepeatBegins.size(); i++)
     {
         if (listRepeatBegins.get(i)->offsetStart == repeatStartOffset)
@@ -395,7 +412,8 @@ uint8_t findRepeatBeginIndex(uint32_t repeatStartOffset){
 
 void runRepeat()
 {
-    repeatBegin *currentBegin = findRepeatBegin(currentOffset);
+    uint32_t sos=currentOffset-1;
+    repeatBegin *currentBegin = findRepeatBegin(sos);
     uint8_t loop = nextByte();
     int32_t times = getInputValue(nextByte());
     uint8_t eosBytes[3];
@@ -406,42 +424,51 @@ void runRepeat()
     if (currentBegin == NULL)
     {
         uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2];
-        currentBegin->offsetStart = currentOffset;
-        currentBegin->loop = loop;
-        currentBegin->times = times;
-        currentBegin->offsetEnd = eos;
+        currentBegin= new repeatBegin(sos,eos,loop,times);
+        //Serial.print("eos: ");
+        //Serial.println(currentBegin->offsetEnd);
         listRepeatBegins.add(currentBegin);
     }
 
-        if(currentBegin->loop ==0){
-            if(currentBegin->times==0){
-            currentOffset=currentBegin->offsetStart;
+    //Serial.print("Repeat times: ");
+    //Serial.println(currentBegin->times);
+
+    if (currentBegin->loop == 0)
+    {
+        
+        if (currentBegin->times == 0)
+        {
+            currentOffset = currentBegin->offsetEnd;
             listRepeatBegins.remove(findRepeatBeginIndex(currentBegin->offsetStart));
             free(currentBegin);
             //listRepeatBegins.remove(listRepeatBegins.size()-1);
-
-
-        }else{
-            currentBegin->times=currentBegin->times-1;  
         }
+        else
+        {
+            currentBegin->times = currentBegin->times - 1;
         }
-        
-    nairdaRunMachineState(nextByte());
+    }
 
-}
-
-
-void runEndRepeat(){
-    currentOffset=listRepeatBegins.get(listRepeatBegins.size()-1)->offsetStart;
     nairdaRunMachineState(nextByte());
 }
 
-void runBreak(){
-    repeatBegin * breakBegin= listRepeatBegins.get(listRepeatBegins.size()-1);
-    currentOffset=breakBegin->offsetEnd;
-    listRepeatBegins.remove(listRepeatBegins.size()-1);
+void runEndRepeat()
+{
+    currentOffset = listRepeatBegins.get(0)->offsetStart;
+    //Serial.print("repeats: ");
+    //Serial.println(listRepeatBegins.size());
+    //Serial.print("Start repeat: ");
+    //Serial.println(listRepeatBegins.get(0)->offsetStart);
+    nairdaRunMachineState(nextByte());
+}
+
+void runBreak()
+{
+    repeatBegin *breakBegin = listRepeatBegins.get(listRepeatBegins.size() - 1);
+    currentOffset = breakBegin->offsetEnd;
+    listRepeatBegins.remove(listRepeatBegins.size() - 1);
     free(breakBegin);
-    
+
     nairdaRunMachineState(nextByte());
 }
 
@@ -463,7 +490,6 @@ void nairdaRunMachineState(uint8_t firstByte)
         runMotorDc(nextByte());
         break;
     case ledCommand:
-      //  Serial.println("led");
         runLed(nextByte());
         break;
     case ifCommand:
@@ -474,8 +500,9 @@ void nairdaRunMachineState(uint8_t firstByte)
         break;
     case endRepeatCommand:
         runEndRepeat();
-    break;
+        break;
     case breakCommand:
-    break;
+        runBreak();
+        break;
     }
 }

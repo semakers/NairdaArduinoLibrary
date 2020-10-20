@@ -163,12 +163,13 @@ void resetMemory()
 
 void nairdaBegin(long int bauds)
 {
-  //loaddEepromDescriptor();
+  
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
   SoftPWMBegin();
+  loaddEepromDescriptor();
 }
 
 uint8_t getMapedPin(uint8_t pin){
