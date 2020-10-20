@@ -163,7 +163,7 @@ void resetMemory()
 
 void nairdaBegin(long int bauds)
 {
-  loaddEepromDescriptor();
+  //loaddEepromDescriptor();
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
