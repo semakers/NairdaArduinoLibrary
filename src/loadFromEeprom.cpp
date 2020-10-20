@@ -29,14 +29,16 @@ LinkedList<variable *> listEepromVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
 uint32_t currentOffset = 0;
-uint8_t memory[15] = {101,102,13,103,104,105,106,108,124,0,109,0,0,0,99};
+uint8_t memory[28] = {101,102,13,103,104,105,106,108,124,0,109,0,0,0,50,120,109,0,0,2,0,124,0,109,0,0,0,0};
 
 uint8_t nextByte()
 {
-    if(currentOffset==15){
+    if(currentOffset==28){
         while(1){};
     }
-    static uint8_t auxByte = memory[currentOffset];
+    uint8_t auxByte = memory[currentOffset];
+    Serial.println(auxByte);
+    //delay(250);
     currentOffset++;
     return auxByte;
 }
@@ -93,6 +95,7 @@ void nextLed()
     uint8_t firstByte = nextByte();
     if (firstByte == endLeds)
     {
+        nextAnalogic();
     }
     else
     {
@@ -107,6 +110,7 @@ void nextAnalogic()
     uint8_t firstByte = nextByte();
     if (firstByte == endAnalogics)
     {
+        nextDigital();
     }
     else
     {
@@ -121,6 +125,7 @@ void nextDigital()
     uint8_t firstByte = nextByte();
     if (firstByte == endDigitals)
     {
+        nextUltra();
     }
     else
     {
@@ -458,6 +463,7 @@ void nairdaRunMachineState(uint8_t firstByte)
         runMotorDc(nextByte());
         break;
     case ledCommand:
+      //  Serial.println("led");
         runLed(nextByte());
         break;
     case ifCommand:
