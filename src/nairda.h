@@ -41,6 +41,7 @@
 #define repeatCommand 126
 #define endRepeatCommand 127
 #define breakCommand 128
+#define saveCommand 129
 
 
 class analogic

@@ -21,7 +21,6 @@ Lanzado bajo licencia---
 #endif
 #define CURRENT_VERSION 1
 
-
 bool declaratedDescriptor = false;
 bool declaratedServos = false;
 bool declaratedDC = false;
@@ -29,6 +28,7 @@ bool declaratedLeds = false;
 bool declaratedAnalogics = false;
 bool declaratedDigitals = false;
 bool declaratedUltrasonics = false;
+bool startSaving = false;
 bool executeServo = false;
 bool executeDC = false;
 bool executeLed = false;
@@ -41,10 +41,11 @@ short int executeDCBuffer[3];
 bool servoBoolean[7];
 bool dcBoolean[3];
 bool ultraosnicBoolean;
+bool savingBoolean[6];
 
 short int servoBuffer[7];
 short int dcBuffer[3];
-
+short int savingBuffer[5];
 
 void cleanServoBoolean()
 {
@@ -163,7 +164,7 @@ void resetMemory()
 
 void nairdaBegin(long int bauds)
 {
-  
+
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
@@ -172,10 +173,10 @@ void nairdaBegin(long int bauds)
   loaddEepromDescriptor();
 }
 
-uint8_t getMapedPin(uint8_t pin){
-  
+uint8_t getMapedPin(uint8_t pin)
+{
 
-  return (pin>=70)?(A0+(pin-70)):pin;
+  return (pin >= 70) ? (A0 + (pin - 70)) : pin;
 }
 
 void nairdaLoop()
@@ -212,13 +213,18 @@ void nairdaLoop()
 #endif
       //Serial.println("Se limpriaron las listas");
     }
-    if(tempValue == versionCommand){
-      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+    if (tempValue == saveCommand)
+    {
+      startSaving = true;
+    }
+    else if (tempValue == versionCommand)
+    {
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write(((char)CURRENT_VERSION));
-    #endif
+#endif
       Serial.write(((char)CURRENT_VERSION));
     }
-    if (tempValue == endServos)
+    else if (tempValue == endServos)
     {
 
       declaratedServos = true;
@@ -248,10 +254,59 @@ void nairdaLoop()
     {
       declaratedUltrasonics = true;
       declaratedDescriptor = true;
-      //Serial.write((char)okResponse);
     }
 
-    if (declaratedDescriptor == false && tempValue < 100)
+    if (startSaving && tempValue < 100)
+    {
+      if (!savingBoolean[0])
+      {
+        savingBoolean[0] = true;
+        savingBuffer[0] = tempValue;
+      }
+      else if (!savingBoolean[1])
+      {
+        savingBoolean[1] = true;
+        savingBuffer[1] = tempValue;
+      }
+      else if (!savingBoolean[2])
+      {
+        savingBoolean[2] = true;
+        savingBuffer[2] = tempValue;
+      }
+      else if (!savingBoolean[3])
+      {
+        savingBoolean[3] = true;
+        savingBuffer[3] = tempValue;
+      }
+      else if (!savingBoolean[4])
+      {
+        savingBoolean[4] = true;
+        savingBuffer[4] = tempValue;
+      }
+      else if (!savingBuffer[5])
+      {
+        savingBoolean[4] = true;
+        uint32_t firstSize = (savingBuffer[0] * 10000) + (savingBuffer[1] * 100) + savingBuffer[2];
+        uint32_t secondSize = (savingBuffer[3] * 10000) + (savingBuffer[4] * 100) + tempValue;
+
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+        Serial1.write((firstSize == secondSize) ? (char)200 : (char)100);
+#endif
+
+        Serial.write((firstSize == secondSize) ? (char)200 : (char)100);
+
+        if (firstSize != secondSize)
+        {
+          startSaving = false;
+          for (uint8_t i = 0; i < 6; i++)
+          {
+            avingBoolean[i] = false;
+          }
+        }
+      }
+    }
+
+    else if (declaratedDescriptor == false && tempValue < 100)
     {
       if (declaratedServos == false)
       {
