@@ -39,14 +39,14 @@ LinkedList<variable *> listEepromVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
 uint32_t currentOffset = 0;
-//uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 1, 109, 0, 0, 0, 0, 2, 2, 2, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
-uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 0, 109, 0, 0, 0, 5, 0, 0, 45, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
+uint8_t memory[91] = {101, 102, 13, 103, 104, 105, 106, 0, 0, 0, 0, 108, 126, 1, 109, 0, 0, 0, 0, 0, 0, 91, 120, 109, 0, 0, 10, 0, 121, 0, 114, 110, 0, 0, 109, 0, 0, 0, 1, 126, 0, 109, 0, 0, 0, 2, 0, 0, 76, 124, 0, 109, 0, 0, 1, 0, 120, 109, 0, 0, 5, 0, 124, 0, 109, 0, 0, 0, 0, 120, 109, 0, 0, 5, 0, 127, 125, 111, 110, 0, 0, 109, 0, 0, 0, 3, 0, 0, 90, 128, 127};
+//uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 0, 109, 0, 0, 0, 5, 0, 0, 45, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
 
 
 
 uint8_t nextByte()
 {
-    if (currentOffset == 45)
+    if (currentOffset == 91)
     {
         while (1)
         {
@@ -207,7 +207,7 @@ int32_t getValue()
 
 int32_t getVariableValue()
 {
-    listEepromVariables.get(nextByte())->value;
+    return listEepromVariables.get(nextByte())->value;
 }
 
 int32_t getComparatorValue()
@@ -215,6 +215,10 @@ int32_t getComparatorValue()
     int32_t firstValue = getInputValue(nextByte());
     uint8_t operation = nextByte();
     int32_t secondByte = getInputValue(nextByte());
+    //Serial.println("=====================");
+    //Serial.println(firstValue);
+    //Serial.println(operation);
+    //Serial.println(secondByte);
     switch (operation)
     {
     case 0:
@@ -454,7 +458,7 @@ void runRepeat()
 
 void runEndRepeat()
 {
-    currentOffset = listRepeatBegins.get(0)->offsetStart;
+    currentOffset = listRepeatBegins.get(listRepeatBegins.size() - 1)->offsetStart;
     //Serial.print("repeats: ");
     //Serial.println(listRepeatBegins.size());
     //Serial.print("Start repeat: ");

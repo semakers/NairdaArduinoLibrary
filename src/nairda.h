@@ -13,7 +13,6 @@
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
 
-#define okResponse 100
 #define projectInit 100
 #define endServos 101
 #define endDC 102
@@ -42,6 +41,7 @@
 #define repeatCommand 126
 #define endRepeatCommand 127
 #define breakCommand 128
+
 
 class analogic
 {
@@ -248,7 +248,7 @@ public:
 
   void setVel(int cvel)
   {
-    vel = cvel;
+    vel = (cvel<0)?0:(cvel>100)?100:cvel;
   }
 
   void setMove(int mode)
@@ -298,7 +298,7 @@ public:
 
   void setPWM(int pwm)
   {
-    SoftPWMSetPercent(pin, pwm);
+    SoftPWMSetPercent(pin, (pwm<0)?0:(pwm>100)?100:pwm);
   }
 
   void off()
