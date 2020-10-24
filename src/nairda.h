@@ -43,6 +43,8 @@
 #define breakCommand 128
 #define saveCommand 129
 
+#define CURRENT_VERSION 1
+
 
 class analogic
 {
@@ -329,6 +331,7 @@ public:
   }
 };
 
+void resetMemory();
 uint8_t getMapedPin(uint8_t pin);
 void nairdaBegin(long int bauds);
 void nairdaLoop();

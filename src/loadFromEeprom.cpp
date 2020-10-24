@@ -1,5 +1,6 @@
 #include "loadFromEeprom.h"
 #include "nairda.h"
+#include <EEPROM.h>
 
 
 
@@ -28,6 +29,7 @@ void nextUltra();
 void nextVariable();
 void nairdaRunMachineState(uint8_t firstByte);
 int32_t getInputValue(uint8_t firstByte);
+uint8_t callInterrupt();
 
 LinkedList<servo *> listEepromServos = LinkedList<servo *>();
 LinkedList<dc *> listEepromDC = LinkedList<dc *>();
@@ -38,21 +40,31 @@ LinkedList<ultrasonic *> listEepromUltrasonics = LinkedList<ultrasonic *>();
 LinkedList<variable *> listEepromVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
-uint32_t currentOffset = 0;
-uint8_t memory[91] = {101, 102, 13, 103, 104, 105, 106, 0, 0, 0, 0, 108, 126, 1, 109, 0, 0, 0, 0, 0, 0, 91, 120, 109, 0, 0, 10, 0, 121, 0, 114, 110, 0, 0, 109, 0, 0, 0, 1, 126, 0, 109, 0, 0, 0, 2, 0, 0, 76, 124, 0, 109, 0, 0, 1, 0, 120, 109, 0, 0, 5, 0, 124, 0, 109, 0, 0, 0, 0, 120, 109, 0, 0, 5, 0, 127, 125, 111, 110, 0, 0, 109, 0, 0, 0, 3, 0, 0, 90, 128, 127};
+uint32_t currentOffset = 4;
+uint32_t eepromProgrammSize=0;
+//uint8_t memory[91] = {101, 102, 13, 103, 104, 105, 106, 0, 0, 0, 0, 108, 126, 1, 109, 0, 0, 0, 0, 0, 0, 91, 120, 109, 0, 0, 10, 0, 121, 0, 114, 110, 0, 0, 109, 0, 0, 0, 1, 126, 0, 109, 0, 0, 0, 2, 0, 0, 76, 124, 0, 109, 0, 0, 1, 0, 120, 109, 0, 0, 5, 0, 124, 0, 109, 0, 0, 0, 0, 120, 109, 0, 0, 5, 0, 127, 125, 111, 110, 0, 0, 109, 0, 0, 0, 3, 0, 0, 90, 128, 127};
 //uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 0, 109, 0, 0, 0, 5, 0, 0, 45, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
 
+
+void writeByte(unsigned long int address,unsigned short int byte){
+ EEPROM.update(address, byte);
+}
+
+uint8_t readByte(uint32_t address){
+    return EEPROM[address];
+}
 
 
 uint8_t nextByte()
 {
-    if (currentOffset == 91)
+    if (currentOffset == (eepromProgrammSize+4))
     {
         while (1)
         {
+            callInterrupt();
         };
     }
-    uint8_t auxByte = memory[currentOffset];
+    uint8_t auxByte = readByte(currentOffset);
     //Serial.println(auxByte);
     //delay(250);
     currentOffset++;
@@ -61,7 +73,11 @@ uint8_t nextByte()
 
 void loaddEepromDescriptor()
 {
-    nextServo();
+    
+    if(readByte(0)==1){
+        eepromProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
+        nextServo();
+    }
 }
 
 void nextServo()
@@ -337,7 +353,11 @@ int32_t getInputValue(uint8_t firstByte)
 
 void runDelay()
 {
-    delay(getInputValue(nextByte()));
+    uint32_t currentTime=millis();
+    uint32_t delayTime=getInputValue(nextByte());
+    while((millis()-currentTime)<delayTime){
+        callInterrupt();
+    }
     nairdaRunMachineState(nextByte());
 }
 
@@ -476,10 +496,140 @@ void runBreak()
     nairdaRunMachineState(nextByte());
 }
 
+void freeEepromServos()
+{
+  for (int i = 0; i < listEepromServos.size(); i++)
+  {
+    listEepromServos.get(i)->off();
+    free(listEepromServos.get(i));
+  }
+  listEepromServos.clear();
+}
+
+void freeEepromDc()
+{
+  for (int i = 0; i < listEepromDC.size(); i++)
+  {
+    listEepromDC.get(i)->off();
+    free(listEepromDC.get(i));
+  }
+  listEepromDC.clear();
+}
+
+void freeEepromLeds()
+{
+  for (int i = 0; i < listEepromLeds.size(); i++)
+  {
+    listEepromLeds.get(i)->off();
+    free(listEepromLeds.get(i));
+  }
+  listEepromLeds.clear();
+}
+
+void freeEepromAnalogics()
+{
+  for (int i = 0; i < listEepromAnalogics.size(); i++)
+  {
+    free(listEepromAnalogics.get(i));
+  }
+  listEepromAnalogics.clear();
+}
+
+void freeEepromUltrasonics()
+{
+  for (int i = 0; i < listEepromUltrasonics.size(); i++)
+  {
+    listEepromUltrasonics.get(i)->off();
+    free(listEepromUltrasonics.get(i));
+  }
+  listEepromUltrasonics.clear();
+}
+
+void freeEepromDigitals()
+{
+  for (int i = 0; i < listEepromDigitals.size(); i++)
+  {
+    free(listEepromDigitals.get(i));
+  }
+  listEepromDigitals.clear();
+}
+
+void freeEepromVariables()
+{
+  for (int i = 0; i < listEepromVariables.size(); i++)
+  {
+    free(listEepromVariables.get(i));
+  }
+  listEepromVariables.clear();
+}
+
+void freeRepeatBegins()
+{
+  for (int i = 0; i < listRepeatBegins.size(); i++)
+  {
+    free(listRepeatBegins.get(i));
+  }
+  listRepeatBegins.clear();
+}
+
+void freeEEpromVolatileMemory(){
+    freeEepromServos();
+    freeEepromDc();
+    freeEepromLeds();
+    freeEepromAnalogics();
+    freeEepromUltrasonics();
+    freeEepromDigitals();
+    freeEepromVariables();
+    freeRepeatBegins();
+}
+
+uint8_t callInterrupt(){
+        uint8_t it;
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+  int serialAvailable = Serial.available();
+  int serial1Available = Serial1.available();
+  if (serialAvailable > 0 || serial1Available > 0)
+  {
+    if (serialAvailable > 0)
+    {
+      it = Serial.read();
+    }
+    else if (serial1Available > 0)
+    {
+      it = Serial1.read();
+    }
+
+#else
+
+  if (Serial.available())
+  {
+    it = Serial.read();
+  }
+
+#endif
+if (it == versionCommand)
+    {
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write(((char)CURRENT_VERSION));
+#endif
+      Serial.write(((char)CURRENT_VERSION));
+    }else if(it==projectInit){
+        #ifdef __AVR_ATmega32U4__
+        resetMemory();
+      freeEEpromVolatileMemory();
+      return 1;
+#else
+      asm volatile("jmp 0");
+#endif
+    }else{
+        return 0;
+    }
+}
+
 void nairdaRunMachineState(uint8_t firstByte)
 {
-
-    switch (firstByte)
+    if(callInterrupt()==0){
+        switch (firstByte)
     {
     case delayCommand:
         runDelay();
@@ -509,4 +659,6 @@ void nairdaRunMachineState(uint8_t firstByte)
         runBreak();
         break;
     }
+    }
+    
 }

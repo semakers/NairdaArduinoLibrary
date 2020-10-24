@@ -9,6 +9,7 @@ Lanzado bajo licencia---
 #include "loadFromEeprom.h"
 #include "linked/LinkedList.h"
 #include "softpwm/SoftPWM.h"
+
 #ifndef __AVR_ATmega168__
 #include "ping/NewPing.h"
 #endif
@@ -19,7 +20,7 @@ Lanzado bajo licencia---
 #else
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
-#define CURRENT_VERSION 1
+
 
 bool declaratedDescriptor = false;
 bool declaratedServos = false;
@@ -34,6 +35,7 @@ bool executeDC = false;
 bool executeLed = false;
 int i;
 int tempValue;
+int runProgrammTimeOut=0;
 
 bool executeDCBoolean[3];
 short int executeDCBuffer[3];
@@ -41,11 +43,13 @@ short int executeDCBuffer[3];
 bool servoBoolean[7];
 bool dcBoolean[3];
 bool ultraosnicBoolean;
-bool savingBoolean[6];
+bool savingBoolean[4];
 
 short int servoBuffer[7];
 short int dcBuffer[3];
-short int savingBuffer[5];
+short int savingBuffer[4];
+uint32_t programmSize=0;
+uint32_t currentProgramOffset=0;
 
 void cleanServoBoolean()
 {
@@ -164,13 +168,14 @@ void resetMemory()
 
 void nairdaBegin(long int bauds)
 {
+  runProgrammTimeOut=millis();
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
   SoftPWMBegin();
-  loaddEepromDescriptor();
+  
 }
 
 uint8_t getMapedPin(uint8_t pin)
@@ -181,6 +186,10 @@ uint8_t getMapedPin(uint8_t pin)
 
 void nairdaLoop()
 {
+
+  if((millis()-runProgrammTimeOut)>650 && declaratedServos==false){
+    loaddEepromDescriptor();
+  }
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   int serialAvailable = Serial.available();
@@ -203,6 +212,45 @@ void nairdaLoop()
     tempValue = Serial.read();
 
 #endif
+
+       if (startSaving)
+    {
+      if (!savingBoolean[0])
+      {
+        savingBoolean[0] = true;
+        savingBuffer[0] = tempValue;
+      }
+      else if (!savingBoolean[1])
+      {
+        savingBoolean[1] = true;
+        savingBuffer[1] = tempValue;
+      }
+      else if (!savingBoolean[2])
+      {
+        savingBoolean[2] = true;
+        savingBuffer[2] = tempValue;
+        
+      }else if (!savingBoolean[3])
+      {
+        savingBoolean[3] = true;
+        savingBuffer[3] = tempValue;
+        writeByte(0, savingBuffer[0]);
+        writeByte(1, savingBuffer[1]);
+        writeByte(2, savingBuffer[2]);
+        writeByte(3, savingBuffer[3]);
+        programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
+        currentProgramOffset=4;
+      }else{
+        if(programmSize>0){
+           writeByte(currentProgramOffset, tempValue);
+           currentProgramOffset++;
+           programmSize--;
+        }else{
+          startSaving=false;
+        }
+        
+      }
+    }
 
     if (tempValue == projectInit)
     {
@@ -256,55 +304,7 @@ void nairdaLoop()
       declaratedDescriptor = true;
     }
 
-    if (startSaving && tempValue < 100)
-    {
-      if (!savingBoolean[0])
-      {
-        savingBoolean[0] = true;
-        savingBuffer[0] = tempValue;
-      }
-      else if (!savingBoolean[1])
-      {
-        savingBoolean[1] = true;
-        savingBuffer[1] = tempValue;
-      }
-      else if (!savingBoolean[2])
-      {
-        savingBoolean[2] = true;
-        savingBuffer[2] = tempValue;
-      }
-      else if (!savingBoolean[3])
-      {
-        savingBoolean[3] = true;
-        savingBuffer[3] = tempValue;
-      }
-      else if (!savingBoolean[4])
-      {
-        savingBoolean[4] = true;
-        savingBuffer[4] = tempValue;
-      }
-      else if (!savingBuffer[5])
-      {
-        savingBoolean[4] = true;
-        uint32_t firstSize = (savingBuffer[0] * 10000) + (savingBuffer[1] * 100) + savingBuffer[2];
-        uint32_t secondSize = (savingBuffer[3] * 10000) + (savingBuffer[4] * 100) + tempValue;
-
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-        Serial1.write((firstSize == secondSize) ? (char)200 : (char)100);
-#endif
-
-        Serial.write((firstSize == secondSize) ? (char)200 : (char)100);
-
-        if (firstSize != secondSize)
-        {
-          startSaving = false;
-          for (uint8_t i = 0; i < 6; i++)
-          {
-            avingBoolean[i] = false;
-          }
-        }
-      }
-    }
+ 
 
     else if (declaratedDescriptor == false && tempValue < 100)
     {
