@@ -598,6 +598,7 @@ uint8_t callInterrupt(){
     {
       it = Serial1.read();
     }
+  }
 
 #else
 
