@@ -398,7 +398,7 @@ void runIf()
     {
         eosBytes[i] = nextByte();
     }
-    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2];
+    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2]+4;
     if (conditionValue != 0)
     {
         nairdaRunMachineState(nextByte());
@@ -447,7 +447,7 @@ void runRepeat()
     }
     if (currentBegin == NULL)
     {
-        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2];
+        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2]+4;
         currentBegin= new repeatBegin(sos,eos,loop,times);
         //Serial.print("eos: ");
         //Serial.println(currentBegin->offsetEnd);

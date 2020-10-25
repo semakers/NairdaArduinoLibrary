@@ -21,6 +21,7 @@ Lanzado bajo licencia---
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
 
+enum {noMemory, memory1k, memory4k, memory256k,memory512k};
 
 bool declaratedDescriptor = false;
 bool declaratedServos = false;
@@ -163,6 +164,7 @@ void resetMemory()
   freeAnalogics();
   freeUltrasonics();
   freeDigitals();
+   runProgrammTimeOut=millis();
 }
 #endif
 
@@ -263,7 +265,27 @@ void nairdaLoop()
     }
     if (tempValue == saveCommand)
     {
+      uint8_t memoryType;
+       #if defined(__AVR_ATmega168__)
       startSaving = true;
+      memoryType=noMemory;
+      #endif
+
+      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
+      startSaving = true;
+      memoryType=memory1k;
+      #endif
+
+      #if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
+      startSaving = true;
+      memoryType=memory4k;
+      #endif
+
+      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+      Serial1.write(((char)memoryType));
+#endif
+      Serial.write(((char)memoryType));
+
     }
     else if (tempValue == versionCommand)
     {
