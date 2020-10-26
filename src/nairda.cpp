@@ -223,7 +223,7 @@ void nairdaLoop()
 
    #else
 
-   if((millis()-runProgrammTimeOut)>2000 && declaratedServos==false){
+   if((millis()-runProgrammTimeOut)>800 && declaratedServos==false){
     loaddEepromDescriptor();
   }
 
