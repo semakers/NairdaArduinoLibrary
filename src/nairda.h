@@ -331,6 +331,11 @@ public:
   }
 };
 
+#ifdef __AVR_ATmega32U4__
+
+void resetLeonardoMemory();
+
+#endif
 void resetMemory();
 uint8_t getMapedPin(uint8_t pin);
 void nairdaBegin(long int bauds);

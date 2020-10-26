@@ -52,7 +52,16 @@ short int savingBuffer[4];
 uint32_t programmSize=0;
 uint32_t currentProgramOffset=0;
 
+#ifdef __AVR_ATmega32U4__
+uint32_t asmOperations=0;
+
 void(* resetFunc) (void) = 0;
+
+void resetLeonardoMemory(){
+  resetFunc();
+}
+
+#endif
 
 
 void cleanServoBoolean()
@@ -167,18 +176,26 @@ void resetMemory()
   freeAnalogics();
   freeUltrasonics();
   freeDigitals();
-   runProgrammTimeOut=millis();
 }
 #endif
 
 void nairdaBegin(long int bauds)
 {
-  runProgrammTimeOut=millis();
+  
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
+
+   #ifdef __AVR_ATmega32U4__
+
+    resetOffset:
+        asmOperations=0;
+  resetFunc=&&resetOffset;
+
+  #endif
+  runProgrammTimeOut=millis();
   SoftPWMBegin();
   
 }
@@ -191,10 +208,29 @@ uint8_t getMapedPin(uint8_t pin)
 
 void nairdaLoop()
 {
+  /**/
 
-  if((millis()-runProgrammTimeOut)>800 && declaratedServos==false){
+   #ifdef __AVR_ATmega32U4__
+
+   if(asmOperations>100000 && declaratedServos==false){
+    loaddEepromDescriptor();
+  }else{
+    if(asmOperations<=100000){
+      asmOperations++;
+    }
+    
+  }
+
+   #else
+
+   if((millis()-runProgrammTimeOut)>2000 && declaratedServos==false){
     loaddEepromDescriptor();
   }
+
+
+   #endif
+
+  
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   int serialAvailable = Serial.available();
@@ -260,8 +296,8 @@ void nairdaLoop()
     if (tempValue == projectInit)
     {
 #ifdef __AVR_ATmega32U4__
-      //resetMemory();
-      resetFunc();
+      resetMemory();
+      //resetFunc();
 #else
       asm volatile("jmp 0");
 #endif
