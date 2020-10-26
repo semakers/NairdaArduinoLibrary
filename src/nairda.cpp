@@ -52,6 +52,9 @@ short int savingBuffer[4];
 uint32_t programmSize=0;
 uint32_t currentProgramOffset=0;
 
+void(* resetFunc) (void) = 0;
+
+
 void cleanServoBoolean()
 {
   for (int j = 0; j < 7; j++)
@@ -189,7 +192,7 @@ uint8_t getMapedPin(uint8_t pin)
 void nairdaLoop()
 {
 
-  if((millis()-runProgrammTimeOut)>650 && declaratedServos==false){
+  if((millis()-runProgrammTimeOut)>800 && declaratedServos==false){
     loaddEepromDescriptor();
   }
 
@@ -257,7 +260,8 @@ void nairdaLoop()
     if (tempValue == projectInit)
     {
 #ifdef __AVR_ATmega32U4__
-      resetMemory();
+      //resetMemory();
+      resetFunc();
 #else
       asm volatile("jmp 0");
 #endif

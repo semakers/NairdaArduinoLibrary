@@ -2,6 +2,7 @@
 #include "nairda.h"
 #include <EEPROM.h>
 
+void(* resetFunc2) (void) = 0;
 
 
 class repeatBegin
@@ -616,9 +617,10 @@ if (it == versionCommand)
       Serial.write(((char)CURRENT_VERSION));
     }else if(it==projectInit){
         #ifdef __AVR_ATmega32U4__
-        resetMemory();
-      freeEEpromVolatileMemory();
-      return 1;
+      //  resetMemory();
+      //freeEEpromVolatileMemory();
+      resetFunc2();
+      //return 1;
 #else
       asm volatile("jmp 0");
 #endif
