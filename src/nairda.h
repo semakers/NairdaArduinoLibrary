@@ -331,6 +331,13 @@ public:
   }
 };
 
+void freeServos();
+void freeDc();
+void freeLeds();
+void freeAnalogics();
+void freeUltrasonics();
+void freeDigitals();
+
 #ifdef __AVR_ATmega32U4__
 
 void resetLeonardoMemory();

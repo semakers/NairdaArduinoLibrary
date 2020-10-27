@@ -31,17 +31,17 @@ void nairdaRunMachineState(uint8_t firstByte);
 int32_t getInputValue(uint8_t firstByte);
 uint8_t callInterrupt();
 
-LinkedList<servo *> listEepromServos = LinkedList<servo *>();
-LinkedList<dc *> listEepromDC = LinkedList<dc *>();
-LinkedList<led *> listEepromLeds = LinkedList<led *>();
-LinkedList<analogic *> listEepromAnalogics = LinkedList<analogic *>();
-LinkedList<digital *> listEepromDigitals = LinkedList<digital *>();
-LinkedList<ultrasonic *> listEepromUltrasonics = LinkedList<ultrasonic *>();
-LinkedList<variable *> listEepromVariables = LinkedList<variable *>();
+extern LinkedList<servo *> listServos ;
+extern LinkedList<dc *> listDC ;
+extern LinkedList<led *> listLeds ;
+extern LinkedList<analogic *> listAnalogics ;
+extern LinkedList<digital *> listDigitals ;
+extern LinkedList<ultrasonic *> listUltrasonics ;
+LinkedList<variable *> listVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
 uint32_t currentOffset = 4;
-uint32_t eepromProgrammSize=0;
+uint32_t ProgrammSize=0;
 //uint8_t memory[91] = {101, 102, 13, 103, 104, 105, 106, 0, 0, 0, 0, 108, 126, 1, 109, 0, 0, 0, 0, 0, 0, 91, 120, 109, 0, 0, 10, 0, 121, 0, 114, 110, 0, 0, 109, 0, 0, 0, 1, 126, 0, 109, 0, 0, 0, 2, 0, 0, 76, 124, 0, 109, 0, 0, 1, 0, 120, 109, 0, 0, 5, 0, 124, 0, 109, 0, 0, 0, 0, 120, 109, 0, 0, 5, 0, 127, 125, 111, 110, 0, 0, 109, 0, 0, 0, 3, 0, 0, 90, 128, 127};
 //uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 0, 109, 0, 0, 0, 5, 0, 0, 45, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
 
@@ -57,7 +57,7 @@ uint8_t readByte(uint32_t address){
 
 uint8_t nextByte()
 {
-    if (currentOffset == (eepromProgrammSize+4))
+    if (currentOffset == (ProgrammSize+4))
     {
         while (1)
         {
@@ -71,11 +71,11 @@ uint8_t nextByte()
     return auxByte;
 }
 
-void loaddEepromDescriptor()
+void loadEepromDescriptor()
 {
     
     if(readByte(0)==1){
-        eepromProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
+        ProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
         nextServo();
     }
 }
@@ -96,7 +96,7 @@ void nextServo()
             servoBytes[i] = nextByte();
         }
         servo *tempServo = new servo(getMapedPin(servoBytes[0]), (servoBytes[1] * 100) + servoBytes[2], (servoBytes[3] * 100) + servoBytes[4], (servoBytes[5] * 100) + servoBytes[6]);
-        listEepromServos.add(tempServo);
+        listServos.add(tempServo);
         nextServo();
     }
 }
@@ -117,7 +117,7 @@ void nextDC()
             dcBytes[i] = nextByte();
         }
         dc *tempDC = new dc(getMapedPin(dcBytes[0]), getMapedPin(dcBytes[1]), getMapedPin(dcBytes[2]));
-        listEepromDC.add(tempDC);
+        listDC.add(tempDC);
         nextDC();
     }
 }
@@ -132,7 +132,7 @@ void nextLed()
     else
     {
         led *tempLed = new led(getMapedPin(firstByte));
-        listEepromLeds.add(tempLed);
+        listLeds.add(tempLed);
         nextLed();
     }
 }
@@ -147,7 +147,7 @@ void nextAnalogic()
     else
     {
         analogic *tempAnalogic = new analogic(getMapedPin(firstByte));
-        listEepromAnalogics.add(tempAnalogic);
+        listAnalogics.add(tempAnalogic);
         nextAnalogic();
     }
 }
@@ -162,7 +162,7 @@ void nextDigital()
     else
     {
         digital *tempDigital = new digital(getMapedPin(firstByte));
-        listEepromDigitals.add(tempDigital);
+        listDigitals.add(tempDigital);
         nextDigital();
     }
 }
@@ -183,7 +183,7 @@ void nextUltra()
             ultraBytes[i] = nextByte();
         }
         ultrasonic *tempUltrasonic = new ultrasonic(getMapedPin(ultraBytes[0]), getMapedPin(ultraBytes[1]));
-        listEepromUltrasonics.add(tempUltrasonic);
+        listUltrasonics.add(tempUltrasonic);
         nextUltra();
     }
 }
@@ -205,7 +205,7 @@ void nextVariable()
         }
         int32_t positiveValue = (varBytes[1] * 10000) + (varBytes[2] * 100) + varBytes[3];
         variable *tempVariable = new variable(varBytes[0] == 0 ? positiveValue : (positiveValue * -1));
-        listEepromVariables.add(tempVariable);
+        listVariables.add(tempVariable);
         nextVariable();
     }
 }
@@ -223,7 +223,7 @@ int32_t getValue()
 
 int32_t getVariableValue()
 {
-    return listEepromVariables.get(nextByte())->value;
+    return listVariables.get(nextByte())->value;
 }
 
 int32_t getComparatorValue()
@@ -309,17 +309,17 @@ int32_t getMapValue()
 
 int32_t getAnalogicValue()
 {
-    return listEepromAnalogics.get(nextByte())->getValue();
+    return listAnalogics.get(nextByte())->getValue();
 }
 
 int32_t getDigitalValue()
 {
-    return listEepromDigitals.get(nextByte())->getValue();
+    return listDigitals.get(nextByte())->getValue();
 }
 
 int32_t getUltraValue()
 {
-    return listEepromUltrasonics.get(nextByte())->getValue();
+    return listUltrasonics.get(nextByte())->getValue();
 }
 
 int32_t getInputValue(uint8_t firstByte)
@@ -363,13 +363,13 @@ void runDelay()
 
 void runSetVatValue(uint8_t id)
 {
-    listEepromVariables.get(id)->setvalue(getInputValue(nextByte()));
+    listVariables.get(id)->setvalue(getInputValue(nextByte()));
     nairdaRunMachineState(nextByte());
 }
 
 void runServo(uint8_t id)
 {
-    listEepromServos.get(id)->setRawPos(getInputValue(nextByte()));
+    listServos.get(id)->setRawPos(getInputValue(nextByte()));
     nairdaRunMachineState(nextByte());
 }
 
@@ -377,8 +377,8 @@ void runMotorDc(uint8_t id)
 {
     int32_t vel = getInputValue(nextByte());
     vel = (vel < 0) ? 0 : (vel > 100) ? 100 : vel;
-    listEepromDC.get(id)->setVel(vel);
-    listEepromDC.get(id)->setMove(nextByte());
+    listDC.get(id)->setVel(vel);
+    listDC.get(id)->setMove(nextByte());
     nairdaRunMachineState(nextByte());
 }
 
@@ -386,7 +386,7 @@ void runLed(uint8_t id)
 {
     int32_t intensity = getInputValue(nextByte());
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100 : intensity;
-    listEepromLeds.get(id)->setPWM(intensity);
+    listLeds.get(id)->setPWM(intensity);
     nairdaRunMachineState(nextByte());
 }
 
@@ -496,71 +496,15 @@ void runBreak()
     nairdaRunMachineState(nextByte());
 }
 
-void freeEepromServos()
-{
-  for (int i = 0; i < listEepromServos.size(); i++)
-  {
-    listEepromServos.get(i)->off();
-    free(listEepromServos.get(i));
-  }
-  listEepromServos.clear();
-}
 
-void freeEepromDc()
-{
-  for (int i = 0; i < listEepromDC.size(); i++)
-  {
-    listEepromDC.get(i)->off();
-    free(listEepromDC.get(i));
-  }
-  listEepromDC.clear();
-}
 
-void freeEepromLeds()
+void freeVariables()
 {
-  for (int i = 0; i < listEepromLeds.size(); i++)
+  for (int i = 0; i < listVariables.size(); i++)
   {
-    listEepromLeds.get(i)->off();
-    free(listEepromLeds.get(i));
+    free(listVariables.get(i));
   }
-  listEepromLeds.clear();
-}
-
-void freeEepromAnalogics()
-{
-  for (int i = 0; i < listEepromAnalogics.size(); i++)
-  {
-    free(listEepromAnalogics.get(i));
-  }
-  listEepromAnalogics.clear();
-}
-
-void freeEepromUltrasonics()
-{
-  for (int i = 0; i < listEepromUltrasonics.size(); i++)
-  {
-    listEepromUltrasonics.get(i)->off();
-    free(listEepromUltrasonics.get(i));
-  }
-  listEepromUltrasonics.clear();
-}
-
-void freeEepromDigitals()
-{
-  for (int i = 0; i < listEepromDigitals.size(); i++)
-  {
-    free(listEepromDigitals.get(i));
-  }
-  listEepromDigitals.clear();
-}
-
-void freeEepromVariables()
-{
-  for (int i = 0; i < listEepromVariables.size(); i++)
-  {
-    free(listEepromVariables.get(i));
-  }
-  listEepromVariables.clear();
+  listVariables.clear();
 }
 
 void freeRepeatBegins()
@@ -574,16 +518,16 @@ void freeRepeatBegins()
 
 #ifdef __AVR_ATmega32U4__
 
-void freeEEpromVolatileMemory(){
+void freeVolatileMemory(){
     currentOffset=4;
-    eepromProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
-    freeEepromServos();
-    freeEepromDc();
-    freeEepromLeds();
-    freeEepromAnalogics();
-    freeEepromUltrasonics();
-    freeEepromDigitals();
-    freeEepromVariables();
+    ProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
+    freeServos();
+    freeDc();
+    freeLeds();
+    freeAnalogics();
+    freeUltrasonics();
+    freeDigitals();
+    freeVariables();
     freeRepeatBegins();
     resetLeonardoMemory();
 }
@@ -624,7 +568,7 @@ if (it == versionCommand)
     }else if(it==projectInit){
         #ifdef __AVR_ATmega32U4__
         resetMemory();
-        freeEEpromVolatileMemory();
+        freeVolatileMemory();
       //resetFunc2();
       return 1;
 #else
