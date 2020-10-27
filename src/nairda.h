@@ -2,15 +2,18 @@
 #define nairda_h
 #include "linked/LinkedList.h"
 #include "softpwm/SoftPWM.h"
-#ifndef __AVR_ATmega168__
+
 #include "ping/NewPing.h"
-#endif
 #if defined(ARDUINO_ARCH_AVR)
 #include "avr/Servo.h"
 #elif defined(ARDUINO_ARCH_SAM)
 #include "sam/Servo.h"
 #else
 #error "This library only supports boards with an AVR or SAM processor."
+#endif
+
+#ifdef __AVR_ATmega168__
+#error "Nairda dont support atmega 168. "
 #endif
 
 #define projectInit 100
