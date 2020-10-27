@@ -2,8 +2,6 @@
 #include "nairda.h"
 #include <EEPROM.h>
 
-
-
 class repeatBegin
 {
 public:
@@ -11,12 +9,12 @@ public:
     uint32_t offsetEnd;
     uint8_t loop;
     uint32_t times;
-    repeatBegin(uint32_t cOffsetStart,uint32_t cOffsetEnd,uint8_t cLoop,uint32_t cTimes)
+    repeatBegin(uint32_t cOffsetStart, uint32_t cOffsetEnd, uint8_t cLoop, uint32_t cTimes)
     {
-        offsetStart=cOffsetStart;
-        offsetEnd=cOffsetEnd;
-        loop=cLoop;
-        times=cTimes;
+        offsetStart = cOffsetStart;
+        offsetEnd = cOffsetEnd;
+        loop = cLoop;
+        times = cTimes;
     }
 };
 
@@ -31,33 +29,33 @@ void nairdaRunMachineState(uint8_t firstByte);
 int32_t getInputValue(uint8_t firstByte);
 uint8_t callInterrupt();
 
-extern LinkedList<component *> listServos ;
-extern LinkedList<component *> listDC ;
-extern LinkedList<component *> listLeds ;
-extern LinkedList<component *> listAnalogics ;
-extern LinkedList<component *> listDigitals ;
-extern LinkedList<component *> listUltrasonics ;
+extern LinkedList<component *> listServos;
+extern LinkedList<component *> listDC;
+extern LinkedList<component *> listLeds;
+extern LinkedList<component *> listAnalogics;
+extern LinkedList<component *> listDigitals;
+extern LinkedList<component *> listUltrasonics;
 LinkedList<variable *> listVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
 uint32_t currentOffset = 4;
-uint32_t ProgrammSize=0;
-//uint8_t memory[91] = {101, 102, 13, 103, 104, 105, 106, 0, 0, 0, 0, 108, 126, 1, 109, 0, 0, 0, 0, 0, 0, 91, 120, 109, 0, 0, 10, 0, 121, 0, 114, 110, 0, 0, 109, 0, 0, 0, 1, 126, 0, 109, 0, 0, 0, 2, 0, 0, 76, 124, 0, 109, 0, 0, 1, 0, 120, 109, 0, 0, 5, 0, 124, 0, 109, 0, 0, 0, 0, 120, 109, 0, 0, 5, 0, 127, 125, 111, 110, 0, 0, 109, 0, 0, 0, 3, 0, 0, 90, 128, 127};
-//uint8_t memory[45] = {101, 102, 13, 103, 104, 105, 106, 108, 126, 0, 109, 0, 0, 0, 5, 0, 0, 45, 124, 0, 109, 0, 0, 0, 50, 120, 109, 0, 0, 10, 0, 124, 0, 109, 0, 0, 0, 0,120, 109, 0, 0, 10, 0, 127};
+uint32_t ProgrammSize = 0;
+extern uint16_t descArgsBuffer[5];
+extern uint32_t execBuffer[2];
 
-
-void writeByte(unsigned long int address,unsigned short int byte){
- EEPROM.update(address, byte);
+void writeByte(unsigned long int address, unsigned short int byte)
+{
+    EEPROM.update(address, byte);
 }
 
-uint8_t readByte(uint32_t address){
+uint8_t readByte(uint32_t address)
+{
     return EEPROM[address];
 }
 
-
 uint8_t nextByte()
 {
-    if (currentOffset == (ProgrammSize+4))
+    if (currentOffset == (ProgrammSize + 4))
     {
         while (1)
         {
@@ -73,8 +71,9 @@ uint8_t nextByte()
 
 void loadEepromDescriptor()
 {
-    if(readByte(0)==1){
-        ProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
+    if (readByte(0) == 1)
+    {
+        ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         nextServo();
     }
 }
@@ -94,7 +93,13 @@ void nextServo()
         {
             servoBytes[i] = nextByte();
         }
-        servo *tempServo = new servo(getMapedPin(servoBytes[0]), (servoBytes[1] * 100) + servoBytes[2], (servoBytes[3] * 100) + servoBytes[4], (servoBytes[5] * 100) + servoBytes[6]);
+        descArgsBuffer[0] = SERVO;
+        descArgsBuffer[1] = getMapedPin(servoBytes[0]);
+        descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
+        descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
+        descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
+        component *tempServo = new component(descArgsBuffer);
+
         listServos.add(tempServo);
         nextServo();
     }
@@ -115,7 +120,14 @@ void nextDC()
         {
             dcBytes[i] = nextByte();
         }
-        dc *tempDC = new dc(getMapedPin(dcBytes[0]), getMapedPin(dcBytes[1]), getMapedPin(dcBytes[2]));
+
+        descArgsBuffer[0] = MOTOR;
+        descArgsBuffer[1] = getMapedPin(dcBytes[0]);
+        descArgsBuffer[2] = getMapedPin(dcBytes[1]);
+        descArgsBuffer[3] = getMapedPin(dcBytes[2]);
+
+        component *tempDC = new component(descArgsBuffer);
+
         listDC.add(tempDC);
         nextDC();
     }
@@ -130,7 +142,9 @@ void nextLed()
     }
     else
     {
-        led *tempLed = new led(getMapedPin(firstByte));
+        descArgsBuffer[0] = LED;
+        descArgsBuffer[1] = getMapedPin(firstByte);
+        component *tempLed = new component(descArgsBuffer);
         listLeds.add(tempLed);
         nextLed();
     }
@@ -145,7 +159,9 @@ void nextAnalogic()
     }
     else
     {
-        analogic *tempAnalogic = new analogic(getMapedPin(firstByte));
+        descArgsBuffer[0] = ANALOGIC;
+        descArgsBuffer[1] = getMapedPin(firstByte);
+        component *tempAnalogic = new component(descArgsBuffer);
         listAnalogics.add(tempAnalogic);
         nextAnalogic();
     }
@@ -160,7 +176,9 @@ void nextDigital()
     }
     else
     {
-        digital *tempDigital = new digital(getMapedPin(firstByte));
+        descArgsBuffer[0] = DIGITAL;
+        descArgsBuffer[1] = getMapedPin(firstByte);
+        component *tempDigital = new component(descArgsBuffer);
         listDigitals.add(tempDigital);
         nextDigital();
     }
@@ -181,7 +199,10 @@ void nextUltra()
         {
             ultraBytes[i] = nextByte();
         }
-        ultrasonic *tempUltrasonic = new ultrasonic(getMapedPin(ultraBytes[0]), getMapedPin(ultraBytes[1]));
+        descArgsBuffer[0] = ULTRASONIC;
+        descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
+        descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
+        component *tempUltrasonic = new component(descArgsBuffer);
         listUltrasonics.add(tempUltrasonic);
         nextUltra();
     }
@@ -308,17 +329,17 @@ int32_t getMapValue()
 
 int32_t getAnalogicValue()
 {
-    return listAnalogics.get(nextByte())->getValue();
+    return listAnalogics.get(nextByte())->getSensVal(ANALOGIC);
 }
 
 int32_t getDigitalValue()
 {
-    return listDigitals.get(nextByte())->getValue();
+    return listDigitals.get(nextByte())->getSensVal(DIGITAL);
 }
 
 int32_t getUltraValue()
 {
-    return listUltrasonics.get(nextByte())->getValue();
+    return listUltrasonics.get(nextByte())->getSensVal(ULTRASONIC);
 }
 
 int32_t getInputValue(uint8_t firstByte)
@@ -352,9 +373,10 @@ int32_t getInputValue(uint8_t firstByte)
 
 void runDelay()
 {
-    uint32_t currentTime=millis();
-    uint32_t delayTime=getInputValue(nextByte());
-    while((millis()-currentTime)<delayTime){
+    uint32_t currentTime = millis();
+    uint32_t delayTime = getInputValue(nextByte());
+    while ((millis() - currentTime) < delayTime)
+    {
         callInterrupt();
     }
     nairdaRunMachineState(nextByte());
@@ -368,7 +390,8 @@ void runSetVatValue(uint8_t id)
 
 void runServo(uint8_t id)
 {
-    listServos.get(id)->setRawPos(getInputValue(nextByte()));
+    execBuffer[0]=getInputValue(nextByte());
+    listServos.get(id)->execAct(execBuffer,SERVO);
     nairdaRunMachineState(nextByte());
 }
 
@@ -376,8 +399,11 @@ void runMotorDc(uint8_t id)
 {
     int32_t vel = getInputValue(nextByte());
     vel = (vel < 0) ? 0 : (vel > 100) ? 100 : vel;
-    listDC.get(id)->setVel(vel);
-    listDC.get(id)->setMove(nextByte());
+
+    execBuffer[0]=vel;
+    execBuffer[1]=nextByte();
+    
+    listDC.get(id)->execAct(execBuffer,MOTOR);
     nairdaRunMachineState(nextByte());
 }
 
@@ -385,7 +411,8 @@ void runLed(uint8_t id)
 {
     int32_t intensity = getInputValue(nextByte());
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100 : intensity;
-    listLeds.get(id)->setPWM(intensity);
+    execBuffer[0]=intensity;
+    listLeds.get(id)->execAct(execBuffer,LED);
     nairdaRunMachineState(nextByte());
 }
 
@@ -397,7 +424,7 @@ void runIf()
     {
         eosBytes[i] = nextByte();
     }
-    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2]+4;
+    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
     if (conditionValue != 0)
     {
         nairdaRunMachineState(nextByte());
@@ -435,7 +462,7 @@ uint8_t findRepeatBeginIndex(uint32_t repeatStartOffset)
 
 void runRepeat()
 {
-    uint32_t sos=currentOffset-1;
+    uint32_t sos = currentOffset - 1;
     repeatBegin *currentBegin = findRepeatBegin(sos);
     uint8_t loop = nextByte();
     int32_t times = getInputValue(nextByte());
@@ -446,8 +473,8 @@ void runRepeat()
     }
     if (currentBegin == NULL)
     {
-        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2]+4;
-        currentBegin= new repeatBegin(sos,eos,loop,times);
+        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
+        currentBegin = new repeatBegin(sos, eos, loop, times);
         //Serial.print("eos: ");
         //Serial.println(currentBegin->offsetEnd);
         listRepeatBegins.add(currentBegin);
@@ -458,7 +485,7 @@ void runRepeat()
 
     if (currentBegin->loop == 0)
     {
-        
+
         if (currentBegin->times == 0)
         {
             currentOffset = currentBegin->offsetEnd;
@@ -495,37 +522,30 @@ void runBreak()
     nairdaRunMachineState(nextByte());
 }
 
-
-
 void freeVariables()
 {
-  for (int i = 0; i < listVariables.size(); i++)
-  {
-    free(listVariables.get(i));
-  }
-  listVariables.clear();
+    for (int i = 0; i < listVariables.size(); i++)
+    {
+        free(listVariables.get(i));
+    }
+    listVariables.clear();
 }
 
 void freeRepeatBegins()
 {
-  for (int i = 0; i < listRepeatBegins.size(); i++)
-  {
-    free(listRepeatBegins.get(i));
-  }
-  listRepeatBegins.clear();
+    for (int i = 0; i < listRepeatBegins.size(); i++)
+    {
+        free(listRepeatBegins.get(i));
+    }
+    listRepeatBegins.clear();
 }
 
 #ifdef __AVR_ATmega32U4__
 
-void freeVolatileMemory(){
-    currentOffset=4;
-    ProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
-    freeServos();
-    freeDc();
-    freeLeds();
-    freeAnalogics();
-    freeUltrasonics();
-    freeDigitals();
+void freeVolatileMemory()
+{
+    currentOffset = 4;
+    ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
     freeVariables();
     freeRepeatBegins();
     resetLeonardoMemory();
@@ -533,84 +553,88 @@ void freeVolatileMemory(){
 
 #endif
 
-uint8_t callInterrupt(){
-        uint8_t it;
-    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-  int serialAvailable = Serial.available();
-  int serial1Available = Serial1.available();
-  if (serialAvailable > 0 || serial1Available > 0)
-  {
-    if (serialAvailable > 0)
+uint8_t callInterrupt()
+{
+    uint8_t it;
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+    int serialAvailable = Serial.available();
+    int serial1Available = Serial1.available();
+    if (serialAvailable > 0 || serial1Available > 0)
     {
-      it = Serial.read();
+        if (serialAvailable > 0)
+        {
+            it = Serial.read();
+        }
+        else if (serial1Available > 0)
+        {
+            it = Serial1.read();
+        }
     }
-    else if (serial1Available > 0)
-    {
-      it = Serial1.read();
-    }
-  }
 
 #else
 
-  if (Serial.available())
-  {
-    it = Serial.read();
-  }
+    if (Serial.available())
+    {
+        it = Serial.read();
+    }
 
 #endif
-if (it == versionCommand)
+    if (it == versionCommand)
     {
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write(((char)CURRENT_VERSION));
+        Serial1.write(((char)CURRENT_VERSION));
 #endif
-      Serial.write(((char)CURRENT_VERSION));
-    }else if(it==projectInit){
-        #ifdef __AVR_ATmega32U4__
+        Serial.write(((char)CURRENT_VERSION));
+    }
+    else if (it == projectInit)
+    {
+#ifdef __AVR_ATmega32U4__
         resetMemory();
         freeVolatileMemory();
-      //resetFunc2();
-      return 1;
+        return 1;
 #else
-      asm volatile("jmp 0");
+        asm volatile("jmp 0");
 #endif
-    }else{
+    }
+    else
+    {
         return 0;
     }
 }
 
 void nairdaRunMachineState(uint8_t firstByte)
 {
-    if(callInterrupt()==0){
-        switch (firstByte)
+    if (callInterrupt() == 0)
     {
-    case delayCommand:
-        runDelay();
-        break;
-    case setVarValueCommand:
-        runSetVatValue(nextByte());
-        break;
-    case servoCommand:
-        runServo(nextByte());
-        break;
-    case motorDcCommand:
-        runMotorDc(nextByte());
-        break;
-    case ledCommand:
-        runLed(nextByte());
-        break;
-    case ifCommand:
-        runIf();
-        break;
-    case repeatCommand:
-        runRepeat();
-        break;
-    case endRepeatCommand:
-        runEndRepeat();
-        break;
-    case breakCommand:
-        runBreak();
-        break;
+        switch (firstByte)
+        {
+        case delayCommand:
+            runDelay();
+            break;
+        case setVarValueCommand:
+            runSetVatValue(nextByte());
+            break;
+        case servoCommand:
+            runServo(nextByte());
+            break;
+        case motorDcCommand:
+            runMotorDc(nextByte());
+            break;
+        case ledCommand:
+            runLed(nextByte());
+            break;
+        case ifCommand:
+            runIf();
+            break;
+        case repeatCommand:
+            runRepeat();
+            break;
+        case endRepeatCommand:
+            runEndRepeat();
+            break;
+        case breakCommand:
+            runBreak();
+            break;
+        }
     }
-    }
-    
 }

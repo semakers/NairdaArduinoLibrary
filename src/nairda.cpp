@@ -21,7 +21,14 @@ Lanzado bajo licencia---
 #error "This library only supports boards with an AVR or SAM processor."
 #endif
 
-enum {noMemory, memory1k, memory4k, memory256k,memory512k};
+enum
+{
+  noMemory,
+  memory1k,
+  memory4k,
+  memory256k,
+  memory512k
+};
 
 bool declaratedDescriptor = false;
 bool declaratedServos = false;
@@ -36,7 +43,7 @@ bool executeDC = false;
 bool executeLed = false;
 int i;
 int tempValue;
-int runProgrammTimeOut=0;
+int runProgrammTimeOut = 0;
 
 bool executeDCBoolean[3];
 short int executeDCBuffer[3];
@@ -49,20 +56,24 @@ bool savingBoolean[4];
 short int servoBuffer[7];
 short int dcBuffer[3];
 short int savingBuffer[4];
-int32_t programmSize=0;
-uint32_t currentProgramOffset=0;
+
+uint16_t descArgsBuffer[5];
+int32_t execBuffer[2];
+
+int32_t programmSize = 0;
+uint32_t currentProgramOffset = 0;
 
 #ifdef __AVR_ATmega32U4__
-uint32_t asmOperations=0;
+uint32_t asmOperations = 0;
 
-void(* resetFunc) (void) = 0;
+void (*resetFunc)(void) = 0;
 
-void resetLeonardoMemory(){
+void resetLeonardoMemory()
+{
   resetFunc();
 }
 
 #endif
-
 
 void cleanServoBoolean()
 {
@@ -103,8 +114,8 @@ LinkedList<component *> listAnalogics = LinkedList<component *>();
 LinkedList<component *> listDigitals = LinkedList<component *>();
 LinkedList<component *> listUltrasonics = LinkedList<component *>();
 
-
-void freeCompList(LinkedList<component *> list,uint8_t type){
+void freeCompList(LinkedList<component *> list, uint8_t type)
+{
   for (int i = 0; i < list.size(); i++)
   {
     list.get(i)->off(type);
@@ -129,34 +140,31 @@ void resetMemory()
   cleanDCBoolean();
   cleanExecuteDCBoolean();
   cleanSavingBoolean();
-  freeCompList(listServos,SERVO);
-  freeCompList(listDC,MOTOR);
-  freeCompList(listLeds,LED);
-  freeCompList(listAnalogics,ANALOGIC);
-  freeCompList(listDigitals,DIGITAL);
-  freeCompList(listUltrasonics,ULTRASONIC);
-  
+  freeCompList(listServos, SERVO);
+  freeCompList(listDC, MOTOR);
+  freeCompList(listLeds, LED);
+  freeCompList(listAnalogics, ANALOGIC);
+  freeCompList(listDigitals, DIGITAL);
+  freeCompList(listUltrasonics, ULTRASONIC);
 }
 
 void nairdaBegin(long int bauds)
 {
-  
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
 
-   #ifdef __AVR_ATmega32U4__
+#ifdef __AVR_ATmega32U4__
 
-    resetOffset:
-        asmOperations=0;
-  resetFunc=&&resetOffset;
+resetOffset:
+  asmOperations = 0;
+  resetFunc = &&resetOffset;
 
-  #endif
-  runProgrammTimeOut=millis();
+#endif
+  runProgrammTimeOut = millis();
   SoftPWMBegin();
-  
 }
 
 uint8_t getMapedPin(uint8_t pin)
@@ -169,27 +177,28 @@ void nairdaLoop()
 {
   /**/
 
-   #ifdef __AVR_ATmega32U4__
+#ifdef __AVR_ATmega32U4__
 
-   if(asmOperations>200000 && declaratedServos==false){
+  if (asmOperations > 200000 && declaratedServos == false)
+  {
     loadEepromDescriptor();
-  }else{
-    if(asmOperations<=200000){
+  }
+  else
+  {
+    if (asmOperations <= 200000)
+    {
       asmOperations++;
     }
-    
   }
 
-   #else
+#else
 
-   if((millis()-runProgrammTimeOut)>800 && declaratedServos==false){
+  if ((millis() - runProgrammTimeOut) > 800 && declaratedServos == false)
+  {
     loadEepromDescriptor();
   }
 
-
-   #endif
-
-  
+#endif
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   int serialAvailable = Serial.available();
@@ -213,8 +222,6 @@ void nairdaLoop()
 
 #endif
 
-    
-
     if (tempValue == projectInit)
     {
 #ifdef __AVR_ATmega32U4__
@@ -228,28 +235,27 @@ void nairdaLoop()
     if (tempValue == saveCommand)
     {
       uint8_t memoryType;
-       #if defined(__AVR_ATmega168__)
+#if defined(__AVR_ATmega168__)
       startSaving = true;
-      memoryType=noMemory;
-      #endif
+      memoryType = noMemory;
+#endif
 
-      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
       startSaving = true;
-      memoryType=memory1k;
-      #endif
+      memoryType = memory1k;
+#endif
 
-      #if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
+#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       startSaving = true;
-      memoryType=memory4k;
-      #endif
+      memoryType = memory4k;
+#endif
 
-      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write(((char)memoryType));
 #endif
       Serial.write(((char)memoryType));
-
     }
-    else    if (startSaving)
+    else if (startSaving)
     {
       if (!savingBoolean[0])
       {
@@ -265,8 +271,8 @@ void nairdaLoop()
       {
         savingBoolean[2] = true;
         savingBuffer[2] = tempValue;
-        
-      }else if (!savingBoolean[3])
+      }
+      else if (!savingBoolean[3])
       {
         savingBoolean[3] = true;
         savingBuffer[3] = tempValue;
@@ -275,18 +281,22 @@ void nairdaLoop()
         writeByte(2, savingBuffer[2]);
         writeByte(3, savingBuffer[3]);
         programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
-        currentProgramOffset=4;
-      }else{
-        if(programmSize>1){
-           writeByte(currentProgramOffset, tempValue);
-           currentProgramOffset++;
-           programmSize--;
-        }else{
+        currentProgramOffset = 4;
+      }
+      else
+      {
+        if (programmSize > 1)
+        {
           writeByte(currentProgramOffset, tempValue);
-          startSaving=false;
+          currentProgramOffset++;
+          programmSize--;
+        }
+        else
+        {
+          writeByte(currentProgramOffset, tempValue);
+          startSaving = false;
           cleanSavingBoolean();
         }
-        
       }
     }
     else if (tempValue == versionCommand)
@@ -328,8 +338,6 @@ void nairdaLoop()
       declaratedDescriptor = true;
     }
 
- 
-
     else if (declaratedDescriptor == false && tempValue < 100)
     {
       if (declaratedServos == false)
@@ -369,17 +377,15 @@ void nairdaLoop()
         {
           servoBoolean[6] = true;
           servoBuffer[6] = tempValue;
-          servo *tempServo = new servo(getMapedPin(servoBuffer[0]), (servoBuffer[1] * 100) + servoBuffer[2], (servoBuffer[3] * 100) + servoBuffer[4], (servoBuffer[5] * 100) + servoBuffer[6]);
+
+          descArgsBuffer[0] = SERVO;
+          descArgsBuffer[1] = getMapedPin(servoBuffer[0]);
+          descArgsBuffer[2] = (servoBuffer[1] * 100) + servoBuffer[2];
+          descArgsBuffer[3] = (servoBuffer[3] * 100) + servoBuffer[4];
+          descArgsBuffer[4] = (servoBuffer[5] * 100) + servoBuffer[6];
+          component *tempServo = new component(descArgsBuffer);
           listServos.add(tempServo);
           cleanServoBoolean();
-
-          /*Serial.print(tempServo->pin);
-          Serial.print(" : ");
-          Serial.print(tempServo->pmin);
-          Serial.print(" : ");
-          Serial.print(tempServo->pmax);
-          Serial.print(" : ");
-          Serial.println(tempServo->dpos);*/
         }
       }
       else if (declaratedDC == false && tempValue < 100)
@@ -399,33 +405,36 @@ void nairdaLoop()
         {
           dcBoolean[2] = true;
           dcBuffer[2] = tempValue;
-          dc *tempDC = new dc(getMapedPin(dcBuffer[0]), getMapedPin(dcBuffer[1]), getMapedPin(dcBuffer[2]));
+
+          descArgsBuffer[0] = MOTOR;
+          descArgsBuffer[1] = getMapedPin(servoBuffer[0]);
+          descArgsBuffer[2] = getMapedPin(servoBuffer[1]);
+          descArgsBuffer[3] = getMapedPin(servoBuffer[2]);
+
+          component *tempDC = new component(descArgsBuffer);
           listDC.add(tempDC);
           cleanDCBoolean();
-
-          /*Serial.print("se agrego el motor DC ");
-          Serial.print(tempDC->a);
-          Serial.print(" : ");
-          Serial.print(tempDC->b);
-          Serial.print(" : ");
-          Serial.println(tempDC->pwm);*/
         }
       }
       else if (declaratedLeds == false && tempValue < 100)
       {
-        led *tempLed = new led(getMapedPin(tempValue));
+        descArgsBuffer[0] = LED;
+        descArgsBuffer[1] = getMapedPin(tempValue);
+        component *tempLed = new component(descArgsBuffer);
         listLeds.add(tempLed);
-        //Serial.print("se agrego el led ");
-        //Serial.println(tempLed->pin);
       }
       else if (declaratedAnalogics == false && tempValue < 100)
       {
-        analogic *tempAnalogic = new analogic(getMapedPin(tempValue));
+        descArgsBuffer[0] = ANALOGIC;
+        descArgsBuffer[1] = getMapedPin(tempValue);
+        component *tempAnalogic = new component(descArgsBuffer);
         listAnalogics.add(tempAnalogic);
       }
       else if (declaratedDigitals == false && tempValue < 100)
       {
-        digital *tempDigital = new digital(getMapedPin(tempValue));
+        descArgsBuffer[0] = DIGITAL;
+        descArgsBuffer[1] = getMapedPin(tempValue);
+        component *tempDigital = new component(descArgsBuffer);
         listDigitals.add(tempDigital);
       }
       else if (declaratedUltrasonics == false && tempValue < 100)
@@ -437,7 +446,10 @@ void nairdaLoop()
         }
         else
         {
-          ultrasonic *tempUltrasonic = new ultrasonic(getMapedPin(i), getMapedPin(tempValue));
+          descArgsBuffer[0] = ULTRASONIC;
+          descArgsBuffer[1] = getMapedPin(i);
+          descArgsBuffer[2] = getMapedPin(tempValue);
+          component *tempUltrasonic = new component(descArgsBuffer);
           listUltrasonics.add(tempUltrasonic);
           ultraosnicBoolean = false;
         }
@@ -472,17 +484,17 @@ void nairdaLoop()
         else if (tempValue >= indexLeds && tempValue < indexAnalogics && listAnalogics.size() > 0)
         {
           int tempPin = tempValue - indexLeds;
-          listAnalogics.get(tempPin)->sendValue();
+          listAnalogics.get(tempPin)->sendSensVal(ANALOGIC);
         }
         else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitals.size() > 0)
         {
           int tempPin = tempValue - indexAnalogics;
-          listDigitals.get(tempPin)->sendValue();
+          listDigitals.get(tempPin)->sendSensVal(DIGITAL);
         }
         else if (tempValue >= indexDigitals && tempValue < indexUltraosnics && listUltrasonics.size() > 0)
         {
           int tempPin = tempValue - indexDigitals;
-          listUltrasonics.get(tempPin)->sendValue();
+          listUltrasonics.get(tempPin)->sendSensVal(ULTRASONIC);
         }
       }
       else
@@ -490,7 +502,8 @@ void nairdaLoop()
         if (executeServo == true)
         {
           //adquirir valores para la ejecucion del servo
-          listServos.get(i)->setPos(tempValue);
+          execBuffer[0]=map(tempValue, 0, 99, 0, 180);
+          listServos.get(i)->execAct(execBuffer,SERVO);
           executeServo = false;
         }
         else if (executeDC == true)
@@ -505,22 +518,19 @@ void nairdaLoop()
           {
             executeDCBoolean[1] = true;
             executeDCBuffer[2] = tempValue;
-            listDC.get(executeDCBuffer[0])->setVel(executeDCBuffer[1]);
-            listDC.get(executeDCBuffer[0])->setMove(executeDCBuffer[2]);
-            /*Serial.print(" se ejecuto el motor");
-            Serial.print(" : ");
-            Serial.print(executeDCBuffer[1]);
-            Serial.print(" : ");
-            Serial.println(executeDCBuffer[2]); */
+
+            execBuffer[0]=executeDCBuffer[1];
+            execBuffer[1]=executeDCBuffer[2];
+
+            listDC.get(executeDCBuffer[0])->execAct(execBuffer,MOTOR);
             cleanExecuteDCBoolean();
             executeDC = false;
           }
         }
         else if (executeLed == true)
         {
-          listLeds.get(i)->setPWM(tempValue);
-          //Serial.print((char)okResponse);
-          //Serial.print(" se ejecuto");
+          execBuffer[0]=tempValue;
+          listLeds.get(i)->execAct(execBuffer,LED);
           executeLed = false;
         }
       }
