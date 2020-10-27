@@ -73,7 +73,6 @@ uint8_t nextByte()
 
 void loadEepromDescriptor()
 {
-    
     if(readByte(0)==1){
         ProgrammSize=(readByte(1)*10000)+(readByte(2)*100)+readByte(3);
         nextServo();
