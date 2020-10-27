@@ -49,7 +49,7 @@ bool savingBoolean[4];
 short int servoBuffer[7];
 short int dcBuffer[3];
 short int savingBuffer[4];
-uint32_t programmSize=0;
+int32_t programmSize=0;
 uint32_t currentProgramOffset=0;
 
 #ifdef __AVR_ATmega32U4__
@@ -77,6 +77,14 @@ void cleanDCBoolean()
   for (int j = 0; j < 3; j++)
   {
     dcBoolean[j] = false;
+  }
+}
+
+void cleanSavingBoolean()
+{
+  for (int j = 0; j < 4; j++)
+  {
+    savingBoolean[j] = false;
   }
 }
 
@@ -176,6 +184,7 @@ void resetMemory()
   freeAnalogics();
   freeUltrasonics();
   freeDigitals();
+  cleanSavingBoolean();
 }
 #endif
 
@@ -254,44 +263,7 @@ void nairdaLoop()
 
 #endif
 
-       if (startSaving)
-    {
-      if (!savingBoolean[0])
-      {
-        savingBoolean[0] = true;
-        savingBuffer[0] = tempValue;
-      }
-      else if (!savingBoolean[1])
-      {
-        savingBoolean[1] = true;
-        savingBuffer[1] = tempValue;
-      }
-      else if (!savingBoolean[2])
-      {
-        savingBoolean[2] = true;
-        savingBuffer[2] = tempValue;
-        
-      }else if (!savingBoolean[3])
-      {
-        savingBoolean[3] = true;
-        savingBuffer[3] = tempValue;
-        writeByte(0, savingBuffer[0]);
-        writeByte(1, savingBuffer[1]);
-        writeByte(2, savingBuffer[2]);
-        writeByte(3, savingBuffer[3]);
-        programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
-        currentProgramOffset=4;
-      }else{
-        if(programmSize>0){
-           writeByte(currentProgramOffset, tempValue);
-           currentProgramOffset++;
-           programmSize--;
-        }else{
-          startSaving=false;
-        }
-        
-      }
-    }
+    
 
     if (tempValue == projectInit)
     {
@@ -326,6 +298,46 @@ void nairdaLoop()
 #endif
       Serial.write(((char)memoryType));
 
+    }
+    else    if (startSaving)
+    {
+      if (!savingBoolean[0])
+      {
+        savingBoolean[0] = true;
+        savingBuffer[0] = tempValue;
+      }
+      else if (!savingBoolean[1])
+      {
+        savingBoolean[1] = true;
+        savingBuffer[1] = tempValue;
+      }
+      else if (!savingBoolean[2])
+      {
+        savingBoolean[2] = true;
+        savingBuffer[2] = tempValue;
+        
+      }else if (!savingBoolean[3])
+      {
+        savingBoolean[3] = true;
+        savingBuffer[3] = tempValue;
+        writeByte(0, savingBuffer[0]);
+        writeByte(1, savingBuffer[1]);
+        writeByte(2, savingBuffer[2]);
+        writeByte(3, savingBuffer[3]);
+        programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
+        currentProgramOffset=4;
+      }else{
+        if(programmSize>1){
+           writeByte(currentProgramOffset, tempValue);
+           currentProgramOffset++;
+           programmSize--;
+        }else{
+          writeByte(currentProgramOffset, tempValue);
+          startSaving=false;
+          cleanSavingBoolean();
+        }
+        
+      }
     }
     else if (tempValue == versionCommand)
     {
