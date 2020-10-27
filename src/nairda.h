@@ -58,7 +58,8 @@ enum
   ULTRASONIC
 };
 
-class component{
+class component
+{
 public:
   //analogc digital led
   uint8_t pin;
@@ -144,10 +145,11 @@ public:
     switch (type)
     {
     case DIGITAL:
-      tempRead = map(analogRead(pin), 0, 1023, 0, 100);
+      tempRead = digitalRead(pin);
+
       break;
     case ANALOGIC:
-      tempRead = digitalRead(pin);
+      tempRead = map(analogRead(pin), 0, 1023, 0, 100);
       break;
     case ULTRASONIC:
       tempRead = sonar->ping_cm();
@@ -185,9 +187,7 @@ public:
       break;
     }
   }
-
 };
-
 
 class variable
 {
@@ -198,17 +198,22 @@ public:
     value = cValue;
   }
 
-  void setvalue(int32_t newValue){
-    if(newValue>999999){
-      value=999999;
-    }else if(newValue<-999999){
-      value=-999999;
-    }else{
-      value=newValue;
+  void setvalue(int32_t newValue)
+  {
+    if (newValue > 999999)
+    {
+      value = 999999;
+    }
+    else if (newValue < -999999)
+    {
+      value = -999999;
+    }
+    else
+    {
+      value = newValue;
     }
   }
 };
-
 
 #ifdef __AVR_ATmega32U4__
 
@@ -219,6 +224,5 @@ void resetMemory();
 uint8_t getMapedPin(uint8_t pin);
 void nairdaBegin(long int bauds);
 void nairdaLoop();
-
 
 #endif
