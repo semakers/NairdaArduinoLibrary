@@ -1,25 +1,5 @@
-/*
-Libejemplo.cpp -Descripción cpp
-Creada por Nombre Autor, Fecha
-Lanzado bajo licencia---
-*/
-
-//#include "arduino.h"
 #include "nairda.h"
 #include "loadFromEeprom.h"
-#include "linked/LinkedList.h"
-#include "softpwm/SoftPWM.h"
-
-#ifndef __AVR_ATmega168__
-#include "ping/NewPing.h"
-#endif
-#if defined(ARDUINO_ARCH_AVR)
-#include "avr/Servo.h"
-#elif defined(ARDUINO_ARCH_SAM)
-#include "sam/Servo.h"
-#else
-#error "This library only supports boards with an AVR or SAM processor."
-#endif
 
 enum
 {
