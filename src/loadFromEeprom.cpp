@@ -31,12 +31,12 @@ void nairdaRunMachineState(uint8_t firstByte);
 int32_t getInputValue(uint8_t firstByte);
 uint8_t callInterrupt();
 
-extern LinkedList<servo *> listServos ;
-extern LinkedList<dc *> listDC ;
-extern LinkedList<led *> listLeds ;
-extern LinkedList<analogic *> listAnalogics ;
-extern LinkedList<digital *> listDigitals ;
-extern LinkedList<ultrasonic *> listUltrasonics ;
+extern LinkedList<component *> listServos ;
+extern LinkedList<component *> listDC ;
+extern LinkedList<component *> listLeds ;
+extern LinkedList<component *> listAnalogics ;
+extern LinkedList<component *> listDigitals ;
+extern LinkedList<component *> listUltrasonics ;
 LinkedList<variable *> listVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 

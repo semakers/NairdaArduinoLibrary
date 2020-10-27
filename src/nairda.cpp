@@ -96,71 +96,21 @@ void cleanExecuteDCBoolean()
   }
 }
 
-LinkedList<servo *> listServos = LinkedList<servo *>();
-LinkedList<dc *> listDC = LinkedList<dc *>();
-LinkedList<led *> listLeds = LinkedList<led *>();
-LinkedList<analogic *> listAnalogics = LinkedList<analogic *>();
-LinkedList<digital *> listDigitals = LinkedList<digital *>();
-LinkedList<ultrasonic *> listUltrasonics = LinkedList<ultrasonic *>();
+LinkedList<component *> listServos = LinkedList<component *>();
+LinkedList<component *> listDC = LinkedList<component *>();
+LinkedList<component *> listLeds = LinkedList<component *>();
+LinkedList<component *> listAnalogics = LinkedList<component *>();
+LinkedList<component *> listDigitals = LinkedList<component *>();
+LinkedList<component *> listUltrasonics = LinkedList<component *>();
 
-#ifndef __AVR_ATmega168__
 
-void freeServos()
-{
-  for (int i = 0; i < listServos.size(); i++)
+void freeCompList(LinkedList<component *> list,uint8_t type){
+  for (int i = 0; i < list.size(); i++)
   {
-    listServos.get(i)->off();
-    free(listServos.get(i));
+    list.get(i)->off(type);
+    free(list.get(i));
   }
-  listServos.clear();
-}
-
-void freeDc()
-{
-  for (int i = 0; i < listDC.size(); i++)
-  {
-    listDC.get(i)->off();
-    free(listDC.get(i));
-  }
-  listDC.clear();
-}
-
-void freeLeds()
-{
-  for (int i = 0; i < listLeds.size(); i++)
-  {
-    listLeds.get(i)->off();
-    free(listLeds.get(i));
-  }
-  listLeds.clear();
-}
-
-void freeAnalogics()
-{
-  for (int i = 0; i < listAnalogics.size(); i++)
-  {
-    free(listAnalogics.get(i));
-  }
-  listAnalogics.clear();
-}
-
-void freeUltrasonics()
-{
-  for (int i = 0; i < listUltrasonics.size(); i++)
-  {
-    listUltrasonics.get(i)->off();
-    free(listUltrasonics.get(i));
-  }
-  listUltrasonics.clear();
-}
-
-void freeDigitals()
-{
-  for (int i = 0; i < listDigitals.size(); i++)
-  {
-    free(listDigitals.get(i));
-  }
-  listDigitals.clear();
+  list.clear();
 }
 
 void resetMemory()
@@ -178,15 +128,15 @@ void resetMemory()
   cleanServoBoolean();
   cleanDCBoolean();
   cleanExecuteDCBoolean();
-  freeServos();
-  freeDc();
-  freeLeds();
-  freeAnalogics();
-  freeUltrasonics();
-  freeDigitals();
   cleanSavingBoolean();
+  freeCompList(listServos,SERVO);
+  freeCompList(listDC,MOTOR);
+  freeCompList(listLeds,LED);
+  freeCompList(listAnalogics,ANALOGIC);
+  freeCompList(listDigitals,DIGITAL);
+  freeCompList(listUltrasonics,ULTRASONIC);
+  
 }
-#endif
 
 void nairdaBegin(long int bauds)
 {
