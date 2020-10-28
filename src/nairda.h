@@ -13,7 +13,7 @@
 #endif
 
 #ifdef __AVR_ATmega168__
-#error "Nairda dont support atmega 168. "
+#warning "Nairda dont suport ultrasonics in atmega 128."
 #endif
 
 #define projectInit 100
@@ -63,8 +63,10 @@ class component
 public:
   //analogc digital led
   uint8_t pin;
-  //ultrasonic
+//ultrasonic
+#ifndef __AVR_ATmega168__
   NewPing *sonar;
+#endif
   //servo
   Servo servo;
   //dcMotor
@@ -99,7 +101,9 @@ public:
       pin = args[1];
       break;
     case ULTRASONIC:
+#ifndef __AVR_ATmega168__
       sonar = new NewPing(args[1], args[2], 100);
+#endif
       break;
     }
   }
@@ -152,7 +156,9 @@ public:
       tempRead = map(analogRead(pin), 0, 1023, 0, 100);
       break;
     case ULTRASONIC:
+#ifndef __AVR_ATmega168__
       tempRead = sonar->ping_cm();
+#endif
       break;
     }
     return (tempRead < 0) ? 0 : (tempRead > 100) ? 100 : tempRead;
@@ -174,7 +180,9 @@ public:
       servo.detach();
       break;
     case ULTRASONIC:
+#ifndef __AVR_ATmega168__
       free(sonar);
+#endif
       break;
     case MOTOR:
       SoftPWMEnd(a);
