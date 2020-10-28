@@ -62,7 +62,7 @@ extern uint32_t execBuffer[2];
 
 
 
-void writeByte(unsigned long int address, unsigned short int byte)
+void writeByte(uint32_t address, uint8_t byte)
 {
     EEPROM.update(address, byte);
 }
