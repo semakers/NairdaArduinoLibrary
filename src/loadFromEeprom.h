@@ -61,7 +61,7 @@ class component
 public:
   //analogc digital led
   uint8_t pin;
-//ultrasonic
+  //ultrasonic
   NewPing *sonar;
   //servo
   Servo servo;
@@ -82,7 +82,7 @@ public:
       SoftPWMSet(args[3], 0);
       a = args[1];
       b = args[2];
-      pwm = args[2];
+      pwm = args[3];
       break;
     case LED:
       pinMode(args[1], OUTPUT);
@@ -175,8 +175,8 @@ public:
       free(sonar);
       break;
     case MOTOR:
-      SoftPWMEnd(a);
-      SoftPWMEnd(b);
+      digitalWrite(a, LOW);
+      digitalWrite(b, LOW);
       SoftPWMEnd(pwm);
       break;
     case LED:
@@ -187,7 +187,6 @@ public:
   }
 };
 
-
 uint8_t getMapedPin(uint8_t pin);
 void loadEepromDescriptor();
-void writeByte(uint32_t address,uint8_t byte);
+void writeByte(uint32_t address, uint8_t byte);

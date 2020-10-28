@@ -32,10 +32,8 @@ bool servoBoolean[7];
 bool dcBoolean[3];
 bool ultraosnicBoolean;
 
-
 uint8_t servoBuffer[7];
 uint8_t dcBuffer[3];
-
 
 uint16_t descArgsBuffer[5];
 int32_t execBuffer[2];
@@ -110,10 +108,8 @@ void cleanExecuteDCBoolean()
   }
 }
 
-
 #ifdef __AVR_ATmega32U4__
-void resetMemory()
-{
+void resetMemory(){
   declaratedDescriptor = false;
   declaratedServos = false;
   declaratedDC = false;
@@ -135,11 +131,15 @@ void resetMemory()
   freeCompList(&listDigitals, DIGITAL);
   freeCompList(&listUltrasonics, ULTRASONIC);
 }
+#else
+void resetMemory(){
+  freeCompList(&listDC, MOTOR);
+  freeCompList(&listLeds, LED);
+}
+
 #endif
 
-void nairdaBegin(long int bauds)
-{
-
+void nairdaBegin(long int bauds){
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
@@ -212,6 +212,7 @@ void nairdaLoop()
       resetMemory();
       //resetFunc();
 #else
+      resetMemory();
       asm volatile("jmp 0");
 #endif
       //Serial.println("Se limpriaron las listas");
@@ -240,7 +241,7 @@ void nairdaLoop()
     }
     else if (startSaving)
     {
-      #ifndef __AVR_ATmega168__
+#ifndef __AVR_ATmega168__
       if (!savingBoolean[0])
       {
         savingBoolean[0] = true;
@@ -282,7 +283,7 @@ void nairdaLoop()
           cleanSavingBoolean();
         }
       }
-      #endif
+#endif
     }
     else if (tempValue == versionCommand)
     {
@@ -392,9 +393,9 @@ void nairdaLoop()
           dcBuffer[2] = tempValue;
 
           descArgsBuffer[0] = MOTOR;
-          descArgsBuffer[1] = getMapedPin(servoBuffer[0]);
-          descArgsBuffer[2] = getMapedPin(servoBuffer[1]);
-          descArgsBuffer[3] = getMapedPin(servoBuffer[2]);
+          descArgsBuffer[1] = getMapedPin(dcBuffer[0]);
+          descArgsBuffer[2] = getMapedPin(dcBuffer[1]);
+          descArgsBuffer[3] = getMapedPin(dcBuffer[2]);
 
           component *tempDC = new component(descArgsBuffer);
           listDC.add(tempDC);
@@ -487,8 +488,8 @@ void nairdaLoop()
         if (executeServo == true)
         {
           //adquirir valores para la ejecucion del servo
-          execBuffer[0]=map(tempValue, 0, 99, 0, 180);
-          listServos.get(i)->execAct(execBuffer,SERVO);
+          execBuffer[0] = map(tempValue, 0, 99, 0, 180);
+          listServos.get(i)->execAct(execBuffer, SERVO);
           executeServo = false;
         }
         else if (executeDC == true)
@@ -504,18 +505,18 @@ void nairdaLoop()
             executeDCBoolean[1] = true;
             executeDCBuffer[2] = tempValue;
 
-            execBuffer[0]=executeDCBuffer[1];
-            execBuffer[1]=executeDCBuffer[2];
+            execBuffer[0] = executeDCBuffer[1];
+            execBuffer[1] = executeDCBuffer[2];
 
-            listDC.get(executeDCBuffer[0])->execAct(execBuffer,MOTOR);
+            listDC.get(executeDCBuffer[0])->execAct(execBuffer, MOTOR);
             cleanExecuteDCBoolean();
             executeDC = false;
           }
         }
         else if (executeLed == true)
         {
-          execBuffer[0]=tempValue;
-          listLeds.get(i)->execAct(execBuffer,LED);
+          execBuffer[0] = tempValue;
+          listLeds.get(i)->execAct(execBuffer, LED);
           executeLed = false;
         }
       }
