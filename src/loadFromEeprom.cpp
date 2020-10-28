@@ -2,6 +2,22 @@
 #include "nairda.h"
 #include <EEPROM.h>
 
+
+
+#ifndef __AVR_ATmega168__
+
+class variable
+{
+public:
+  int32_t value;
+  variable(int32_t cValue){
+    value = cValue;
+  }
+  void setvalue(int32_t newValue){
+      value=(newValue>999999)?999999:(newValue<-999999)?-999999:newValue;
+  }
+};
+
 class repeatBegin
 {
 public:
@@ -42,6 +58,9 @@ uint32_t currentOffset = 4;
 uint32_t ProgrammSize = 0;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[2];
+
+
+
 
 void writeByte(unsigned long int address, unsigned short int byte)
 {
@@ -637,4 +656,10 @@ void nairdaRunMachineState(uint8_t firstByte)
             break;
         }
     }
+}
+
+#endif
+
+uint8_t getMapedPin(uint8_t pin){
+  return (pin >= 70) ? (A0 + (pin - 70)) : pin;
 }

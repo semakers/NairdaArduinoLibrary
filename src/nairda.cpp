@@ -21,27 +21,31 @@ bool startSaving = false;
 bool executeServo = false;
 bool executeDC = false;
 bool executeLed = false;
-int i;
-int tempValue;
+uint8_t i;
+uint8_t tempValue;
 int runProgrammTimeOut = 0;
 
 bool executeDCBoolean[3];
-short int executeDCBuffer[3];
+uint8_t executeDCBuffer[3];
 
 bool servoBoolean[7];
 bool dcBoolean[3];
 bool ultraosnicBoolean;
-bool savingBoolean[4];
 
-short int servoBuffer[7];
-short int dcBuffer[3];
-short int savingBuffer[4];
+
+uint8_t servoBuffer[7];
+uint8_t dcBuffer[3];
+
 
 uint16_t descArgsBuffer[5];
 int32_t execBuffer[2];
 
+#ifndef __AVR_ATmega168__
 int32_t programmSize = 0;
 uint32_t currentProgramOffset = 0;
+bool savingBoolean[4];
+uint8_t savingBuffer[4];
+#endif
 
 #ifdef __AVR_ATmega32U4__
 uint32_t asmOperations = 0;
@@ -54,6 +58,23 @@ void resetLeonardoMemory()
 }
 
 #endif
+
+LinkedList<component *> listServos = LinkedList<component *>();
+LinkedList<component *> listDC = LinkedList<component *>();
+LinkedList<component *> listLeds = LinkedList<component *>();
+LinkedList<component *> listAnalogics = LinkedList<component *>();
+LinkedList<component *> listDigitals = LinkedList<component *>();
+LinkedList<component *> listUltrasonics = LinkedList<component *>();
+
+void freeCompList(LinkedList<component *> *list, uint8_t type)
+{
+  for (int i = 0; i < list->size(); i++)
+  {
+    list->get(i)->off(type);
+    free(list->get(i));
+  }
+  list->clear();
+}
 
 void cleanServoBoolean()
 {
@@ -71,6 +92,7 @@ void cleanDCBoolean()
   }
 }
 
+#ifndef __AVR_ATmega168__
 void cleanSavingBoolean()
 {
   for (int j = 0; j < 4; j++)
@@ -78,6 +100,7 @@ void cleanSavingBoolean()
     savingBoolean[j] = false;
   }
 }
+#endif
 
 void cleanExecuteDCBoolean()
 {
@@ -87,23 +110,8 @@ void cleanExecuteDCBoolean()
   }
 }
 
-LinkedList<component *> listServos = LinkedList<component *>();
-LinkedList<component *> listDC = LinkedList<component *>();
-LinkedList<component *> listLeds = LinkedList<component *>();
-LinkedList<component *> listAnalogics = LinkedList<component *>();
-LinkedList<component *> listDigitals = LinkedList<component *>();
-LinkedList<component *> listUltrasonics = LinkedList<component *>();
 
-void freeCompList(LinkedList<component *> list, uint8_t type)
-{
-  for (int i = 0; i < list.size(); i++)
-  {
-    list.get(i)->off(type);
-    free(list.get(i));
-  }
-  list.clear();
-}
-
+#ifdef __AVR_ATmega32U4__
 void resetMemory()
 {
   declaratedDescriptor = false;
@@ -120,13 +128,14 @@ void resetMemory()
   cleanDCBoolean();
   cleanExecuteDCBoolean();
   cleanSavingBoolean();
-  freeCompList(listServos, SERVO);
-  freeCompList(listDC, MOTOR);
-  freeCompList(listLeds, LED);
-  freeCompList(listAnalogics, ANALOGIC);
-  freeCompList(listDigitals, DIGITAL);
-  freeCompList(listUltrasonics, ULTRASONIC);
+  freeCompList(&listServos, SERVO);
+  freeCompList(&listDC, MOTOR);
+  freeCompList(&listLeds, LED);
+  freeCompList(&listAnalogics, ANALOGIC);
+  freeCompList(&listDigitals, DIGITAL);
+  freeCompList(&listUltrasonics, ULTRASONIC);
 }
+#endif
 
 void nairdaBegin(long int bauds)
 {
@@ -147,16 +156,10 @@ resetOffset:
   SoftPWMBegin();
 }
 
-uint8_t getMapedPin(uint8_t pin)
-{
-
-  return (pin >= 70) ? (A0 + (pin - 70)) : pin;
-}
-
 void nairdaLoop()
 {
   /**/
-
+#ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
 
   if (asmOperations > 200000 && declaratedServos == false)
@@ -178,6 +181,7 @@ void nairdaLoop()
     loadEepromDescriptor();
   }
 
+#endif
 #endif
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
@@ -216,7 +220,6 @@ void nairdaLoop()
     {
       uint8_t memoryType;
 #if defined(__AVR_ATmega168__)
-      startSaving = true;
       memoryType = noMemory;
 #endif
 
@@ -237,6 +240,7 @@ void nairdaLoop()
     }
     else if (startSaving)
     {
+      #ifndef __AVR_ATmega168__
       if (!savingBoolean[0])
       {
         savingBoolean[0] = true;
@@ -278,6 +282,7 @@ void nairdaLoop()
           cleanSavingBoolean();
         }
       }
+      #endif
     }
     else if (tempValue == versionCommand)
     {
