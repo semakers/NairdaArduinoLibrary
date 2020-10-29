@@ -162,7 +162,7 @@ void nairdaLoop()
 #ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
 
-  if (asmOperations > 200000 && declaratedServos == false)
+  if (asmOperations > 250000 && declaratedServos == false)
   {
     loadEepromDescriptor();
   }
@@ -176,7 +176,7 @@ void nairdaLoop()
 
 #else
 
-  if ((millis() - runProgrammTimeOut) > 800 && declaratedServos == false)
+  if ((millis() - runProgrammTimeOut) > 1000 && declaratedServos == false)
   {
     loadEepromDescriptor();
   }
