@@ -44,7 +44,7 @@
 #define breakCommand 128
 #define saveCommand 129
 
-#define CURRENT_VERSION 1
+#define CURRENT_VERSION 2
 
 enum
 {
