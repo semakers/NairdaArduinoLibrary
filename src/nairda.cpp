@@ -1,4 +1,5 @@
 #include "nairda.h"
+#include <Wire.h>
 #include "loadFromEeprom.h"
 
 enum
@@ -109,7 +110,8 @@ void cleanExecuteDCBoolean()
 }
 
 #ifdef __AVR_ATmega32U4__
-void resetMemory(){
+void resetMemory()
+{
   declaratedDescriptor = false;
   declaratedServos = false;
   declaratedDC = false;
@@ -132,14 +134,19 @@ void resetMemory(){
   freeCompList(&listUltrasonics, ULTRASONIC);
 }
 #else
-void resetMemory(){
+void resetMemory()
+{
   freeCompList(&listDC, MOTOR);
   freeCompList(&listLeds, LED);
 }
 
 #endif
 
-void nairdaBegin(long int bauds){
+void nairdaBegin(long int bauds)
+{
+#if defined(_24LC_256) || defined(_24LC_512)
+  Wire.begin();
+#endif
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   Serial1.begin(bauds);
 #endif
@@ -220,6 +227,8 @@ void nairdaLoop()
     if (tempValue == saveCommand)
     {
       uint8_t memoryType;
+
+#if !defined(_24LC_256) && !defined(_24LC_512)
 #if defined(__AVR_ATmega168__)
       memoryType = noMemory;
 #endif
@@ -232,6 +241,18 @@ void nairdaLoop()
 #if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       startSaving = true;
       memoryType = memory4k;
+#endif
+#else
+      startSaving = true;
+
+#if defined(_24LC_256)
+      memoryType = memory256k;
+#endif
+
+#if defined(_24LC_512)
+      memoryType = memory512k;
+#endif
+
 #endif
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)

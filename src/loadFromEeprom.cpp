@@ -1,21 +1,22 @@
 #include "loadFromEeprom.h"
 #include "nairda.h"
 #include <EEPROM.h>
-
-
+#include <Wire.h>
 
 #ifndef __AVR_ATmega168__
 
 class variable
 {
 public:
-  int32_t value;
-  variable(int32_t cValue){
-    value = cValue;
-  }
-  void setvalue(int32_t newValue){
-      value=(newValue>999999)?999999:(newValue<-999999)?-999999:newValue;
-  }
+    int32_t value;
+    variable(int32_t cValue)
+    {
+        value = cValue;
+    }
+    void setvalue(int32_t newValue)
+    {
+        value = (newValue > 999999) ? 999999 : (newValue < -999999) ? -999999 : newValue;
+    }
 };
 
 class repeatBegin
@@ -41,6 +42,7 @@ void nextAnalogic();
 void nextDigital();
 void nextUltra();
 void nextVariable();
+uint8_t readByte(uint32_t address);
 void nairdaRunMachineState(uint8_t firstByte);
 int32_t getInputValue(uint8_t firstByte);
 uint8_t callInterrupt();
@@ -59,17 +61,38 @@ uint32_t ProgrammSize = 0;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[2];
 
-
-
-
 void writeByte(uint32_t address, uint8_t byte)
 {
+    #if defined(_24LC_256) || defined(_24LC_512)
+    if (readByte(address) != byte)
+    {
+        Wire.beginTransmission(0x50);
+        Wire.write((uint8_t)(address >> 8));   // MSB
+        Wire.write((uint8_t)(address & 0xFF)); // LSB
+        Wire.write(byte);
+        Wire.endTransmission();
+        delay(5);
+    }
+    #else
     EEPROM.update(address, byte);
+    #endif
 }
 
 uint8_t readByte(uint32_t address)
 {
+ #if defined(_24LC_256) || defined(_24LC_512)
+    uint8_t rdata = 0xFF;
+    Wire.beginTransmission(0x50);
+    Wire.write((int)(address >> 8));   // MSB
+    Wire.write((int)(address & 0xFF)); // LSB
+    Wire.endTransmission();
+    Wire.requestFrom(0x50, 1);
+    if (Wire.available())
+        rdata = Wire.read();
+    return rdata;
+    #else
     return EEPROM[address];
+    #endif
 }
 
 uint8_t nextByte()
@@ -409,8 +432,8 @@ void runSetVatValue(uint8_t id)
 
 void runServo(uint8_t id)
 {
-    execBuffer[0]=getInputValue(nextByte());
-    listServos.get(id)->execAct(execBuffer,SERVO);
+    execBuffer[0] = getInputValue(nextByte());
+    listServos.get(id)->execAct(execBuffer, SERVO);
     nairdaRunMachineState(nextByte());
 }
 
@@ -419,10 +442,10 @@ void runMotorDc(uint8_t id)
     int32_t vel = getInputValue(nextByte());
     vel = (vel < 0) ? 0 : (vel > 100) ? 100 : vel;
 
-    execBuffer[0]=vel;
-    execBuffer[1]=nextByte();
-    
-    listDC.get(id)->execAct(execBuffer,MOTOR);
+    execBuffer[0] = vel;
+    execBuffer[1] = nextByte();
+
+    listDC.get(id)->execAct(execBuffer, MOTOR);
     nairdaRunMachineState(nextByte());
 }
 
@@ -430,8 +453,8 @@ void runLed(uint8_t id)
 {
     int32_t intensity = getInputValue(nextByte());
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100 : intensity;
-    execBuffer[0]=intensity;
-    listLeds.get(id)->execAct(execBuffer,LED);
+    execBuffer[0] = intensity;
+    listLeds.get(id)->execAct(execBuffer, LED);
     nairdaRunMachineState(nextByte());
 }
 
@@ -660,6 +683,7 @@ void nairdaRunMachineState(uint8_t firstByte)
 
 #endif
 
-uint8_t getMapedPin(uint8_t pin){
-  return (pin >= 70) ? (A0 + (pin - 70)) : pin;
+uint8_t getMapedPin(uint8_t pin)
+{
+    return (pin >= 70) ? (A0 + (pin - 70)) : pin;
 }

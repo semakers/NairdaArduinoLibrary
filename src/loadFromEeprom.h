@@ -14,6 +14,8 @@
 #warning "Nairda dont suport save & load bynary from eeprom in Atmega168."
 #endif
 
+//#define _24LC_512
+
 #define projectInit 100
 #define endServos 101
 #define endDC 102
