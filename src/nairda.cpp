@@ -2,6 +2,97 @@
 #include <Wire.h>
 #include "loadFromEeprom.h"
 
+void nairdaDebug(uint8_t tempValue);
+bool running = false;
+int32_t programmSize = 0;
+#ifndef __AVR_ATmega168__
+bool startSaving = false;
+uint32_t currentProgramOffset = 0;
+bool savingBoolean[4];
+uint8_t savingBuffer[4];
+#endif
+
+
+void cleanSavingBoolean();
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+BLECharacteristic *pCharacteristic;
+uint8_t bleBuffer[255];
+uint8_t bleIndex = 0;
+
+
+
+
+
+#define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
+#define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
+
+class MyServerCallbacks : public BLEServerCallbacks
+{
+  void onConnect(BLEServer *pServer){};
+  void onDisconnect(BLEServer *pServer){};
+};
+
+class MyCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *pCharacteristic)
+  {
+    std::string rxValue = pCharacteristic->getValue();
+    if (rxValue.length() > 0)
+    {
+      for (int i = 0; i < rxValue.length(); i++)
+      {
+        if (!running)
+        {
+          nairdaDebug(rxValue[i]);
+        }
+        else
+        {
+          bleBuffer[bleIndex] = (uint8_t)rxValue[(rxValue.length() - 1) - i];
+          bleIndex++;
+        }
+      }
+    }
+  }
+};
+
+bool bleAvailable()
+{
+  if (bleIndex > 0)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+uint8_t bleRead()
+{
+  if (bleAvailable())
+  {
+    bleIndex--;
+    return bleBuffer[bleIndex];
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+void bleWrite(uint8_t byte)
+{
+  char myString[1];
+  myString[0] = byte;
+  pCharacteristic->setValue(myString);
+  pCharacteristic->notify();
+  // pCharacteristic->indicate();
+}
+
+#endif
+
 enum
 {
   noMemory,
@@ -18,10 +109,11 @@ bool declaratedLeds = false;
 bool declaratedAnalogics = false;
 bool declaratedDigitals = false;
 bool declaratedUltrasonics = false;
-bool startSaving = false;
+
 bool executeServo = false;
 bool executeDC = false;
 bool executeLed = false;
+
 uint8_t i;
 uint8_t tempValue;
 int runProgrammTimeOut = 0;
@@ -37,16 +129,11 @@ uint8_t servoBuffer[7];
 uint8_t dcBuffer[3];
 
 uint16_t descArgsBuffer[5];
-int32_t execBuffer[2];
+uint32_t execBuffer[2];
 
-#ifndef __AVR_ATmega168__
-int32_t programmSize = 0;
-uint32_t currentProgramOffset = 0;
-bool savingBoolean[4];
-uint8_t savingBuffer[4];
-#endif
 
-#ifdef __AVR_ATmega32U4__
+
+#if defined(__AVR_ATmega32U4__)
 uint32_t asmOperations = 0;
 
 void (*resetFunc)(void) = 0;
@@ -57,6 +144,7 @@ void resetLeonardoMemory()
 }
 
 #endif
+
 
 LinkedList<component *> listServos = LinkedList<component *>();
 LinkedList<component *> listDC = LinkedList<component *>();
@@ -109,9 +197,10 @@ void cleanExecuteDCBoolean()
   }
 }
 
-#ifdef __AVR_ATmega32U4__
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
 void resetMemory()
 {
+  runProgrammTimeOut = millis();
   declaratedDescriptor = false;
   declaratedServos = false;
   declaratedDC = false;
@@ -142,6 +231,40 @@ void resetMemory()
 
 #endif
 
+#if defined(ARDUINO_ARCH_ESP32)
+void nairdaBegin(const char *deviceName)
+{
+
+  BLEDevice::init(deviceName); // Give it a name
+
+  // Create the BLE Server
+  BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  pCharacteristic = pService->createCharacteristic(
+      CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_NOTIFY |
+          BLECharacteristic::PROPERTY_WRITE |
+          BLECharacteristic::PROPERTY_READ);
+  pCharacteristic->addDescriptor(new BLE2902());
+
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06); // functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+
+#else
 void nairdaBegin(long int bauds)
 {
 #if defined(_24LC_256) || defined(_24LC_512)
@@ -151,6 +274,8 @@ void nairdaBegin(long int bauds)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
+  SoftPWMBegin();
+#endif
 
 #ifdef __AVR_ATmega32U4__
 
@@ -160,7 +285,6 @@ resetOffset:
 
 #endif
   runProgrammTimeOut = millis();
-  SoftPWMBegin();
 }
 
 void nairdaLoop()
@@ -186,10 +310,19 @@ void nairdaLoop()
   if ((millis() - runProgrammTimeOut) > 1000 && declaratedServos == false)
   {
     loadEepromDescriptor();
+    runProgrammTimeOut = millis();
   }
 
 #endif
 #endif
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+  if (bleAvailable())
+  {
+
+    tempValue = bleRead();
+#else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   int serialAvailable = Serial.available();
@@ -213,11 +346,19 @@ void nairdaLoop()
 
 #endif
 
-    if (tempValue == projectInit)
+nairdaDebug(tempValue);
+
+#endif
+
+
+  }
+}
+
+void nairdaDebug(uint8_t tempValue){
+      if (tempValue == projectInit)
     {
-#ifdef __AVR_ATmega32U4__
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
       resetMemory();
-      //resetFunc();
 #else
       resetMemory();
       asm volatile("jmp 0");
@@ -231,6 +372,11 @@ void nairdaLoop()
 #if !defined(_24LC_256) && !defined(_24LC_512)
 #if defined(__AVR_ATmega168__)
       memoryType = noMemory;
+#endif
+
+#if defined(ARDUINO_ARCH_ESP32)
+      startSaving = true;
+      memoryType = memory512k;
 #endif
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
@@ -255,63 +401,76 @@ void nairdaLoop()
 
 #endif
 
+#if defined(ARDUINO_ARCH_ESP32)
+      spi_flash_erase_range(0x200000, 4096 * 128);
+      bleWrite(memoryType);
+
+#else
+
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write(((char)memoryType));
 #endif
       Serial.write(((char)memoryType));
+#endif
     }
     else if (startSaving)
     {
-#ifndef __AVR_ATmega168__
-      if (!savingBoolean[0])
-      {
-        savingBoolean[0] = true;
-        savingBuffer[0] = tempValue;
-      }
-      else if (!savingBoolean[1])
-      {
-        savingBoolean[1] = true;
-        savingBuffer[1] = tempValue;
-      }
-      else if (!savingBoolean[2])
-      {
-        savingBoolean[2] = true;
-        savingBuffer[2] = tempValue;
-      }
-      else if (!savingBoolean[3])
-      {
-        savingBoolean[3] = true;
-        savingBuffer[3] = tempValue;
-        writeByte(0, savingBuffer[0]);
-        writeByte(1, savingBuffer[1]);
-        writeByte(2, savingBuffer[2]);
-        writeByte(3, savingBuffer[3]);
-        programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
-        currentProgramOffset = 4;
-      }
-      else
-      {
-        if (programmSize > 1)
-        {
-          writeByte(currentProgramOffset, tempValue);
-          currentProgramOffset++;
-          programmSize--;
-        }
-        else
-        {
-          writeByte(currentProgramOffset, tempValue);
-          startSaving = false;
-          cleanSavingBoolean();
-        }
-      }
+      #ifndef __AVR_ATmega168__
+          if (!savingBoolean[0])
+          {
+            savingBoolean[0] = true;
+            savingBuffer[0] = tempValue;
+          }
+          else if (!savingBoolean[1])
+          {
+            savingBoolean[1] = true;
+            savingBuffer[1] = tempValue;
+          }
+          else if (!savingBoolean[2])
+          {
+            savingBoolean[2] = true;
+            savingBuffer[2] = tempValue;
+          }
+          else if (!savingBoolean[3])
+          {
+            savingBoolean[3] = true;
+            savingBuffer[3] = tempValue;
+            writeByte(0, savingBuffer[0]);
+            writeByte(1, savingBuffer[1]);
+            writeByte(2, savingBuffer[2]);
+            writeByte(3, savingBuffer[3]);
+            programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
+            currentProgramOffset = 4;
+          }
+          else
+          {
+            if (programmSize > 1)
+            {
+              writeByte(currentProgramOffset, tempValue);
+              currentProgramOffset++;
+              programmSize--;
+            }
+            else
+            {
+              writeByte(currentProgramOffset, tempValue);
+              startSaving = false;
+              cleanSavingBoolean();
+            }
+          }
 #endif
     }
     else if (tempValue == versionCommand)
     {
+
+#if defined(ARDUINO_ARCH_ESP32)
+      bleWrite(CURRENT_VERSION);
+#else
+
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       Serial1.write(((char)CURRENT_VERSION));
 #endif
       Serial.write(((char)CURRENT_VERSION));
+#endif
     }
     else if (tempValue == endServos)
     {
@@ -542,5 +701,4 @@ void nairdaLoop()
         }
       }
     }
-  }
 }

@@ -37,6 +37,7 @@
 || @version 1.0.1
 ||
 */
+#if !defined(ARDUINO_ARCH_ESP32)
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -307,3 +308,5 @@ void SoftPWMSetFadeTime(int8_t pin, uint16_t fadeUpTime, uint16_t fadeDownTime)
     }
   }
 }
+
+#endif

@@ -32,6 +32,8 @@
 ||
 */
 
+#if !defined(ARDUINO_ARCH_ESP32)
+
 #ifndef SOFTPWM_H
 #define SOFTPWM_H
 
@@ -53,6 +55,8 @@ void SoftPWMSetPercent(int8_t pin, uint8_t percent, uint8_t hardset = 0);
 void SoftPWMEnd(int8_t pin);
 void SoftPWMSetFadeTime(int8_t pin, uint16_t fadeUpTime, uint16_t fadeDownTime);
 void SoftPWMSetPolarity(int8_t pin, uint8_t polarity);
+
+#endif
 
 #endif
 

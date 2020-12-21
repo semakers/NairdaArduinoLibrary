@@ -43,7 +43,7 @@ void nextDigital();
 void nextUltra();
 void nextVariable();
 uint8_t readByte(uint32_t address);
-void nairdaRunMachineState(uint8_t firstByte);
+void nairdaRunMachineState();
 int32_t getInputValue(uint8_t firstByte);
 uint8_t callInterrupt();
 
@@ -53,6 +53,7 @@ extern LinkedList<component *> listLeds;
 extern LinkedList<component *> listAnalogics;
 extern LinkedList<component *> listDigitals;
 extern LinkedList<component *> listUltrasonics;
+extern bool running;
 LinkedList<variable *> listVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 
@@ -60,10 +61,22 @@ uint32_t currentOffset = 4;
 uint32_t ProgrammSize = 0;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[2];
+bool loadedServos = false;
+bool loadedMotors = false;
+bool loadedLeds = false;
+bool loadedDigitals = false;
+bool loadedAnalogics = false;
+bool loadedUltrasonics = false;
+bool loadedVariables = false;
 
 void writeByte(uint32_t address, uint8_t byte)
 {
-    #if defined(_24LC_256) || defined(_24LC_512)
+#if defined(ARDUINO_ARCH_ESP32)
+    static uint8_t mbuffer[1];
+    mbuffer[0] = byte;
+    spi_flash_write(0x200000 + address, mbuffer, 1);
+#else
+#if defined(_24LC_256) || defined(_24LC_512)
     if (readByte(address) != byte)
     {
         Wire.beginTransmission(0x50);
@@ -73,14 +86,20 @@ void writeByte(uint32_t address, uint8_t byte)
         Wire.endTransmission();
         delay(5);
     }
-    #else
+#else
     EEPROM.update(address, byte);
-    #endif
+#endif
+#endif
 }
 
 uint8_t readByte(uint32_t address)
 {
- #if defined(_24LC_256) || defined(_24LC_512)
+#if defined(ARDUINO_ARCH_ESP32)
+    static uint8_t mbuffer[1];
+    spi_flash_read(0x200000 + address, mbuffer, 1);
+    return mbuffer[0];
+#else
+#if defined(_24LC_256) || defined(_24LC_512)
     uint8_t rdata = 0xFF;
     Wire.beginTransmission(0x50);
     Wire.write((int)(address >> 8));   // MSB
@@ -90,186 +109,223 @@ uint8_t readByte(uint32_t address)
     if (Wire.available())
         rdata = Wire.read();
     return rdata;
-    #else
+#else
     return EEPROM[address];
-    #endif
+#endif
+#endif
 }
 
 uint8_t nextByte()
 {
     if (currentOffset == (ProgrammSize + 4))
     {
-        while (1)
+        while (callInterrupt() == 0)
         {
-            callInterrupt();
         };
     }
-    uint8_t auxByte = readByte(currentOffset);
-    //Serial.println(auxByte);
-    //delay(250);
-    currentOffset++;
-    return auxByte;
+    if (running)
+    {
+        uint8_t auxByte = readByte(currentOffset);
+        currentOffset++;
+        return auxByte;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void loadEepromDescriptor()
 {
     if (readByte(0) == 1)
     {
+        running = true;
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
+
         nextServo();
     }
 }
 
 void nextServo()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endServos)
+    uint8_t currentByte;
+    while (!loadedServos)
     {
-        nextDC();
-    }
-    else
-    {
-        uint8_t servoBytes[7];
-        servoBytes[0] = firstByte;
-        for (uint8_t i = 1; i < 7; i++)
+        currentByte = nextByte();
+        if (currentByte == endServos)
         {
-            servoBytes[i] = nextByte();
+            loadedServos = true;
         }
-        descArgsBuffer[0] = SERVO;
-        descArgsBuffer[1] = getMapedPin(servoBytes[0]);
-        descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
-        descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
-        descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
-        component *tempServo = new component(descArgsBuffer);
+        else
+        {
+            uint8_t servoBytes[7];
+            servoBytes[0] = currentByte;
+            for (uint8_t i = 1; i < 7; i++)
+            {
+                servoBytes[i] = nextByte();
+            }
+            descArgsBuffer[0] = SERVO;
+            descArgsBuffer[1] = getMapedPin(servoBytes[0]);
+            descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
+            descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
+            descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
+            component *tempServo = new component(descArgsBuffer);
 
-        listServos.add(tempServo);
-        nextServo();
+            listServos.add(tempServo);
+        }
     }
+    nextDC();
 }
 
 void nextDC()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endDC)
+    uint8_t currentByte;
+    while (!loadedMotors)
     {
-        nextLed();
-    }
-    else
-    {
-        uint8_t dcBytes[3];
-        dcBytes[0] = firstByte;
-        for (uint8_t i = 1; i < 3; i++)
+        currentByte = nextByte();
+        if (currentByte == endDC)
         {
-            dcBytes[i] = nextByte();
+            loadedMotors = true;
         }
+        else
+        {
+            uint8_t dcBytes[3];
+            dcBytes[0] = currentByte;
+            for (uint8_t i = 1; i < 3; i++)
+            {
+                dcBytes[i] = nextByte();
+            }
 
-        descArgsBuffer[0] = MOTOR;
-        descArgsBuffer[1] = getMapedPin(dcBytes[0]);
-        descArgsBuffer[2] = getMapedPin(dcBytes[1]);
-        descArgsBuffer[3] = getMapedPin(dcBytes[2]);
+            descArgsBuffer[0] = MOTOR;
+            descArgsBuffer[1] = getMapedPin(dcBytes[0]);
+            descArgsBuffer[2] = getMapedPin(dcBytes[1]);
+            descArgsBuffer[3] = getMapedPin(dcBytes[2]);
 
-        component *tempDC = new component(descArgsBuffer);
+            component *tempDC = new component(descArgsBuffer);
 
-        listDC.add(tempDC);
-        nextDC();
+            listDC.add(tempDC);
+        }
     }
+    nextLed();
 }
 
 void nextLed()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endLeds)
+    uint8_t currentByte;
+    while (!loadedLeds)
     {
-        nextAnalogic();
+        currentByte = nextByte();
+        if (currentByte == endLeds)
+        {
+            loadedLeds = true;
+        }
+        else
+        {
+            descArgsBuffer[0] = LED;
+            descArgsBuffer[1] = getMapedPin(currentByte);
+            component *tempLed = new component(descArgsBuffer);
+            listLeds.add(tempLed);
+        }
     }
-    else
-    {
-        descArgsBuffer[0] = LED;
-        descArgsBuffer[1] = getMapedPin(firstByte);
-        component *tempLed = new component(descArgsBuffer);
-        listLeds.add(tempLed);
-        nextLed();
-    }
+    nextAnalogic();
 }
 
 void nextAnalogic()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endAnalogics)
+    uint8_t currentByte;
+    while (!loadedAnalogics)
     {
-        nextDigital();
+        currentByte = nextByte();
+        if (currentByte == endAnalogics)
+        {
+            loadedAnalogics = true;
+        }
+        else
+        {
+            descArgsBuffer[0] = ANALOGIC;
+            descArgsBuffer[1] = getMapedPin(currentByte);
+            component *tempAnalogic = new component(descArgsBuffer);
+            listAnalogics.add(tempAnalogic);
+        }
     }
-    else
-    {
-        descArgsBuffer[0] = ANALOGIC;
-        descArgsBuffer[1] = getMapedPin(firstByte);
-        component *tempAnalogic = new component(descArgsBuffer);
-        listAnalogics.add(tempAnalogic);
-        nextAnalogic();
-    }
+    nextDigital();
 }
 
 void nextDigital()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endDigitals)
+    uint8_t currentByte;
+    while (!loadedDigitals)
     {
-        nextUltra();
+        currentByte = nextByte();
+        if (currentByte == endDigitals)
+        {
+            loadedDigitals = true;
+        }
+        else
+        {
+            descArgsBuffer[0] = DIGITAL;
+            descArgsBuffer[1] = getMapedPin(currentByte);
+            component *tempDigital = new component(descArgsBuffer);
+            listDigitals.add(tempDigital);
+        }
     }
-    else
-    {
-        descArgsBuffer[0] = DIGITAL;
-        descArgsBuffer[1] = getMapedPin(firstByte);
-        component *tempDigital = new component(descArgsBuffer);
-        listDigitals.add(tempDigital);
-        nextDigital();
-    }
+    nextUltra();
 }
 
 void nextUltra()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endUltrasonics)
+
+    uint8_t currentByte;
+    while (!loadedUltrasonics)
     {
-        nextVariable();
-    }
-    else
-    {
-        uint8_t ultraBytes[2];
-        ultraBytes[0] = firstByte;
-        for (uint8_t i = 1; i < 2; i++)
+        currentByte = nextByte();
+        if (currentByte == endUltrasonics)
         {
-            ultraBytes[i] = nextByte();
+            loadedUltrasonics = true;
         }
-        descArgsBuffer[0] = ULTRASONIC;
-        descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
-        descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-        component *tempUltrasonic = new component(descArgsBuffer);
-        listUltrasonics.add(tempUltrasonic);
-        nextUltra();
+        else
+        {
+            uint8_t ultraBytes[2];
+            ultraBytes[0] = currentByte;
+            for (uint8_t i = 1; i < 2; i++)
+            {
+                ultraBytes[i] = nextByte();
+            }
+            descArgsBuffer[0] = ULTRASONIC;
+            descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
+            descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
+            component *tempUltrasonic = new component(descArgsBuffer);
+            listUltrasonics.add(tempUltrasonic);
+        }
     }
+    nextVariable();
 }
 
 void nextVariable()
 {
-    uint8_t firstByte = nextByte();
-    if (firstByte == endVariables)
+
+    uint8_t currentByte;
+    while (!loadedVariables)
     {
-        nairdaRunMachineState(nextByte());
-    }
-    else
-    {
-        uint8_t varBytes[4];
-        varBytes[0] = firstByte;
-        for (uint8_t i = 1; i < 4; i++)
+        currentByte = nextByte();
+        if (currentByte == endVariables)
         {
-            varBytes[i] = nextByte();
+            loadedVariables = true;
         }
-        int32_t positiveValue = (varBytes[1] * 10000) + (varBytes[2] * 100) + varBytes[3];
-        variable *tempVariable = new variable(varBytes[0] == 0 ? positiveValue : (positiveValue * -1));
-        listVariables.add(tempVariable);
-        nextVariable();
+        else
+        {
+            uint8_t varBytes[4];
+            varBytes[0] = currentByte;
+            for (uint8_t i = 1; i < 4; i++)
+            {
+                varBytes[i] = nextByte();
+            }
+            int32_t positiveValue = (varBytes[1] * 10000) + (varBytes[2] * 100) + varBytes[3];
+            variable *tempVariable = new variable(varBytes[0] == 0 ? positiveValue : (positiveValue * -1));
+            listVariables.add(tempVariable);
+        }
     }
+    nairdaRunMachineState();
 }
 
 int32_t getValue()
@@ -417,24 +473,20 @@ void runDelay()
 {
     uint32_t currentTime = millis();
     uint32_t delayTime = getInputValue(nextByte());
-    while ((millis() - currentTime) < delayTime)
+    while ((millis() - currentTime) < delayTime && callInterrupt() == 0)
     {
-        callInterrupt();
     }
-    nairdaRunMachineState(nextByte());
 }
 
 void runSetVatValue(uint8_t id)
 {
     listVariables.get(id)->setvalue(getInputValue(nextByte()));
-    nairdaRunMachineState(nextByte());
 }
 
 void runServo(uint8_t id)
 {
     execBuffer[0] = getInputValue(nextByte());
     listServos.get(id)->execAct(execBuffer, SERVO);
-    nairdaRunMachineState(nextByte());
 }
 
 void runMotorDc(uint8_t id)
@@ -446,7 +498,6 @@ void runMotorDc(uint8_t id)
     execBuffer[1] = nextByte();
 
     listDC.get(id)->execAct(execBuffer, MOTOR);
-    nairdaRunMachineState(nextByte());
 }
 
 void runLed(uint8_t id)
@@ -455,7 +506,6 @@ void runLed(uint8_t id)
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100 : intensity;
     execBuffer[0] = intensity;
     listLeds.get(id)->execAct(execBuffer, LED);
-    nairdaRunMachineState(nextByte());
 }
 
 void runIf()
@@ -469,12 +519,10 @@ void runIf()
     uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
     if (conditionValue != 0)
     {
-        nairdaRunMachineState(nextByte());
     }
     else
     {
         currentOffset = eos;
-        nairdaRunMachineState(nextByte());
     }
 }
 
@@ -540,8 +588,6 @@ void runRepeat()
             currentBegin->times = currentBegin->times - 1;
         }
     }
-
-    nairdaRunMachineState(nextByte());
 }
 
 void runEndRepeat()
@@ -551,7 +597,6 @@ void runEndRepeat()
     //Serial.println(listRepeatBegins.size());
     //Serial.print("Start repeat: ");
     //Serial.println(listRepeatBegins.get(0)->offsetStart);
-    nairdaRunMachineState(nextByte());
 }
 
 void runBreak()
@@ -560,8 +605,6 @@ void runBreak()
     currentOffset = breakBegin->offsetEnd;
     listRepeatBegins.remove(listRepeatBegins.size() - 1);
     free(breakBegin);
-
-    nairdaRunMachineState(nextByte());
 }
 
 void freeVariables()
@@ -582,73 +625,109 @@ void freeRepeatBegins()
     listRepeatBegins.clear();
 }
 
-#ifdef __AVR_ATmega32U4__
+#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32)
 
 void freeVolatileMemory()
 {
-    currentOffset = 4;
-    ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
-    freeVariables();
-    freeRepeatBegins();
-    resetLeonardoMemory();
+    if (running)
+    {
+        currentOffset = 4;
+        ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
+        freeVariables();
+        freeRepeatBegins();
+    }
+
+    // resetLeonardoMemory();
 }
 
 #endif
 
 uint8_t callInterrupt()
 {
-    uint8_t it;
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    int serialAvailable = Serial.available();
-    int serial1Available = Serial1.available();
-    if (serialAvailable > 0 || serial1Available > 0)
+    if (running)
     {
-        if (serialAvailable > 0)
+        uint8_t it;
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+        if (bleAvailable())
+        {
+            it = bleRead();
+        }
+#else
+
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+        int serialAvailable = Serial.available();
+        int serial1Available = Serial1.available();
+        if (serialAvailable > 0 || serial1Available > 0)
+        {
+            if (serialAvailable > 0)
+            {
+                it = Serial.read();
+            }
+            else if (serial1Available > 0)
+            {
+                it = Serial1.read();
+            }
+        }
+
+#else
+
+        if (Serial.available())
         {
             it = Serial.read();
         }
-        else if (serial1Available > 0)
+
+#endif
+
+#endif
+        if (it == versionCommand)
         {
-            it = Serial1.read();
-        }
-    }
-
+#if defined(ARDUINO_ARCH_ESP32)
+            bleWrite(CURRENT_VERSION);
 #else
 
-    if (Serial.available())
-    {
-        it = Serial.read();
-    }
-
-#endif
-    if (it == versionCommand)
-    {
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-        Serial1.write(((char)CURRENT_VERSION));
+            Serial1.write(((char)CURRENT_VERSION));
 #endif
-        Serial.write(((char)CURRENT_VERSION));
-    }
-    else if (it == projectInit)
-    {
-#ifdef __AVR_ATmega32U4__
-        resetMemory();
-        freeVolatileMemory();
-        return 1;
+            Serial.write(((char)CURRENT_VERSION));
+#endif
+        }
+        else if (it == projectInit)
+        {
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
+            resetMemory();
+            freeVolatileMemory();
+            running = false;
+             loadedServos = false;
+             loadedMotors = false;
+             loadedLeds = false;
+             loadedDigitals = false;
+             loadedAnalogics = false;
+             loadedUltrasonics = false;
+             loadedVariables = false;
+            
+            return 1;
 #else
-        asm volatile("jmp 0");
+            asm volatile("jmp 0");
 #endif
+        }
+        else
+        {
+            return 0;
+        }
     }
     else
     {
-        return 0;
+        return 1;
     }
 }
 
-void nairdaRunMachineState(uint8_t firstByte)
+void nairdaRunMachineState()
 {
-    if (callInterrupt() == 0)
+    while (callInterrupt() == 0)
     {
-        switch (firstByte)
+        switch (nextByte())
         {
         case delayCommand:
             runDelay();
