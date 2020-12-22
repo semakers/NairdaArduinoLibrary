@@ -1,6 +1,7 @@
 #include "linked/LinkedList.h"
 #include <Arduino.h>
 #include <stdint.h>
+#include "nairda.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -86,7 +87,7 @@ public:
       //servo
       Servo servo;
       int8_t ledcChannel = -1;
-
+      uint8_t trigger, echo;
 #else
 
       //servo
@@ -169,7 +170,7 @@ public:
             case DIGITAL:
                   pin = args[1];
 #if defined(ARDUINO_ARCH_ESP32)
-
+                  pinMode(pin, INPUT);
 #else
 
                   pinMode(pin, INPUT);
@@ -185,7 +186,10 @@ public:
                   break;
             case ULTRASONIC:
 #if defined(ARDUINO_ARCH_ESP32)
-
+                  trigger = args[1];
+                  echo = args[2];
+                  pinMode(args[1], OUTPUT);
+                  pinMode(args[2], INPUT);
 #else
                   sonar = new NewPing(args[1], args[2], 100);
 #endif
@@ -314,21 +318,26 @@ public:
             {
             case DIGITAL:
 #if defined(ARDUINO_ARCH_ESP32)
-
+                  tempRead = digitalRead(pin);
 #else
                   tempRead = digitalRead(pin);
 #endif
                   break;
             case ANALOGIC:
 #if defined(ARDUINO_ARCH_ESP32)
-
+                  tempRead = map(analogRead(pin), 0, 4095, 0, 100);
 #else
                   tempRead = map(analogRead(pin), 0, 1023, 0, 100);
 #endif
                   break;
             case ULTRASONIC:
 #if defined(ARDUINO_ARCH_ESP32)
-
+                  digitalWrite(trigger, LOW);
+                  delayMicroseconds(2);
+                  digitalWrite(trigger, HIGH);
+                  delayMicroseconds(10);
+                  digitalWrite(trigger, LOW);
+                  tempRead = pulseIn(echo, HIGH) / 27.6233 / 2;
 #else
                   tempRead = sonar->ping_cm();
 #endif
@@ -340,7 +349,7 @@ public:
       void sendSensVal(uint8_t type)
       {
 #if defined(ARDUINO_ARCH_ESP32)
-
+            bleWrite((char)getSensVal(type));
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
