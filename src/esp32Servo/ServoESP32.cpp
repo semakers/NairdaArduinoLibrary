@@ -30,7 +30,9 @@
  * 2017 Jul 5: Edited by Jaroslav Páral (jarekparal) - paral@robotikabrno.cz
  */
 
-#include <Servo.h>
+#if defined(ARDUINO_ARCH_ESP32)
+
+#include "ServoESP32.h">
 
 int Servo::channel_next_free = 0;
 
@@ -120,3 +122,5 @@ void Servo::_resetFields(void) {
     _minPulseWidth = MIN_PULSE_WIDTH;
     _maxPulseWidth = MAX_PULSE_WIDTH;
 }
+
+#endif

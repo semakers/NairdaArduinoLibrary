@@ -30,6 +30,8 @@
  * 2017 Jul 5: Edited by Jaroslav Páral (jarekparal) - paral@robotikabrno.cz
  */
 
+
+#if defined(ARDUINO_ARCH_ESP32)
 #pragma once
 
 #include "Arduino.h"
@@ -189,3 +191,5 @@ private:
     int _minPulseWidth, _maxPulseWidth;
     int _minAngle, _maxAngle;
 };
+
+#endif
