@@ -97,7 +97,7 @@ public:
       NewPing *sonar;
 
 #endif
-      uint8_t a, b, pwm, vel;
+      uint8_t a, b, pwm, vel,intensity;
 
       component(uint16_t *args)
       {
@@ -284,21 +284,21 @@ public:
                   break;
             case LED:
 #if defined(ARDUINO_ARCH_ESP32)
-                  Serial.print(pin);
+                  /*Serial.print(pin);
                   Serial.print(": ");
-                  Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);
-
+                  Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);*/
+                  intensity=(execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0];
                   if (ledcChannel != -1)
                   {
-                        ledcWrite(ledcChannel, map((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0], 0, 100, 0, 255));
+                        ledcWrite(ledcChannel, map(intensity, 0, 100, 0, 255));
                   }
                   else
                   {
-                        if (vel >= 0 && vel <= 50)
+                        if (intensity >= 0 && intensity <= 50)
                         {
                               digitalWrite(pin, LOW);
                         }
-                        else if (vel > 50 && vel <= 100)
+                        else if (intensity > 50 && intensity <= 100)
                         {
                               digitalWrite(pin, HIGH);
                         }
@@ -365,16 +365,19 @@ public:
             switch (type)
             {
             case SERVO:
+            
 #if defined(ARDUINO_ARCH_ESP32)
                   if (usedChannels > 0)
                   {
                         usedChannels--;
                         servo.detach();
                   }
+                  free(&servo);
 
 #else
 
                   servo.detach();
+                  free(&servo);
 #endif
                   break;
             case ULTRASONIC:
