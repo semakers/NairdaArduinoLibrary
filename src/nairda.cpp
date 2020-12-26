@@ -211,6 +211,7 @@ void resetMemory()
   executeServo = false;
   executeDC = false;
   executeLed = false;
+  clearCurrentChannel();
   cleanServoBoolean();
   cleanDCBoolean();
   cleanExecuteDCBoolean();

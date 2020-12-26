@@ -69,6 +69,20 @@ bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
 
+uint8_t currentChannel=0;
+
+uint8_t getCurrentChannel(){
+    return currentChannel;
+}
+
+void nextCurrentChannel(){
+    currentChannel++;
+}
+
+void clearCurrentChannel(){
+    currentChannel=0;
+}
+
 void writeByte(uint32_t address, uint8_t byte)
 {
 #if defined(ARDUINO_ARCH_ESP32)

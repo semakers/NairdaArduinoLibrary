@@ -65,7 +65,9 @@
 
 #define CURRENT_VERSION 2
 
-static uint8_t usedChannels = 0;
+uint8_t getCurrentChannel();
+void nextCurrentChannel();
+void clearCurrentChannel();
 
 enum
 {
@@ -105,11 +107,13 @@ public:
             {
             case SERVO:
 #if defined(ARDUINO_ARCH_ESP32)
-                  if (usedChannels < 16)
+
+if (getCurrentChannel() < 16)
                   {
-                        servo.attach(args[1], usedChannels, 0, 180, args[2], args[3]);
+                        servo.attach(args[1], getCurrentChannel(), 0, 180, args[2], args[3]);
                         servo.write(args[4]);
-                        usedChannels++;
+                        ledcChannel = getCurrentChannel();
+                        nextCurrentChannel();
                   }
 
 #else
@@ -128,12 +132,12 @@ public:
 #if defined(ARDUINO_ARCH_ESP32)
                   pinMode(args[1], OUTPUT);
                   pinMode(args[2], OUTPUT);
-                  if (usedChannels < 16)
+                  if (getCurrentChannel() < 16)
                   {
-                        ledcSetup(usedChannels, 5000, 8);
-                        ledcAttachPin(args[3], usedChannels);
-                        ledcChannel = usedChannels;
-                        usedChannels++;
+                        ledcSetup(getCurrentChannel(), 50, 16);
+                        ledcAttachPin(args[3], getCurrentChannel());
+                        ledcChannel = getCurrentChannel();
+                        nextCurrentChannel();
                   }
                   else
                   {
@@ -150,12 +154,12 @@ public:
             case LED:
                   pin = args[1];
 #if defined(ARDUINO_ARCH_ESP32)
-                  if (usedChannels < 16)
+                  if (getCurrentChannel() < 16)
                   {
-                        ledcSetup(usedChannels, 5000, 8);
-                        ledcAttachPin(args[1], usedChannels);
-                        ledcChannel = usedChannels;
-                        usedChannels++;
+                        ledcSetup(getCurrentChannel(), 50, 16);
+                        ledcAttachPin(args[1], getCurrentChannel());
+                        ledcChannel = getCurrentChannel();
+                        nextCurrentChannel();
                   }
                   else
                   {
@@ -219,7 +223,7 @@ public:
                         digitalWrite(b, LOW);
                         if (ledcChannel != -1)
                         {
-                              ledcWrite(ledcChannel, map(vel, 0, 100, 0, 255));
+                              ledcWrite(ledcChannel, map(vel, 0, 100, 0, 65535));
                         }
                         else
                         {
@@ -244,7 +248,7 @@ public:
                         digitalWrite(b, HIGH);
                         if (ledcChannel != -1)
                         {
-                              ledcWrite(ledcChannel, map(vel, 0, 100, 0, 255));
+                              ledcWrite(ledcChannel, map(vel, 0, 100, 0, 65535));
                         }
                         else
                         {
@@ -290,7 +294,7 @@ public:
                   intensity=(execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0];
                   if (ledcChannel != -1)
                   {
-                        ledcWrite(ledcChannel, map(intensity, 0, 100, 0, 255));
+                        ledcWrite(ledcChannel, map(intensity, 0, 100, 0, 65535));
                   }
                   else
                   {
@@ -367,12 +371,7 @@ public:
             case SERVO:
             
 #if defined(ARDUINO_ARCH_ESP32)
-                  if (usedChannels > 0)
-                  {
-                        usedChannels--;
-                        servo.detach();
-                  }
-                  free(&servo);
+                  servo.detach();
 
 #else
 
@@ -391,13 +390,8 @@ public:
 #if defined(ARDUINO_ARCH_ESP32)
                   digitalWrite(a, LOW);
                   digitalWrite(b, LOW);
-
-                  if (usedChannels > 0)
-                  {
-                        usedChannels--;
                         ledcWrite(ledcChannel, 0);
                         ledcDetachPin(pwm);
-                  }
 #else
                   digitalWrite(a, LOW);
                   digitalWrite(b, LOW);
@@ -408,12 +402,8 @@ public:
             case LED:
 #if defined(ARDUINO_ARCH_ESP32)
 
-                  if (usedChannels > 0)
-                  {
-                        usedChannels--;
                         ledcWrite(ledcChannel, 0);
                         ledcDetachPin(pin);
-                  }
 
 #else
                   SoftPWMSet(pin, 0);
