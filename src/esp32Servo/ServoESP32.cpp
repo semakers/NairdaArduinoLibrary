@@ -32,7 +32,7 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-#include "ServoESP32.h">
+#include "ServoESP32.h"
 
 int Servo::channel_next_free = 0;
 

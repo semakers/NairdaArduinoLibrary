@@ -37,7 +37,7 @@
 || @version 1.0.1
 ||
 */
-#if !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32) && !defined(ARDUINO_ARCH_STM32)
 
 #include <avr/io.h>
 #include <avr/interrupt.h>

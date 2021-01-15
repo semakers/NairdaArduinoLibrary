@@ -2,7 +2,7 @@
 #define nairda_h
 #include <stdint.h>
 
-#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32)
+#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
 
 void resetLeonardoMemory();
 void resetMemory();

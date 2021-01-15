@@ -19,7 +19,7 @@
 ||
 */
 
-#if !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32) && !defined(ARDUINO_ARCH_STM32)
 
 
 #include <avr/io.h>

@@ -32,7 +32,7 @@
 ||
 */
 
-#if !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32) && !defined(ARDUINO_ARCH_STM32)
 
 #ifndef SOFTPWM_H
 #define SOFTPWM_H

@@ -21,10 +21,6 @@ BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
 
-
-
-
-
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
@@ -197,7 +193,7 @@ void cleanExecuteDCBoolean()
   }
 }
 
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_sSTM32)
 void resetMemory()
 {
   runProgrammTimeOut = millis();
@@ -275,7 +271,11 @@ void nairdaBegin(long int bauds)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
+#if defined(ARDUINO_ARCH_STM32)
+   softPwmSTM32Init();
+#else
   SoftPWMBegin();
+#endif
 #endif
 
 #ifdef __AVR_ATmega32U4__
@@ -358,7 +358,7 @@ nairdaDebug(tempValue);
 void nairdaDebug(uint8_t tempValue){
       if (tempValue == projectInit)
     {
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
       resetMemory();
 #else
       resetMemory();
@@ -371,7 +371,7 @@ void nairdaDebug(uint8_t tempValue){
       uint8_t memoryType;
 
 #if !defined(_24LC_256) && !defined(_24LC_512)
-#if defined(__AVR_ATmega168__)
+#if defined(__AVR_ATmega168__) || defined(ARDUINO_ARCH_STM32)
       memoryType = noMemory;
 #endif
 

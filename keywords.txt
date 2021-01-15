@@ -1,2 +1,2 @@
 nairdaLoop	KEYWORD2
-nairdaBegin	KEYWORD3
+nairdaBegin	KEYWORD2
