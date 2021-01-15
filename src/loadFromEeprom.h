@@ -19,22 +19,8 @@
 #include "esp32Servo/ServoESP32.h"
 
 #else
-
 #include "softpwm/SoftPWM.h"
-
 #include "ping/NewPing.h"
-/*#if defined(ARDUINO_ARCH_AVR)
-#include "avr/Servo.h"
-#elif defined(ARDUINO_ARCH_SAM)
-#include "sam/Servo.h"
-#else
-#error "This library only supports boards with an AVR or SAM processor."
-#endif
-
-#ifdef __AVR_ATmega168__
-#warning "Nairda dont suport save & load bynary from eeprom in Atmega168."
-#endif*/
-
 #endif
 #endif
 
