@@ -4,10 +4,10 @@
 
 uint8_t count=0;
 soft_pwm_t channels[SOFTPWM_MAXCHANNELS];
+bool timerActive=false;
 
 static HardwareTimer TimerPwm(TIMER_TONE);
 static void Pwm_PeriodElapsedCallback(){
-
   for(uint8_t i=0;i<1;i++){
     if(channels[i].pin!=-1){
       if(count<channels[i].percent){
@@ -36,6 +36,7 @@ void softPwmSTM32Set(int8_t pin,uint8_t percent){
   
 }
 void softPwmSTM32Attach(int8_t pin,uint8_t percent){
+
    for(uint8_t i=0;i<SOFTPWM_MAXCHANNELS;i++){
       if(channels[i].pin==-1){
         channels[i].pin=pin;

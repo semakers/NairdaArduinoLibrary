@@ -3,9 +3,13 @@
 #include <stdint.h>
 
 #if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
-
 void resetLeonardoMemory();
 void resetMemory();
+#endif
+
+#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) 
+
+
 void bleWrite(uint8_t byte);
 bool bleAvailable();
 uint8_t bleRead();
@@ -19,5 +23,7 @@ void nairdaBegin(const char*deviceName);
 void nairdaBegin(long int bauds);
 #endif
 void nairdaLoop();
+
+
 
 #endif

@@ -1,13 +1,12 @@
 #include "linked/LinkedList.h"
 #include <Arduino.h>
-#include <Servo.h>
+
 #include <stdint.h>
 #include "nairda.h"
 
 #if defined(ARDUINO_ARCH_STM32)
-//#include "stm32Servo/Servo.h"
+#include <Servo.h>
 #include "softPwmSTM32/softPwmStm32.h"
-#include <SoftwareSerial.h>
 #else
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -19,6 +18,7 @@
 #include "esp32Servo/ServoESP32.h"
 
 #else
+#include <Servo.h>
 #include "softpwm/SoftPWM.h"
 #include "ping/NewPing.h"
 #endif
@@ -163,6 +163,7 @@ public:
                   pin = args[1];
 #if defined(ARDUINO_ARCH_STM32)
                   softPwmSTM32Attach(args[1], 0);
+                  
 #else
 #if defined(ARDUINO_ARCH_ESP32)
                   if (getCurrentChannel() < 16)

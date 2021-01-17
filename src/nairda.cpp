@@ -12,7 +12,6 @@ bool savingBoolean[4];
 uint8_t savingBuffer[4];
 #endif
 
-
 void cleanSavingBoolean();
 
 #if defined(ARDUINO_ARCH_ESP32)
@@ -127,8 +126,6 @@ uint8_t dcBuffer[3];
 uint16_t descArgsBuffer[5];
 uint32_t execBuffer[2];
 
-
-
 #if defined(__AVR_ATmega32U4__)
 uint32_t asmOperations = 0;
 
@@ -141,13 +138,14 @@ void resetLeonardoMemory()
 
 #endif
 
-
 LinkedList<component *> listServos = LinkedList<component *>();
 LinkedList<component *> listDC = LinkedList<component *>();
 LinkedList<component *> listLeds = LinkedList<component *>();
 LinkedList<component *> listAnalogics = LinkedList<component *>();
 LinkedList<component *> listDigitals = LinkedList<component *>();
 LinkedList<component *> listUltrasonics = LinkedList<component *>();
+
+
 
 void freeCompList(LinkedList<component *> *list, uint8_t type)
 {
@@ -193,7 +191,7 @@ void cleanExecuteDCBoolean()
   }
 }
 
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_sSTM32)
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
 void resetMemory()
 {
   runProgrammTimeOut = millis();
@@ -264,6 +262,7 @@ void nairdaBegin(const char *deviceName)
 #else
 void nairdaBegin(long int bauds)
 {
+
 #if defined(_24LC_256) || defined(_24LC_512)
   Wire.begin();
 #endif
@@ -272,7 +271,7 @@ void nairdaBegin(long int bauds)
 #endif
   Serial.begin(bauds);
 #if defined(ARDUINO_ARCH_STM32)
-   softPwmSTM32Init();
+  softPwmSTM32Init();
 #else
   SoftPWMBegin();
 #endif
@@ -310,7 +309,7 @@ void nairdaLoop()
 
   if ((millis() - runProgrammTimeOut) > 1000 && declaratedServos == false)
   {
-    loadEepromDescriptor();
+   loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }
 
@@ -344,362 +343,362 @@ void nairdaLoop()
   if (Serial.available())
   {
     tempValue = Serial.read();
+    // Serial.println(tempValue);
 
 #endif
 
-nairdaDebug(tempValue);
+    nairdaDebug(tempValue);
 
 #endif
-
-
   }
 }
 
-void nairdaDebug(uint8_t tempValue){
-      if (tempValue == projectInit)
-    {
+void nairdaDebug(uint8_t tempValue)
+{
+  if (tempValue == projectInit)
+  {
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-      resetMemory();
+    resetMemory();
 #else
-      resetMemory();
-      asm volatile("jmp 0");
+    resetMemory();
+    asm volatile("jmp 0");
 #endif
-      //Serial.println("Se limpriaron las listas");
-    }
-    if (tempValue == saveCommand)
-    {
-      uint8_t memoryType;
+    //Serial.println("Se limpriaron las listas");
+  }
+  if (tempValue == saveCommand)
+  {
+    uint8_t memoryType;
 
 #if !defined(_24LC_256) && !defined(_24LC_512)
 #if defined(__AVR_ATmega168__) || defined(ARDUINO_ARCH_STM32)
-      memoryType = noMemory;
+    memoryType = noMemory;
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
-      startSaving = true;
-      memoryType = memory512k;
+    startSaving = true;
+    memoryType = memory512k;
 #endif
 
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
-      startSaving = true;
-      memoryType = memory1k;
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__) || defined(ARDUINO_ARCH_STM32)
+    startSaving = true;
+    memoryType = memory1k;
 #endif
 
 #if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      startSaving = true;
-      memoryType = memory4k;
+    startSaving = true;
+    memoryType = memory4k;
 #endif
 #else
-      startSaving = true;
+    startSaving = true;
 
 #if defined(_24LC_256)
-      memoryType = memory256k;
+    memoryType = memory256k;
 #endif
 
 #if defined(_24LC_512)
-      memoryType = memory512k;
+    memoryType = memory512k;
 #endif
 
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
-      spi_flash_erase_range(0x200000, 4096 * 128);
-      bleWrite(memoryType);
+    spi_flash_erase_range(0x200000, 4096 * 128);
+    bleWrite(memoryType);
 
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write(((char)memoryType));
+    Serial1.write(((char)memoryType));
 #endif
-      Serial.write(((char)memoryType));
+    Serial.write(((char)memoryType));
 #endif
-    }
-    else if (startSaving)
+  }
+  else if (startSaving)
+  {
+#ifndef __AVR_ATmega168__
+    if (!savingBoolean[0])
     {
-      #ifndef __AVR_ATmega168__
-          if (!savingBoolean[0])
-          {
-            savingBoolean[0] = true;
-            savingBuffer[0] = tempValue;
-          }
-          else if (!savingBoolean[1])
-          {
-            savingBoolean[1] = true;
-            savingBuffer[1] = tempValue;
-          }
-          else if (!savingBoolean[2])
-          {
-            savingBoolean[2] = true;
-            savingBuffer[2] = tempValue;
-          }
-          else if (!savingBoolean[3])
-          {
-            savingBoolean[3] = true;
-            savingBuffer[3] = tempValue;
-            writeByte(0, savingBuffer[0]);
-            writeByte(1, savingBuffer[1]);
-            writeByte(2, savingBuffer[2]);
-            writeByte(3, savingBuffer[3]);
-            programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
-            currentProgramOffset = 4;
-          }
-          else
-          {
-            if (programmSize > 1)
-            {
-              writeByte(currentProgramOffset, tempValue);
-              currentProgramOffset++;
-              programmSize--;
-            }
-            else
-            {
-              writeByte(currentProgramOffset, tempValue);
-              startSaving = false;
-              cleanSavingBoolean();
-            }
-          }
-#endif
+      savingBoolean[0] = true;
+      savingBuffer[0] = tempValue;
     }
-    else if (tempValue == versionCommand)
+    else if (!savingBoolean[1])
     {
+      savingBoolean[1] = true;
+      savingBuffer[1] = tempValue;
+    }
+    else if (!savingBoolean[2])
+    {
+      savingBoolean[2] = true;
+      savingBuffer[2] = tempValue;
+    }
+    else if (!savingBoolean[3])
+    {
+      savingBoolean[3] = true;
+      savingBuffer[3] = tempValue;
+      writeByte(0, savingBuffer[0]);
+      writeByte(1, savingBuffer[1]);
+      writeByte(2, savingBuffer[2]);
+      writeByte(3, savingBuffer[3]);
+      programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
+      currentProgramOffset = 4;
+    }
+    else
+    {
+      if (programmSize > 1)
+      {
+        writeByte(currentProgramOffset, tempValue);
+        currentProgramOffset++;
+        programmSize--;
+      }
+      else
+      {
+        writeByte(currentProgramOffset, tempValue);
+        startSaving = false;
+        cleanSavingBoolean();
+      }
+    }
+#endif
+  }
+  else if (tempValue == versionCommand)
+  {
 
 #if defined(ARDUINO_ARCH_ESP32)
-      bleWrite(CURRENT_VERSION);
+    bleWrite(CURRENT_VERSION);
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-      Serial1.write(((char)CURRENT_VERSION));
+    Serial1.write(((char)CURRENT_VERSION));
 #endif
-      Serial.write(((char)CURRENT_VERSION));
+    Serial.write(((char)CURRENT_VERSION));
 #endif
-    }
-    else if (tempValue == endServos)
-    {
+  }
+  else if (tempValue == endServos)
+  {
 
-      declaratedServos = true;
+    declaratedServos = true;
 
-      //Serial.println("Se han agregado todos los servos");
-    }
-    else if (tempValue == endDC)
-    {
-      declaratedDC = true;
+    Serial.println("Se han agregado todos los servos");
+  }
+  else if (tempValue == endDC)
+  {
+    declaratedDC = true;
 
-      //Serial.println("Se han agregado todos los motores DC");
-    }
-    else if (tempValue == endLeds)
-    {
-      declaratedLeds = true;
-      //Serial.println("Se han agregado todos los leds");
-    }
-    else if (tempValue == endAnalogics)
-    {
-      declaratedAnalogics = true;
-    }
-    else if (tempValue == endDigitals)
-    {
-      declaratedDigitals = true;
-    }
-    else if (tempValue == endUltrasonics)
-    {
-      declaratedUltrasonics = true;
-      declaratedDescriptor = true;
-    }
+    Serial.println("Se han agregado todos los motores DC");
+  }
+  else if (tempValue == endLeds)
+  {
+    declaratedLeds = true;
+    Serial.println("Se han agregado todos los leds");
+  }
+  else if (tempValue == endAnalogics)
+  {
+    declaratedAnalogics = true;
+  }
+  else if (tempValue == endDigitals)
+  {
+    declaratedDigitals = true;
+  }
+  else if (tempValue == endUltrasonics)
+  {
+    declaratedUltrasonics = true;
+    declaratedDescriptor = true;
+  }
 
-    else if (declaratedDescriptor == false && tempValue < 100)
+  else if (declaratedDescriptor == false && tempValue < 100)
+  {
+    if (declaratedServos == false)
     {
-      if (declaratedServos == false)
+      //pasos para declarar un servo
+      if (!servoBoolean[0])
       {
-        //pasos para declarar un servo
-        if (!servoBoolean[0])
-        {
-          servoBoolean[0] = true;
-          servoBuffer[0] = tempValue;
-        }
-        else if (!servoBoolean[1])
-        {
-          servoBoolean[1] = true;
-          servoBuffer[1] = tempValue;
-        }
-        else if (!servoBoolean[2])
-        {
-          servoBoolean[2] = true;
-          servoBuffer[2] = tempValue;
-        }
-        else if (!servoBoolean[3])
-        {
-          servoBoolean[3] = true;
-          servoBuffer[3] = tempValue;
-        }
-        else if (!servoBoolean[4])
-        {
-          servoBoolean[4] = true;
-          servoBuffer[4] = tempValue;
-        }
-        else if (!servoBoolean[5])
-        {
-          servoBoolean[5] = true;
-          servoBuffer[5] = tempValue;
-        }
-        else if (!servoBoolean[6])
-        {
-          servoBoolean[6] = true;
-          servoBuffer[6] = tempValue;
-
-          descArgsBuffer[0] = SERVO;
-          descArgsBuffer[1] = getMapedPin(servoBuffer[0]);
-          descArgsBuffer[2] = (servoBuffer[1] * 100) + servoBuffer[2];
-          descArgsBuffer[3] = (servoBuffer[3] * 100) + servoBuffer[4];
-          descArgsBuffer[4] = (servoBuffer[5] * 100) + servoBuffer[6];
-          component *tempServo = new component(descArgsBuffer);
-          listServos.add(tempServo);
-          cleanServoBoolean();
-        }
+        servoBoolean[0] = true;
+        servoBuffer[0] = tempValue;
       }
-      else if (declaratedDC == false && tempValue < 100)
+      else if (!servoBoolean[1])
       {
-        //pasos para declarar un motor DC
-        if (!dcBoolean[0])
-        {
-          dcBoolean[0] = true;
-          dcBuffer[0] = tempValue;
-        }
-        else if (!dcBoolean[1])
-        {
-          dcBoolean[1] = true;
-          dcBuffer[1] = tempValue;
-        }
-        else if (!dcBoolean[2])
-        {
-          dcBoolean[2] = true;
-          dcBuffer[2] = tempValue;
+        servoBoolean[1] = true;
+        servoBuffer[1] = tempValue;
+      }
+      else if (!servoBoolean[2])
+      {
+        servoBoolean[2] = true;
+        servoBuffer[2] = tempValue;
+      }
+      else if (!servoBoolean[3])
+      {
+        servoBoolean[3] = true;
+        servoBuffer[3] = tempValue;
+      }
+      else if (!servoBoolean[4])
+      {
+        servoBoolean[4] = true;
+        servoBuffer[4] = tempValue;
+      }
+      else if (!servoBoolean[5])
+      {
+        servoBoolean[5] = true;
+        servoBuffer[5] = tempValue;
+      }
+      else if (!servoBoolean[6])
+      {
+        servoBoolean[6] = true;
+        servoBuffer[6] = tempValue;
 
-          descArgsBuffer[0] = MOTOR;
-          descArgsBuffer[1] = getMapedPin(dcBuffer[0]);
-          descArgsBuffer[2] = getMapedPin(dcBuffer[1]);
-          descArgsBuffer[3] = getMapedPin(dcBuffer[2]);
+        descArgsBuffer[0] = SERVO;
+        descArgsBuffer[1] = getMapedPin(servoBuffer[0]);
+        descArgsBuffer[2] = (servoBuffer[1] * 100) + servoBuffer[2];
+        descArgsBuffer[3] = (servoBuffer[3] * 100) + servoBuffer[4];
+        descArgsBuffer[4] = (servoBuffer[5] * 100) + servoBuffer[6];
+        component *tempServo = new component(descArgsBuffer);
+        listServos.add(tempServo);
+        cleanServoBoolean();
+      }
+    }
+    else if (declaratedDC == false && tempValue < 100)
+    {
+      //pasos para declarar un motor DC
+      if (!dcBoolean[0])
+      {
+        dcBoolean[0] = true;
+        dcBuffer[0] = tempValue;
+      }
+      else if (!dcBoolean[1])
+      {
+        dcBoolean[1] = true;
+        dcBuffer[1] = tempValue;
+      }
+      else if (!dcBoolean[2])
+      {
+        dcBoolean[2] = true;
+        dcBuffer[2] = tempValue;
 
-          component *tempDC = new component(descArgsBuffer);
-          listDC.add(tempDC);
-          cleanDCBoolean();
-        }
+        descArgsBuffer[0] = MOTOR;
+        descArgsBuffer[1] = getMapedPin(dcBuffer[0]);
+        descArgsBuffer[2] = getMapedPin(dcBuffer[1]);
+        descArgsBuffer[3] = getMapedPin(dcBuffer[2]);
+
+        component *tempDC = new component(descArgsBuffer);
+        listDC.add(tempDC);
+        cleanDCBoolean();
       }
-      else if (declaratedLeds == false && tempValue < 100)
+    }
+    else if (declaratedLeds == false && tempValue < 100)
+    {
+      descArgsBuffer[0] = LED;
+      descArgsBuffer[1] = getMapedPin(tempValue);
+      component *tempLed = new component(descArgsBuffer);
+      listLeds.add(tempLed);
+    }
+    else if (declaratedAnalogics == false && tempValue < 100)
+    {
+      descArgsBuffer[0] = ANALOGIC;
+      descArgsBuffer[1] = getMapedPin(tempValue);
+      component *tempAnalogic = new component(descArgsBuffer);
+      listAnalogics.add(tempAnalogic);
+    }
+    else if (declaratedDigitals == false && tempValue < 100)
+    {
+      descArgsBuffer[0] = DIGITAL;
+      descArgsBuffer[1] = getMapedPin(tempValue);
+      component *tempDigital = new component(descArgsBuffer);
+      listDigitals.add(tempDigital);
+    }
+    else if (declaratedUltrasonics == false && tempValue < 100)
+    {
+      if (!ultraosnicBoolean)
       {
-        descArgsBuffer[0] = LED;
-        descArgsBuffer[1] = getMapedPin(tempValue);
-        component *tempLed = new component(descArgsBuffer);
-        listLeds.add(tempLed);
+        ultraosnicBoolean = true;
+        i = tempValue;
       }
-      else if (declaratedAnalogics == false && tempValue < 100)
+      else
       {
-        descArgsBuffer[0] = ANALOGIC;
-        descArgsBuffer[1] = getMapedPin(tempValue);
-        component *tempAnalogic = new component(descArgsBuffer);
-        listAnalogics.add(tempAnalogic);
+        descArgsBuffer[0] = ULTRASONIC;
+        descArgsBuffer[1] = getMapedPin(i);
+        descArgsBuffer[2] = getMapedPin(tempValue);
+        component *tempUltrasonic = new component(descArgsBuffer);
+        listUltrasonics.add(tempUltrasonic);
+        ultraosnicBoolean = false;
       }
-      else if (declaratedDigitals == false && tempValue < 100)
+    }
+  }
+  else
+  {
+    if (executeServo == false && executeDC == false && executeLed == false)
+    {
+      int indexServos = listServos.size();
+      int indexMotors = indexServos + listDC.size();
+      int indexLeds = indexMotors + listLeds.size();
+      int indexAnalogics = indexLeds + listAnalogics.size();
+      int indexDigitals = indexAnalogics + listDigitals.size();
+      int indexUltraosnics = indexDigitals + listUltrasonics.size();
+
+      if (tempValue >= 0 && tempValue < indexServos && listServos.size() > 0)
       {
-        descArgsBuffer[0] = DIGITAL;
-        descArgsBuffer[1] = getMapedPin(tempValue);
-        component *tempDigital = new component(descArgsBuffer);
-        listDigitals.add(tempDigital);
+        i = tempValue;
+        executeServo = true;
       }
-      else if (declaratedUltrasonics == false && tempValue < 100)
+      else if (tempValue >= indexServos && tempValue < indexMotors && listDC.size() > 0)
       {
-        if (!ultraosnicBoolean)
-        {
-          ultraosnicBoolean = true;
-          i = tempValue;
-        }
-        else
-        {
-          descArgsBuffer[0] = ULTRASONIC;
-          descArgsBuffer[1] = getMapedPin(i);
-          descArgsBuffer[2] = getMapedPin(tempValue);
-          component *tempUltrasonic = new component(descArgsBuffer);
-          listUltrasonics.add(tempUltrasonic);
-          ultraosnicBoolean = false;
-        }
+        executeDCBuffer[0] = tempValue - indexServos;
+        executeDC = true;
+      }
+      else if (tempValue >= indexMotors && tempValue < indexLeds && listLeds.size() > 0)
+      {
+        i = tempValue - indexMotors;
+        executeLed = true;
+      }
+      else if (tempValue >= indexLeds && tempValue < indexAnalogics && listAnalogics.size() > 0)
+      {
+        int tempPin = tempValue - indexLeds;
+        listAnalogics.get(tempPin)->sendSensVal(ANALOGIC);
+      }
+      else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitals.size() > 0)
+      {
+        int tempPin = tempValue - indexAnalogics;
+        listDigitals.get(tempPin)->sendSensVal(DIGITAL);
+      }
+      else if (tempValue >= indexDigitals && tempValue < indexUltraosnics && listUltrasonics.size() > 0)
+      {
+        int tempPin = tempValue - indexDigitals;
+        listUltrasonics.get(tempPin)->sendSensVal(ULTRASONIC);
       }
     }
     else
     {
-      if (executeServo == false && executeDC == false && executeLed == false)
+      if (executeServo == true)
       {
-        int indexServos = listServos.size();
-        int indexMotors = indexServos + listDC.size();
-        int indexLeds = indexMotors + listLeds.size();
-        int indexAnalogics = indexLeds + listAnalogics.size();
-        int indexDigitals = indexAnalogics + listDigitals.size();
-        int indexUltraosnics = indexDigitals + listUltrasonics.size();
+        //adquirir valores para la ejecucion del servo
+        execBuffer[0] = map(tempValue, 0, 99, 0, 180);
+        listServos.get(i)->execAct(execBuffer, SERVO);
+        executeServo = false;
+      }
+      else if (executeDC == true)
+      {
+        //adquirir valores para la ejecucion del motor
+        if (!executeDCBoolean[0])
+        {
+          executeDCBoolean[0] = true;
+          executeDCBuffer[1] = tempValue;
+        }
+        else if (!executeDCBoolean[1])
+        {
+          executeDCBoolean[1] = true;
+          executeDCBuffer[2] = tempValue;
 
-        if (tempValue >= 0 && tempValue < indexServos && listServos.size() > 0)
-        {
-          i = tempValue;
-          executeServo = true;
-        }
-        else if (tempValue >= indexServos && tempValue < indexMotors && listDC.size() > 0)
-        {
-          executeDCBuffer[0] = tempValue - indexServos;
-          executeDC = true;
-        }
-        else if (tempValue >= indexMotors && tempValue < indexLeds && listLeds.size() > 0)
-        {
-          i = tempValue - indexMotors;
-          executeLed = true;
-        }
-        else if (tempValue >= indexLeds && tempValue < indexAnalogics && listAnalogics.size() > 0)
-        {
-          int tempPin = tempValue - indexLeds;
-          listAnalogics.get(tempPin)->sendSensVal(ANALOGIC);
-        }
-        else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitals.size() > 0)
-        {
-          int tempPin = tempValue - indexAnalogics;
-          listDigitals.get(tempPin)->sendSensVal(DIGITAL);
-        }
-        else if (tempValue >= indexDigitals && tempValue < indexUltraosnics && listUltrasonics.size() > 0)
-        {
-          int tempPin = tempValue - indexDigitals;
-          listUltrasonics.get(tempPin)->sendSensVal(ULTRASONIC);
+          execBuffer[0] = executeDCBuffer[1];
+          execBuffer[1] = executeDCBuffer[2];
+
+          listDC.get(executeDCBuffer[0])->execAct(execBuffer, MOTOR);
+          cleanExecuteDCBoolean();
+          executeDC = false;
         }
       }
-      else
+      else if (executeLed == true)
       {
-        if (executeServo == true)
-        {
-          //adquirir valores para la ejecucion del servo
-          execBuffer[0] = map(tempValue, 0, 99, 0, 180);
-          listServos.get(i)->execAct(execBuffer, SERVO);
-          executeServo = false;
-        }
-        else if (executeDC == true)
-        {
-          //adquirir valores para la ejecucion del motor
-          if (!executeDCBoolean[0])
-          {
-            executeDCBoolean[0] = true;
-            executeDCBuffer[1] = tempValue;
-          }
-          else if (!executeDCBoolean[1])
-          {
-            executeDCBoolean[1] = true;
-            executeDCBuffer[2] = tempValue;
-
-            execBuffer[0] = executeDCBuffer[1];
-            execBuffer[1] = executeDCBuffer[2];
-
-            listDC.get(executeDCBuffer[0])->execAct(execBuffer, MOTOR);
-            cleanExecuteDCBoolean();
-            executeDC = false;
-          }
-        }
-        else if (executeLed == true)
-        {
-          execBuffer[0] = tempValue;
-          listLeds.get(i)->execAct(execBuffer, LED);
-          executeLed = false;
-        }
+        execBuffer[0] = tempValue;
+        listLeds.get(i)->execAct(execBuffer, LED);
+        executeLed = false;
       }
     }
+  }
 }
