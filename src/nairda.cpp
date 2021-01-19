@@ -1,4 +1,5 @@
 #include "nairda.h"
+#include <EEPROM.h>
 #include <Wire.h>
 #include "loadFromEeprom.h"
 
@@ -145,7 +146,21 @@ LinkedList<component *> listAnalogics = LinkedList<component *>();
 LinkedList<component *> listDigitals = LinkedList<component *>();
 LinkedList<component *> listUltrasonics = LinkedList<component *>();
 
+uint8_t firstValue(uint32_t value)
+{
+  return (uint8_t)(value / 10000);
+}
 
+uint8_t secondValue(uint32_t value)
+{
+  uint8_t first = firstValue(value);
+  return (uint8_t)(first > 0) ? ((value - (first * 10000)) / 100) : (value / 100);
+}
+
+uint8_t thirdValue(uint32_t value)
+{
+  return uint8_t(value - ((uint8_t(value / 100)) * 100));
+}
 
 void freeCompList(LinkedList<component *> *list, uint8_t type)
 {
@@ -309,7 +324,7 @@ void nairdaLoop()
 
   if ((millis() - runProgrammTimeOut) > 1000 && declaratedServos == false)
   {
-   loadEepromDescriptor();
+    loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }
 
@@ -367,50 +382,64 @@ void nairdaDebug(uint8_t tempValue)
   }
   if (tempValue == saveCommand)
   {
-    uint8_t memoryType;
+    uint32_t memorySize;
 
 #if !defined(_24LC_256) && !defined(_24LC_512)
-#if defined(__AVR_ATmega168__) || defined(ARDUINO_ARCH_STM32)
-    memoryType = noMemory;
+#if defined(__AVR_ATmega168__)
+    memorySize = 0;
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
     startSaving = true;
-    memoryType = memory512k;
+    memorySize = 512 * 1024;
 #endif
 
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__) || defined(ARDUINO_ARCH_STM32)
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
     startSaving = true;
-    memoryType = memory1k;
+    memorySize = 1024;
 #endif
 
 #if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
     startSaving = true;
-    memoryType = memory4k;
+    memorySize = 4 * 1024;
 #endif
+
+#if defined(ARDUINO_ARCH_STM32)
+    startSaving = true;
+    memorySize = EEPROM.length();
+#endif
+
 #else
     startSaving = true;
 
 #if defined(_24LC_256)
-    memoryType = memory256k;
+    memorySize = 256 * 1024;
 #endif
 
 #if defined(_24LC_512)
-    memoryType = memory512k;
+    memorySize = 512 * 1024;
 #endif
 
 #endif
+
+   
 
 #if defined(ARDUINO_ARCH_ESP32)
     spi_flash_erase_range(0x200000, 4096 * 128);
-    bleWrite(memoryType);
+
+    pCharacteristic->setValue(myString);
+    pCharacteristic->notify();
 
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write(((char)memoryType));
+    Serial1.write((char) firstValue(memorySize));
+    Serial1.write((char)secondValue(memorySize));
+    Serial1.write((char)thirdValue(memorySize));
 #endif
-    Serial.write(((char)memoryType));
+    Serial.write((char) firstValue(memorySize));
+    Serial.write((char)secondValue(memorySize));
+    Serial.write((char)thirdValue(memorySize));
 #endif
   }
   else if (startSaving)
@@ -477,18 +506,18 @@ void nairdaDebug(uint8_t tempValue)
 
     declaratedServos = true;
 
-    Serial.println("Se han agregado todos los servos");
+    // Serial.println("Se han agregado todos los servos");
   }
   else if (tempValue == endDC)
   {
     declaratedDC = true;
 
-    Serial.println("Se han agregado todos los motores DC");
+    // Serial.println("Se han agregado todos los motores DC");
   }
   else if (tempValue == endLeds)
   {
     declaratedLeds = true;
-    Serial.println("Se han agregado todos los leds");
+    //  Serial.println("Se han agregado todos los leds");
   }
   else if (tempValue == endAnalogics)
   {

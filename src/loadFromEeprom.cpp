@@ -101,7 +101,11 @@ void writeByte(uint32_t address, uint8_t byte)
         delay(5);
     }
 #else
-    EEPROM.update(address, byte);
+     //eeprom_write_byte(address, byte);
+   EEPROM.update(address, byte);
+   //HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, (address + DATA_EEPROM_BASE), (uint32_t)byte);
+    Serial.println(byte);
+   // delay(30);
 #endif
 #endif
 }
