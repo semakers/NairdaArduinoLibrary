@@ -60,7 +60,7 @@ void softPwmSTM32Dettach(int8_t pin){
 void softPwmSTM32Init(){
   uint32_t prescaler = TimerPwm.getTimerClkFreq() / 1000000;
   TimerPwm.setPrescaleFactor(prescaler);
-  TimerPwm.setOverflow(200); // thanks to prescaler Tick = microsec
+  TimerPwm.setOverflow(100); // thanks to prescaler Tick = microsec
   TimerPwm.attachInterrupt(Pwm_PeriodElapsedCallback);
   TimerPwm.setPreloadEnable(false);
   TimerPwm.resume();

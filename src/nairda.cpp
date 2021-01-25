@@ -426,7 +426,11 @@ void nairdaDebug(uint8_t tempValue)
 
 #if defined(ARDUINO_ARCH_ESP32)
     spi_flash_erase_range(0x200000, 4096 * 128);
-
+    char myString[4];
+    myString[0]=(char) firstValue(memorySize);
+    myString[1]=(char)secondValue(memorySize);
+    myString[2]=(char)thirdValue(memorySize);
+    myString[3]=0;
     pCharacteristic->setValue(myString);
     pCharacteristic->notify();
 
