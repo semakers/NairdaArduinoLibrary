@@ -80,9 +80,8 @@ uint8_t bleRead()
 
 void bleWrite(uint8_t byte)
 {
-  char myString[1];
-  myString[0] = byte;
-  pCharacteristic->setValue(myString);
+  std::string myStringForUnit8((char*)&byte, 1);
+  pCharacteristic->setValue(myStringForUnit8);
   pCharacteristic->notify();
   // pCharacteristic->indicate();
 }
@@ -426,6 +425,9 @@ void nairdaDebug(uint8_t tempValue)
 
 #if defined(ARDUINO_ARCH_ESP32)
     spi_flash_erase_range(0x200000, 4096 * 128);
+    char cleanBuffer[22];
+    memset(cleanBuffer,0,22);
+    pCharacteristic->setValue(cleanBuffer);
     char myString[4];
     myString[0]=(char) firstValue(memorySize);
     myString[1]=(char)secondValue(memorySize);

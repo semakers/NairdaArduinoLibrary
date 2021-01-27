@@ -144,6 +144,7 @@ uint8_t nextByte()
     if (running)
     {
         uint8_t auxByte = readByte(currentOffset);
+        
         currentOffset++;
         return auxByte;
     }

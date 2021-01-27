@@ -344,9 +344,6 @@ public:
                   softPwmSTM32Set(pin, (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  /*Serial.print(pin);
-                  Serial.print(": ");
-                  Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);*/
                   intensity = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0];
                   if (ledcChannel != -1)
                   {
@@ -363,6 +360,11 @@ public:
                               digitalWrite(pin, HIGH);
                         }
                   }
+
+           
+          /* Serial.print(pin);
+            Serial.print(": ");
+            Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);*/
 
 #else
                   SoftPWMSetPercent(pin, (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);
