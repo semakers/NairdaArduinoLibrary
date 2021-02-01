@@ -25,10 +25,10 @@ The graphic programming blocks that nairda uses are inspired by those of Google'
 
 Make the following connections between your Nairda compatible card if it does not have integrated bluetooth:
 
--  $\color{#005500}{TX -> bluetooth Rx.}$ 
-- $\color{#ff9900}{RX -> bluetooth Tx.}$ 
-- $\color{#ff0000}{ Vcc -> bluetooth Vcc.}$
-- $\color{#333333}{ Gnd -> bluetooth Gnd.}$
+- TX -> bluetooth Rx.
+- RX -> bluetooth Tx.
+- Vcc -> bluetooth Vcc.
+- Gnd -> bluetooth Gnd.
 
 
 
