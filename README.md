@@ -2,36 +2,31 @@
   # ![](https://www.nairda.com.mx/TopicForumResources/miniIcon.png)   Nairda Robot Programming 
 
 
-
-
 ![](https://www.nairda.com.mx/TopicForumResources/youtube.png)  [YouTube CHANNEL](https://www.youtube.com/channel/UCfOz0bfkMNRf96p4787bPTQ)  
   
 Nairda Robot Programming is a platform for programming hardware projects from the algorithm to run on the microcontroller to the design of the graphic interface to control the device via bluetooth 2.0 or ble 4.2 from your Android or Ios samartphone or tablet.  
   
   
-Wireless  
+## Wireless  
 Nairda connects with your prototype either with Nairda board or with arduino UNO, NANO, LEONARDO or MEGA and a Bluetooth Low Energy 4.0 (HC-08 or HM10) or 2.0 (HC-05 or Hc-06) and ESP WROOM-32.  
   
-Without computer  
+## Without computer  
 Once our arduino or nairda board has the Nairda firmware loaded, it is no longer necessary to use the computer again to program our projects.  
   
   
-Control  
+## Control  
 Design your own graphical interface for the control of your prototype just by dragging joysticks or buttons and linking them to the programming blocks.  
   
   
-Without code  
+## Without code  
 The graphic programming blocks that nairda uses are inspired by those of Google's Blockly (Scratch) with some modifications, to work better with hardware components.  
   
-How to assemble  
+## How to assemble  
   
 Make the following connections between your arduino and your bluetooth:  
   
 
--   Arduino TX -> bluetooth Rx.
--   Arduino RX -> bluetooth Tx.
--   Arduino Vcc -> bluetooth Vcc.
--   Arduino Gnd -> bluetooth Gnd.
+<ul _ngcontent-grw-c35=""><li _ngcontent-grw-c35="" style="color: green;"><b _ngcontent-grw-c35="">TX -&gt; bluetooth Rx.</b></li><li _ngcontent-grw-c35="" style="color: orange;"><strong _ngcontent-grw-c35="">RX -&gt; bluetooth Tx.</strong></li><li _ngcontent-grw-c35="" style="color: red;"><strong _ngcontent-grw-c35="">Vcc -&gt; bluetooth Vcc.</strong></li><li _ngcontent-grw-c35=""><strong _ngcontent-grw-c35="">Gnd -&gt; bluetooth Gnd.</strong></li></ul>
 
   
 ![](https://www.nairda.com.mx/TopicForumResources/supported.png)  
