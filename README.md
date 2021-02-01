@@ -1,12 +1,6 @@
+![](https://www.nairda.com.mx/TopicForumResources/miniIcon.png) # Nairda Robot Programming  
 
-  
-  
 ![](https://www.nairda.com.mx/TopicForumResources/youtube.png)  [YouTube CHANNEL](https://www.youtube.com/channel/UCfOz0bfkMNRf96p4787bPTQ)  
-  
-![](https://www.nairda.com.mx/TopicForumResources/miniIcon.png)  Nairda Robot Programming  
-
-
-![](https://www.nairda.com.mx/TopicForumResources/blink.gif)  
   
 Nairda Robot Programming is a platform for programming hardware projects from the algorithm to run on the microcontroller to the design of the graphic interface to control the device via bluetooth 2.0 or ble 4.2 from your Android or Ios samartphone or tablet.  
   
