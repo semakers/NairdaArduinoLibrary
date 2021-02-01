@@ -1,4 +1,8 @@
-![](https://www.nairda.com.mx/TopicForumResources/miniIcon.png) # Nairda Robot Programming  
+  
+  # Nairda Robot Programming ![](https://www.nairda.com.mx/TopicForumResources/miniIcon.png)  
+
+
+
 
 ![](https://www.nairda.com.mx/TopicForumResources/youtube.png)  [YouTube CHANNEL](https://www.youtube.com/channel/UCfOz0bfkMNRf96p4787bPTQ)  
   
