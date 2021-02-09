@@ -9,12 +9,12 @@ void nairdaDebug(uint8_t tempValue);
 bool running = false;
 int32_t programmSize = 0;
 bool startSaving = false;
-//#ifndef __AVR_ATmega168__
+#ifndef __AVR_ATmega168__
 
 uint32_t currentProgramOffset = 0;
 bool savingBoolean[4];
 uint8_t savingBuffer[4];
-//#endif
+#endif
 
 void cleanSavingBoolean();
 
@@ -190,7 +190,7 @@ void cleanDCBoolean()
   }
 }
 
-//#ifndef __AVR_ATmega168__
+#ifndef __AVR_ATmega168__
 void cleanSavingBoolean()
 {
   for (int j = 0; j < 4; j++)
@@ -198,7 +198,7 @@ void cleanSavingBoolean()
     savingBoolean[j] = false;
   }
 }
-//#endif
+#endif
 
 void cleanExecuteDCBoolean()
 {
@@ -307,7 +307,7 @@ resetOffset:
 void nairdaLoop()
 {
   /**/
-//#ifndef __AVR_ATmega168__
+#ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
 
   if (asmOperations > 250000 && declaratedServos == false)
@@ -331,7 +331,7 @@ void nairdaLoop()
   }
 
 #endif
-//#endif
+#endif
 
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -388,8 +388,7 @@ void nairdaDebug(uint8_t tempValue)
 
 #if !defined(_24LC_256) && !defined(_24LC_512)
 #if defined(__AVR_ATmega168__)
-    startSaving = true;
-    memorySize = 1024;
+    memorySize = 0;
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
@@ -454,7 +453,7 @@ void nairdaDebug(uint8_t tempValue)
   }
   else if (startSaving)
   {
-//#ifndef __AVR_ATmega168__
+#ifndef __AVR_ATmega168__
     if (!savingBoolean[0])
     {
       savingBoolean[0] = true;
@@ -496,7 +495,7 @@ void nairdaDebug(uint8_t tempValue)
         cleanSavingBoolean();
       }
     }
-//#endif
+#endif
   }
   else if (tempValue == versionCommand)
   {
