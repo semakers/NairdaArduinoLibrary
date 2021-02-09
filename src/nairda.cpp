@@ -307,7 +307,7 @@ resetOffset:
 void nairdaLoop()
 {
   /**/
-#ifndef __AVR_ATmega168__
+//#ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
 
   if (asmOperations > 250000 && declaratedServos == false)
@@ -331,7 +331,7 @@ void nairdaLoop()
   }
 
 #endif
-#endif
+//#endif
 
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -388,7 +388,8 @@ void nairdaDebug(uint8_t tempValue)
 
 #if !defined(_24LC_256) && !defined(_24LC_512)
 #if defined(__AVR_ATmega168__)
-    memorySize = 0;
+    startSaving = true;
+    memorySize = 1024;
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
