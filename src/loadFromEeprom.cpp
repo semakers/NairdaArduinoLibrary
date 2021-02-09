@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 #include <Wire.h>
 
-//#ifndef __AVR_ATmega168__
+#ifndef __AVR_ATmega168__
 
 class variable
 {
@@ -779,7 +779,7 @@ void nairdaRunMachineState()
     }
 }
 
-//#endif
+#endif
 
 uint8_t getMapedPin(uint8_t pin)
 {
