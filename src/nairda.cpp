@@ -3,15 +3,18 @@
 #include <Wire.h>
 #include "loadFromEeprom.h"
 
+
+
 void nairdaDebug(uint8_t tempValue);
 bool running = false;
 int32_t programmSize = 0;
-#ifndef __AVR_ATmega168__
 bool startSaving = false;
+//#ifndef __AVR_ATmega168__
+
 uint32_t currentProgramOffset = 0;
 bool savingBoolean[4];
 uint8_t savingBuffer[4];
-#endif
+//#endif
 
 void cleanSavingBoolean();
 
@@ -187,7 +190,7 @@ void cleanDCBoolean()
   }
 }
 
-#ifndef __AVR_ATmega168__
+//#ifndef __AVR_ATmega168__
 void cleanSavingBoolean()
 {
   for (int j = 0; j < 4; j++)
@@ -195,7 +198,7 @@ void cleanSavingBoolean()
     savingBoolean[j] = false;
   }
 }
-#endif
+//#endif
 
 void cleanExecuteDCBoolean()
 {
@@ -450,7 +453,7 @@ void nairdaDebug(uint8_t tempValue)
   }
   else if (startSaving)
   {
-#ifndef __AVR_ATmega168__
+//#ifndef __AVR_ATmega168__
     if (!savingBoolean[0])
     {
       savingBoolean[0] = true;
@@ -492,7 +495,7 @@ void nairdaDebug(uint8_t tempValue)
         cleanSavingBoolean();
       }
     }
-#endif
+//#endif
   }
   else if (tempValue == versionCommand)
   {
