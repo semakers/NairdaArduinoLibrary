@@ -513,3 +513,7 @@ public:
 uint8_t getMapedPin(uint8_t pin);
 void loadEepromDescriptor();
 void writeByte(uint32_t address, uint8_t byte);
+
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
+void restartRunFromEeprom();
+#endif

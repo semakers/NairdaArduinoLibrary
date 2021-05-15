@@ -29,7 +29,9 @@ uint8_t bleIndex = 0;
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
-  void onConnect(BLEServer *pServer){};
+  void onConnect(BLEServer *pServer){
+restartRunFromEeprom();
+  };
   void onDisconnect(BLEServer *pServer){};
 };
 

@@ -659,6 +659,24 @@ void freeVolatileMemory()
     // resetLeonardoMemory();
 }
 
+
+
+
+#endif
+
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
+void restartRunFromEeprom(){
+    resetMemory();
+            freeVolatileMemory();
+            running = false;
+             loadedServos = false;
+             loadedMotors = false;
+             loadedLeds = false;
+             loadedDigitals = false;
+             loadedAnalogics = false;
+             loadedUltrasonics = false;
+             loadedVariables = false;
+}
 #endif
 
 uint8_t callInterrupt()
@@ -715,16 +733,7 @@ uint8_t callInterrupt()
         else if (it == projectInit)
         {
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-            resetMemory();
-            freeVolatileMemory();
-            running = false;
-             loadedServos = false;
-             loadedMotors = false;
-             loadedLeds = false;
-             loadedDigitals = false;
-             loadedAnalogics = false;
-             loadedUltrasonics = false;
-             loadedVariables = false;
+            restartRunFromEeprom();
             
             return 1;
 #else
