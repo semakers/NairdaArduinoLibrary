@@ -262,6 +262,7 @@ void nairdaBegin(const char *deviceName)
       CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_NOTIFY |
           BLECharacteristic::PROPERTY_WRITE |
+          BLECharacteristic::PROPERTY_WRITE_NR |
           BLECharacteristic::PROPERTY_READ);
   pCharacteristic->addDescriptor(new BLE2902());
 
