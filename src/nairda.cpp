@@ -4,7 +4,6 @@
 #include "loadFromEeprom.h"
 
 
-
 void nairdaDebug(uint8_t tempValue);
 bool running = false;
 int32_t programmSize = 0;
@@ -20,19 +19,51 @@ void cleanSavingBoolean();
 
 #if defined(ARDUINO_ARCH_ESP32)
 
+#define BLE_INDICATOR_PIN 19
+
+extern "C" void espShow(
+  uint16_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
+
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
+int bleIndicatorFragmentTime=0;
+uint8_t bleIndicator[3]={0,0,0};
+bool bleIndicatorFlag=false;
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
+
+
+
+void setBleIndicatorColor(uint8_t red,uint8_t green,uint8_t blue){
+  bleIndicator[0]=green;
+  bleIndicator[1]=red;
+  bleIndicator[2]=blue;
+  espShow(BLE_INDICATOR_PIN,bleIndicator,3,false);
+}
+
+void initBleIndicator(){
+  pinMode(BLE_INDICATOR_PIN,OUTPUT);
+}
+
+void deinitBleIndicator(){
+  setBleIndicatorColor(0,0,0);
+  pinMode(BLE_INDICATOR_PIN,INPUT);
+}
+
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer){
+    bleIndicatorFlag=true;
 restartRunFromEeprom();
+  deinitBleIndicator();
   };
-  void onDisconnect(BLEServer *pServer){};
+  void onDisconnect(BLEServer *pServer){
+    bleIndicatorFlag=false;
+    BLEDevice::startAdvertising();
+  };
 };
 
 class MyCallbacks : public BLECharacteristicCallbacks
@@ -90,6 +121,8 @@ void bleWrite(uint8_t byte)
   pCharacteristic->notify();
   // pCharacteristic->indicate();
 }
+
+
 
 #endif
 
@@ -248,6 +281,7 @@ void resetMemory()
 #if defined(ARDUINO_ARCH_ESP32)
 void nairdaBegin(const char *deviceName)
 {
+ 
 
   BLEDevice::init(deviceName); // Give it a name
 
@@ -279,6 +313,10 @@ void nairdaBegin(const char *deviceName)
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
 
+  initBleIndicator();
+  
+  
+
 #else
 void nairdaBegin(long int bauds)
 {
@@ -307,8 +345,14 @@ resetOffset:
   runProgrammTimeOut = millis();
 }
 
+
+
+
 void nairdaLoop()
 {
+
+
+
   /**/
 #ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
@@ -337,6 +381,21 @@ void nairdaLoop()
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
+static int16_t indicatorIntensity=0;
+static bool upDownIntensity=true;
+if(bleIndicatorFlag==false){
+  if(millis() - bleIndicatorFragmentTime>25){
+    bleIndicatorFragmentTime=millis();
+    if(indicatorIntensity>205)upDownIntensity=false;
+    if(indicatorIntensity<10)upDownIntensity=true;
+
+    if(upDownIntensity)indicatorIntensity=indicatorIntensity>205?255:indicatorIntensity+15;
+    else indicatorIntensity=indicatorIntensity<10?0:indicatorIntensity-15;
+
+    setBleIndicatorColor(0,0,indicatorIntensity);
+  }
+}
+
 
   if (bleAvailable())
   {
