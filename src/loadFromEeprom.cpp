@@ -461,6 +461,7 @@ int32_t getUltraValue()
 
 int32_t getInputValue(uint8_t firstByte)
 {
+    
     switch (firstByte)
     {
     case valueCommand:
@@ -490,11 +491,18 @@ int32_t getInputValue(uint8_t firstByte)
 
 void runDelay()
 {
-    uint32_t currentTime = millis();
     uint32_t delayTime = getInputValue(nextByte());
+    #if defined(ARDUINO_ARCH_ESP32)
+    for(uint64_t i=0;i<delayTime*500;i++){
+        idleAnimation(false,false,true);
+        if(callInterrupt()==1)break;
+    }
+    #else
+    uint32_t currentTime = millis();
     while ((millis() - currentTime) < delayTime && callInterrupt() == 0)
     {
     }
+    #endif
 }
 
 void runSetVatValue(uint8_t id)
@@ -679,6 +687,8 @@ void restartRunFromEeprom(){
 }
 #endif
 
+
+
 uint8_t callInterrupt()
 {
     if (running)
@@ -755,6 +765,7 @@ void nairdaRunMachineState()
 {
     while (callInterrupt() == 0)
     {
+        idleAnimation(false,false,true);
         switch (nextByte())
         {
         case delayCommand:

@@ -3,9 +3,9 @@
 #include <Wire.h>
 #include "loadFromEeprom.h"
 
-
 void nairdaDebug(uint8_t tempValue);
 bool running = false;
+bool preInit = false;
 int32_t programmSize = 0;
 bool startSaving = false;
 #ifndef __AVR_ATmega168__
@@ -22,46 +22,50 @@ void cleanSavingBoolean();
 #define BLE_INDICATOR_PIN 19
 
 extern "C" void espShow(
-  uint16_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
+    uint16_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
 
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
-int bleIndicatorFragmentTime=0;
-uint8_t bleIndicator[3]={0,0,0};
-bool bleIndicatorFlag=false;
+int bleIndicatorFragmentTime = 0;
+uint8_t bleIndicator[3] = {0, 0, 0};
+bool bleIndicatorFlag = false;
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
-
-
-
-void setBleIndicatorColor(uint8_t red,uint8_t green,uint8_t blue){
-  bleIndicator[0]=green;
-  bleIndicator[1]=red;
-  bleIndicator[2]=blue;
-  espShow(BLE_INDICATOR_PIN,bleIndicator,3,false);
+void setBleIndicatorColor(uint8_t red, uint8_t green, uint8_t blue)
+{
+  bleIndicator[0] = green;
+  bleIndicator[1] = red;
+  bleIndicator[2] = blue;
+  espShow(BLE_INDICATOR_PIN, bleIndicator, 3, false);
 }
 
-void initBleIndicator(){
-  pinMode(BLE_INDICATOR_PIN,OUTPUT);
+void initBleIndicator()
+{
+  pinMode(BLE_INDICATOR_PIN, OUTPUT);
 }
 
-void deinitBleIndicator(){
-  setBleIndicatorColor(0,0,0);
-  pinMode(BLE_INDICATOR_PIN,INPUT);
+void deinitBleIndicator()
+{
+  setBleIndicatorColor(0, 0, 0);
+  pinMode(BLE_INDICATOR_PIN, INPUT);
 }
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
-  void onConnect(BLEServer *pServer){
-    bleIndicatorFlag=true;
-restartRunFromEeprom();
-  deinitBleIndicator();
+  void onConnect(BLEServer *pServer)
+  {
+    bleIndicatorFlag = true;
+    preInit = true;
+    restartRunFromEeprom();
+    deinitBleIndicator();
   };
-  void onDisconnect(BLEServer *pServer){
-    bleIndicatorFlag=false;
+  void onDisconnect(BLEServer *pServer)
+  {
+    bleIndicatorFlag = false;
+    preInit = false;
     BLEDevice::startAdvertising();
   };
 };
@@ -116,13 +120,11 @@ uint8_t bleRead()
 
 void bleWrite(uint8_t byte)
 {
-  std::string myStringForUnit8((char*)&byte, 1);
+  std::string myStringForUnit8((char *)&byte, 1);
   pCharacteristic->setValue(myStringForUnit8);
   pCharacteristic->notify();
   // pCharacteristic->indicate();
 }
-
-
 
 #endif
 
@@ -246,6 +248,7 @@ void cleanExecuteDCBoolean()
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
 void resetMemory()
 {
+
   runProgrammTimeOut = millis();
   declaratedDescriptor = false;
   declaratedServos = false;
@@ -281,7 +284,6 @@ void resetMemory()
 #if defined(ARDUINO_ARCH_ESP32)
 void nairdaBegin(const char *deviceName)
 {
- 
 
   BLEDevice::init(deviceName); // Give it a name
 
@@ -314,8 +316,6 @@ void nairdaBegin(const char *deviceName)
   BLEDevice::startAdvertising();
 
   initBleIndicator();
-  
-  
 
 #else
 void nairdaBegin(long int bauds)
@@ -345,13 +345,28 @@ resetOffset:
   runProgrammTimeOut = millis();
 }
 
+void idleAnimation(bool red,bool green,bool blue){
+   static int16_t indicatorIntensity = 0;
+    static bool upDownIntensity = true;
+    if (millis() - bleIndicatorFragmentTime > 25)
+    {
+      bleIndicatorFragmentTime = millis();
+      if (indicatorIntensity > 205)
+        upDownIntensity = false;
+      if (indicatorIntensity < 10)
+        upDownIntensity = true;
 
+      if (upDownIntensity)
+        indicatorIntensity = indicatorIntensity > 205 ? 255 : indicatorIntensity + 15;
+      else
+        indicatorIntensity = indicatorIntensity < 10 ? 0 : indicatorIntensity - 15;
 
+      setBleIndicatorColor(red?indicatorIntensity:0, green?indicatorIntensity:0, blue?indicatorIntensity:0);
+    }
+}
 
 void nairdaLoop()
 {
-
-
 
   /**/
 #ifndef __AVR_ATmega168__
@@ -370,9 +385,14 @@ void nairdaLoop()
   }
 
 #else
-
+#if defined(ARDUINO_ARCH_ESP32)
+  if ((millis() - runProgrammTimeOut) > 1000 && preInit == false)
+  {
+    deinitBleIndicator();
+#else
   if ((millis() - runProgrammTimeOut) > 1000 && declaratedServos == false)
   {
+#endif
     loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }
@@ -381,21 +401,11 @@ void nairdaLoop()
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
-static int16_t indicatorIntensity=0;
-static bool upDownIntensity=true;
-if(bleIndicatorFlag==false){
-  if(millis() - bleIndicatorFragmentTime>25){
-    bleIndicatorFragmentTime=millis();
-    if(indicatorIntensity>205)upDownIntensity=false;
-    if(indicatorIntensity<10)upDownIntensity=true;
 
-    if(upDownIntensity)indicatorIntensity=indicatorIntensity>205?255:indicatorIntensity+15;
-    else indicatorIntensity=indicatorIntensity<10?0:indicatorIntensity-15;
-
-    setBleIndicatorColor(0,0,indicatorIntensity);
+  if (bleIndicatorFlag == false)
+  {
+   idleAnimation(false,false,true);
   }
-}
-
 
   if (bleAvailable())
   {
@@ -486,29 +496,27 @@ void nairdaDebug(uint8_t tempValue)
 
 #endif
 
-   
-
 #if defined(ARDUINO_ARCH_ESP32)
     spi_flash_erase_range(0x200000, 4096 * 128);
     char cleanBuffer[22];
-    memset(cleanBuffer,0,22);
+    memset(cleanBuffer, 0, 22);
     pCharacteristic->setValue(cleanBuffer);
     char myString[4];
-    myString[0]=(char) firstValue(memorySize);
-    myString[1]=(char)secondValue(memorySize);
-    myString[2]=(char)thirdValue(memorySize);
-    myString[3]=0;
+    myString[0] = (char)firstValue(memorySize);
+    myString[1] = (char)secondValue(memorySize);
+    myString[2] = (char)thirdValue(memorySize);
+    myString[3] = 0;
     pCharacteristic->setValue(myString);
     pCharacteristic->notify();
 
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char) firstValue(memorySize));
+    Serial1.write((char)firstValue(memorySize));
     Serial1.write((char)secondValue(memorySize));
     Serial1.write((char)thirdValue(memorySize));
 #endif
-    Serial.write((char) firstValue(memorySize));
+    Serial.write((char)firstValue(memorySize));
     Serial.write((char)secondValue(memorySize));
     Serial.write((char)thirdValue(memorySize));
 #endif
