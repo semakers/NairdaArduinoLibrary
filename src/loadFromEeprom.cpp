@@ -765,7 +765,9 @@ void nairdaRunMachineState()
 {
     while (callInterrupt() == 0)
     {
+        #if defined (ARDUINO_ARCH_ESP32)
         idleAnimation(false,false,true);
+        #endif
         switch (nextByte())
         {
         case delayCommand:
