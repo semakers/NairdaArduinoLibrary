@@ -418,9 +418,13 @@ public:
                   digitalWrite(trigger, LOW);
                   tempRead = pulseIn(echo, HIGH) / 27.6233 / 2;
 #else
+                  
                   tempRead = sonar->ping_cm();
 #endif
 #endif
+                  static int lastValue;
+                  lastValue=(tempRead==0)?lastValue:tempRead;
+                  tempRead=(tempRead==0)?lastValue:tempRead;
                   break;
             }
             return (tempRead < 0) ? 0 : (tempRead > 100) ? 100 : tempRead;
