@@ -55,6 +55,7 @@
 #define endRepeatCommand 127
 #define breakCommand 128
 #define saveCommand 129
+#define randomCommand 130
 
 #define CURRENT_VERSION 2
 

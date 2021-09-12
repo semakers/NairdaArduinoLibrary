@@ -444,6 +444,13 @@ int32_t getMapValue()
     return map(source, inMin, inMax, outMin, outMax);
 }
 
+
+unt32_t getRandomValue(){
+    int32_t from = getInputValue(nextByte());
+    int32_t to = getInputValue(nextByte());
+    return random(from, to);
+}
+
 int32_t getAnalogicValue()
 {
     return listAnalogics.get(nextByte())->getSensVal(ANALOGIC);
@@ -484,6 +491,8 @@ int32_t getInputValue(uint8_t firstByte)
         return getDigitalValue();
     case ultrasonicCommand:
         return getUltraValue();
+    case randomCommand:
+        return getRandomValue();
     default:
         return 0;
     }
