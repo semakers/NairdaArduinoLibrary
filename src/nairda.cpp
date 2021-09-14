@@ -126,6 +126,26 @@ void bleWrite(uint8_t byte)
   // pCharacteristic->indicate();
 }
 
+  void idleAnimation(bool red,bool green,bool blue){
+   static int16_t indicatorIntensity = 0;
+    static bool upDownIntensity = true;
+    if (millis() - bleIndicatorFragmentTime > 25)
+    {
+      bleIndicatorFragmentTime = millis();
+      if (indicatorIntensity > 205)
+        upDownIntensity = false;
+      if (indicatorIntensity < 10)
+        upDownIntensity = true;
+
+      if (upDownIntensity)
+        indicatorIntensity = indicatorIntensity > 205 ? 255 : indicatorIntensity + 15;
+      else
+        indicatorIntensity = indicatorIntensity < 10 ? 0 : indicatorIntensity - 15;
+
+      setBleIndicatorColor(red?indicatorIntensity:0, green?indicatorIntensity:0, blue?indicatorIntensity:0);
+    }
+}
+
 #endif
 
 enum
@@ -317,25 +337,7 @@ void nairdaBegin(const char *deviceName)
 
   initBleIndicator();
 
-  void idleAnimation(bool red,bool green,bool blue){
-   static int16_t indicatorIntensity = 0;
-    static bool upDownIntensity = true;
-    if (millis() - bleIndicatorFragmentTime > 25)
-    {
-      bleIndicatorFragmentTime = millis();
-      if (indicatorIntensity > 205)
-        upDownIntensity = false;
-      if (indicatorIntensity < 10)
-        upDownIntensity = true;
 
-      if (upDownIntensity)
-        indicatorIntensity = indicatorIntensity > 205 ? 255 : indicatorIntensity + 15;
-      else
-        indicatorIntensity = indicatorIntensity < 10 ? 0 : indicatorIntensity - 15;
-
-      setBleIndicatorColor(red?indicatorIntensity:0, green?indicatorIntensity:0, blue?indicatorIntensity:0);
-    }
-}
 
 #else
 void nairdaBegin(long int bauds)

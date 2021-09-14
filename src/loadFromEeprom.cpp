@@ -445,7 +445,7 @@ int32_t getMapValue()
 }
 
 
-unt32_t getRandomValue(){
+int32_t getRandomValue(){
     int32_t from = getInputValue(nextByte());
     int32_t to = getInputValue(nextByte());
     return random(from, to);
