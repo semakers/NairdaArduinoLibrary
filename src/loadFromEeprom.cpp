@@ -38,6 +38,7 @@ public:
 void nextServo();
 void nextDC();
 void nextLed();
+void nextFrequency();
 void nextAnalogic();
 void nextDigital();
 void nextUltra();
@@ -50,6 +51,7 @@ uint8_t callInterrupt();
 extern LinkedList<component *> listServos;
 extern LinkedList<component *> listDC;
 extern LinkedList<component *> listLeds;
+extern LinkedList<component *> listFrequencies;
 extern LinkedList<component *> listAnalogics;
 extern LinkedList<component *> listDigitals;
 extern LinkedList<component *> listUltrasonics;
@@ -64,6 +66,7 @@ extern uint32_t execBuffer[2];
 bool loadedServos = false;
 bool loadedMotors = false;
 bool loadedLeds = false;
+bool loadedFrequencies =false;
 bool loadedDigitals = false;
 bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
@@ -244,6 +247,28 @@ void nextLed()
             descArgsBuffer[1] = getMapedPin(currentByte);
             component *tempLed = new component(descArgsBuffer);
             listLeds.add(tempLed);
+        }
+    }
+    nextFrequency();
+}
+
+void nextFrequency()
+{
+    uint8_t currentByte;
+    while (!loadedFrequencies)
+    {
+        currentByte = nextByte();
+        Serial.println(currentByte);
+        if (currentByte == endFrequencies)
+        {
+            loadedFrequencies = true;
+        }
+        else
+        {
+            descArgsBuffer[0] = FREQUENCY;
+            descArgsBuffer[1] = getMapedPin(currentByte);
+            component *tempFrequency = new component(descArgsBuffer);
+            listFrequencies.add(tempFrequency);
         }
     }
     nextAnalogic();
@@ -525,6 +550,23 @@ void runServo(uint8_t id)
     listServos.get(id)->execAct(execBuffer, SERVO);
 }
 
+void runFrequency(uint8_t id)
+{
+    execBuffer[0] = getInputValue(nextByte());
+    execBuffer[1] = getInputValue(nextByte());
+    execBuffer[2] = getInputValue(nextByte());
+    uint32_t frequencyBuffer[6];
+
+    frequencyBuffer[0]=(uint32_t)secondValue(execBuffer[0]);
+    frequencyBuffer[1]=(uint32_t)thirdValue(execBuffer[0]);
+    frequencyBuffer[2]=(uint32_t)firstValue(execBuffer[2]);
+    frequencyBuffer[3]=(uint32_t)secondValue(execBuffer[2]);
+    frequencyBuffer[4]=(uint32_t)thirdValue(execBuffer[2]);
+    frequencyBuffer[5]=execBuffer[1];
+
+    listFrequencies.get(id)->execAct(frequencyBuffer, FREQUENCY);
+}
+
 void runMotorDc(uint8_t id)
 {
     int32_t vel = getInputValue(nextByte());
@@ -689,6 +731,7 @@ void restartRunFromEeprom(){
              loadedServos = false;
              loadedMotors = false;
              loadedLeds = false;
+             loadedFrequencies=false;
              loadedDigitals = false;
              loadedAnalogics = false;
              loadedUltrasonics = false;
@@ -784,6 +827,9 @@ void nairdaRunMachineState()
             break;
         case setVarValueCommand:
             runSetVatValue(nextByte());
+            break;
+        case frequencyCommand:
+            runFrequency(nextByte());
             break;
         case servoCommand:
             runServo(nextByte());

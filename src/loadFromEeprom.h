@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "nairda.h"
 
+#include "freeTone/TimerFreeTone.h"
+
 #if defined(ARDUINO_ARCH_STM32)
 #include <Servo.h>
 #include "softPwmSTM32/softPwmStm32.h"
@@ -56,6 +58,8 @@
 #define breakCommand 128
 #define saveCommand 129
 #define randomCommand 130
+#define endFrequencies 131
+#define frequencyCommand 132
 
 #define CURRENT_VERSION 2
 
@@ -68,6 +72,7 @@ enum
       SERVO = 0,
       MOTOR,
       LED,
+      FREQUENCY,
       DIGITAL,
       ANALOGIC,
       ULTRASONIC
@@ -185,6 +190,9 @@ public:
 #endif
 #endif
                   break;
+            case FREQUENCY:
+                  pin = args[1];
+            break;
             case DIGITAL:
                   pin = args[1];
 #if defined(ARDUINO_ARCH_STM32)
@@ -371,6 +379,16 @@ public:
                   SoftPWMSetPercent(pin, (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);
 #endif
 #endif
+                  break;
+                  case FREQUENCY:
+                        
+                        /*Serial.println("-----------");
+                        Serial.println(pin);
+                        Serial.println((execArgs[0]*100)+execArgs[1]);
+                        Serial.println((execArgs[2]*10000)+(execArgs[3]*100)+execArgs[4]);
+                        Serial.println(execArgs[5]);*/
+
+                        TimerFreeTone(pin,(execArgs[0]*100)+execArgs[1],(execArgs[2]*10000)+(execArgs[3]*100)+execArgs[4],execArgs[5]);
                   break;
             }
       }

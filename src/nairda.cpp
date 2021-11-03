@@ -161,6 +161,7 @@ bool declaratedDescriptor = false;
 bool declaratedServos = false;
 bool declaratedDC = false;
 bool declaratedLeds = false;
+bool declaratedFrequencies = false;
 bool declaratedAnalogics = false;
 bool declaratedDigitals = false;
 bool declaratedUltrasonics = false;
@@ -168,6 +169,7 @@ bool declaratedUltrasonics = false;
 bool executeServo = false;
 bool executeDC = false;
 bool executeLed = false;
+bool executeFrequency = false;
 
 uint8_t i;
 uint8_t tempValue;
@@ -175,6 +177,10 @@ int runProgrammTimeOut = 0;
 
 bool executeDCBoolean[3];
 uint8_t executeDCBuffer[3];
+
+
+bool executeFrequencyBoolean[7];
+uint8_t executeFrequencyBuffer[7];
 
 bool servoBoolean[7];
 bool dcBoolean[3];
@@ -184,7 +190,7 @@ uint8_t servoBuffer[7];
 uint8_t dcBuffer[3];
 
 uint16_t descArgsBuffer[5];
-uint32_t execBuffer[2];
+uint32_t execBuffer[6];
 
 #if defined(__AVR_ATmega32U4__)
 uint32_t asmOperations = 0;
@@ -201,6 +207,7 @@ void resetLeonardoMemory()
 LinkedList<component *> listServos = LinkedList<component *>();
 LinkedList<component *> listDC = LinkedList<component *>();
 LinkedList<component *> listLeds = LinkedList<component *>();
+LinkedList<component *> listFrequencies = LinkedList<component *>();
 LinkedList<component *> listAnalogics = LinkedList<component *>();
 LinkedList<component *> listDigitals = LinkedList<component *>();
 LinkedList<component *> listUltrasonics = LinkedList<component *>();
@@ -265,6 +272,13 @@ void cleanExecuteDCBoolean()
   }
 }
 
+void cleanExecuteFrequencyBoolean(){
+  for (int j = 0; j < 7; j++)
+  {
+    executeFrequencyBoolean[j] = false;
+  }
+}
+
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
 void resetMemory()
 {
@@ -274,20 +288,24 @@ void resetMemory()
   declaratedServos = false;
   declaratedDC = false;
   declaratedLeds = false;
+  declaratedFrequencies =false;
   declaratedAnalogics = false;
   declaratedDigitals = false;
   declaratedUltrasonics = false;
   executeServo = false;
   executeDC = false;
   executeLed = false;
+  executeFrequency =false;
   clearCurrentChannel();
   cleanServoBoolean();
   cleanDCBoolean();
   cleanExecuteDCBoolean();
+  cleanExecuteFrequencyBoolean();
   cleanSavingBoolean();
   freeCompList(&listServos, SERVO);
   freeCompList(&listDC, MOTOR);
   freeCompList(&listLeds, LED);
+  freeCompList(&listFrequencies, FREQUENCY);
   freeCompList(&listAnalogics, ANALOGIC);
   freeCompList(&listDigitals, DIGITAL);
   freeCompList(&listUltrasonics, ULTRASONIC);
@@ -602,6 +620,11 @@ void nairdaDebug(uint8_t tempValue)
     declaratedLeds = true;
     //  Serial.println("Se han agregado todos los leds");
   }
+  else if (tempValue == endFrequencies)
+  {
+    declaratedFrequencies = true;
+    //  Serial.println("Se han agregado todos las frecuencias");
+  }
   else if (tempValue == endAnalogics)
   {
     declaratedAnalogics = true;
@@ -701,6 +724,13 @@ void nairdaDebug(uint8_t tempValue)
       component *tempLed = new component(descArgsBuffer);
       listLeds.add(tempLed);
     }
+    else if (declaratedFrequencies == false && tempValue < 100)
+    {
+      descArgsBuffer[0] = FREQUENCY;
+      descArgsBuffer[1] = getMapedPin(tempValue);
+      component *tempFrequency = new component(descArgsBuffer);
+      listFrequencies.add(tempFrequency);
+    }
     else if (declaratedAnalogics == false && tempValue < 100)
     {
       descArgsBuffer[0] = ANALOGIC;
@@ -735,12 +765,13 @@ void nairdaDebug(uint8_t tempValue)
   }
   else
   {
-    if (executeServo == false && executeDC == false && executeLed == false)
+    if (executeServo == false && executeDC == false && executeLed == false && executeFrequency ==false)
     {
       int indexServos = listServos.size();
       int indexMotors = indexServos + listDC.size();
       int indexLeds = indexMotors + listLeds.size();
-      int indexAnalogics = indexLeds + listAnalogics.size();
+      int indexFrequencies = indexLeds + listLeds.size();
+      int indexAnalogics = indexFrequencies + listAnalogics.size();
       int indexDigitals = indexAnalogics + listDigitals.size();
       int indexUltraosnics = indexDigitals + listUltrasonics.size();
 
@@ -759,7 +790,12 @@ void nairdaDebug(uint8_t tempValue)
         i = tempValue - indexMotors;
         executeLed = true;
       }
-      else if (tempValue >= indexLeds && tempValue < indexAnalogics && listAnalogics.size() > 0)
+      else if (tempValue >= indexLeds && tempValue < indexFrequencies && listFrequencies.size() > 0)
+      {
+        executeFrequencyBuffer[0]= tempValue - indexLeds;
+        executeFrequency = true;
+      }
+      else if (tempValue >= indexFrequencies && tempValue < indexAnalogics && listAnalogics.size() > 0)
       {
         int tempPin = tempValue - indexLeds;
         listAnalogics.get(tempPin)->sendSensVal(ANALOGIC);
@@ -810,6 +846,35 @@ void nairdaDebug(uint8_t tempValue)
         execBuffer[0] = tempValue;
         listLeds.get(i)->execAct(execBuffer, LED);
         executeLed = false;
+      }
+      else if (executeFrequency == true)
+      {
+         if (!executeFrequencyBoolean[0]){
+            executeFrequencyBoolean[0] = true;
+            executeFrequencyBuffer[1] = tempValue;
+          }else if (!executeFrequencyBoolean[1]){
+            executeFrequencyBoolean[1] = true;
+            executeFrequencyBuffer[2] = tempValue;
+          }else if (!executeFrequencyBoolean[2]){
+            executeFrequencyBoolean[2] = true;
+            executeFrequencyBuffer[3] = tempValue;
+          }else if (!executeFrequencyBoolean[3]){
+            executeFrequencyBoolean[3] = true;
+            executeFrequencyBuffer[4] = tempValue;
+          }else if (!executeFrequencyBoolean[4]){
+            executeFrequencyBoolean[4] = true;
+            executeFrequencyBuffer[5] = tempValue;
+          }else if (!executeFrequencyBoolean[5])
+        {
+          executeFrequencyBoolean[5] = true;
+          executeFrequencyBuffer[6] = tempValue;
+
+          for(uint8_t i=0;i<6;i++)execBuffer[i] = executeFrequencyBuffer[i+1];
+
+          listFrequencies.get(executeFrequencyBuffer[0])->execAct(execBuffer, FREQUENCY);
+          cleanExecuteFrequencyBoolean();
+          executeFrequency = false;
+        }
       }
     }
   }
