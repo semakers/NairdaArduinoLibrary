@@ -5,6 +5,7 @@
 #include "nairda.h"
 
 #include "freeTone/TimerFreeTone.h"
+#include "NeoPixel/Adafruit_NeoPixel.h"
 
 #if defined(ARDUINO_ARCH_STM32)
 #include <Servo.h>
@@ -60,6 +61,10 @@
 #define randomCommand 130
 #define endFrequencies 131
 #define frequencyCommand 132
+#define endNeopixels 133
+#define neopixelCommand 134
+#define endFunctionCommand 135
+#define goToFunctionCommand 136
 
 #define CURRENT_VERSION 2
 
@@ -73,6 +78,7 @@ enum
       MOTOR,
       LED,
       FREQUENCY,
+      NEOPIXEL,
       DIGITAL,
       ANALOGIC,
       ULTRASONIC
@@ -81,35 +87,39 @@ enum
 class component
 {
 public:
-      //analogc digital led
-      uint8_t pin;
+      // analogc digital led
+      
+      Adafruit_NeoPixel *neopixel;
+      
 
 #if defined(ARDUINO_ARCH_STM32)
-      //servo
+      // servo
       Servo servo;
-      uint8_t trigger, echo;
 
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-      //servo
+      // servo
       Servo servo;
       int8_t ledcChannel = -1;
-      uint8_t trigger, echo;
 #else
-      //servo
+      // servo
       Servo servo;
-      //ultrasonic
+      // ultrasonic
       NewPing *sonar;
+      // neopixel
+
 #endif
 
 #endif
-      uint8_t a, b, pwm, vel, intensity;
+      uint8_t pins[5]={0,0,0,0,0};
+      uint8_t values[5]={0,0,0,0,0};
 
       component(uint16_t *args)
       {
             switch (args[0])
             {
             case SERVO:
+            pins[0]=args[1];
 #if defined(ARDUINO_ARCH_STM32)
                   servo.attach(args[1], args[2], args[3]);
                   servo.write(args[4]);
@@ -134,9 +144,9 @@ public:
                   break;
             case MOTOR:
 
-                  a = args[1];
-                  b = args[2];
-                  pwm = args[3];
+                  pins[0] = args[1];
+                  pins[1] = args[2];
+                  pins[2] = args[3];
 #if defined(ARDUINO_ARCH_STM32)
                   pinMode(args[1], OUTPUT);
                   pinMode(args[2], OUTPUT);
@@ -166,10 +176,10 @@ public:
 #endif
                   break;
             case LED:
-                  pin = args[1];
+                  pins[0] = args[1];
 #if defined(ARDUINO_ARCH_STM32)
                   softPwmSTM32Attach(args[1], 0);
-                  
+
 #else
 #if defined(ARDUINO_ARCH_ESP32)
                   if (getCurrentChannel() < 16)
@@ -191,23 +201,30 @@ public:
 #endif
                   break;
             case FREQUENCY:
-                  pin = args[1];
-            break;
+                  pins[0] = args[1];
+                  break;
+
+            case NEOPIXEL:
+                  pins[0] = args[1];
+                  neopixel = new Adafruit_NeoPixel(args[2], pins[0], NEO_GRB + NEO_KHZ800);
+                  neopixel->begin();
+                  break;
             case DIGITAL:
-                  pin = args[1];
+                  pins[0] = args[1];
 #if defined(ARDUINO_ARCH_STM32)
-                  pinMode(pin, INPUT);
+                  pinMode(pins[0] , INPUT);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  pinMode(pin, INPUT);
+                  pinMode(pins[0] , INPUT);
 #else
 
-                  pinMode(pin, INPUT);
+                  pinMode(pins[0] , INPUT);
 #endif
 #endif
                   break;
+
             case ANALOGIC:
-                  pin = args[1];
+                  pins[0] = args[1];
 #if defined(ARDUINO_ARCH_STM32)
 
 #else
@@ -219,19 +236,18 @@ public:
 #endif
                   break;
             case ULTRASONIC:
+            pins[0] = args[1];
+            pins[1] = args[2];
 #if defined(ARDUINO_ARCH_STM32)
-                  trigger = args[1];
-                  echo = args[2];
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], INPUT);
+                 
+            pinMode(args[1], OUTPUT);
+            pinMode(args[2], INPUT);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  trigger = args[1];
-                  echo = args[2];
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], INPUT);
+            pinMode(args[1], OUTPUT);
+            pinMode(args[2], INPUT);
 #else
-                  sonar = new NewPing(args[1], args[2], 100);
+            sonar = new NewPing(args[1], args[2], 100);
 #endif
 #endif
                   break;
@@ -244,35 +260,39 @@ public:
             {
             case SERVO:
 #if defined(ARDUINO_ARCH_STM32)
-                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180 : execArgs[0]);
+                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
+                                                                          : execArgs[0]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180 : execArgs[0]);
+                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
+                                                                          : execArgs[0]);
 #else
-                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180 : execArgs[0]);
+                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
+                                                                          : execArgs[0]);
 #endif
 #endif
                   break;
             case MOTOR:
-                  vel = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0];
+                  values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
+                                                                    : execArgs[0];
 #if defined(ARDUINO_ARCH_STM32)
                   switch (execArgs[1])
                   {
                   case 0:
-                        digitalWrite(a, HIGH);
-                        digitalWrite(b, LOW);
-                        softPwmSTM32Set(pwm, vel);
+                        digitalWrite(pins[0], HIGH);
+                        digitalWrite(pins[1], LOW);
+                        softPwmSTM32Set(pins[2], values[0]);
 
                         break;
                   case 1:
-                        digitalWrite(a, LOW);
-                        digitalWrite(b, LOW);
-                        softPwmSTM32Set(pwm, 0);
+                        digitalWrite(pins[0], LOW);
+                        digitalWrite(pins[1], LOW);
+                        softPwmSTM32Set(pins[2], 0);
                         break;
                   case 2:
-                        digitalWrite(a, LOW);
-                        digitalWrite(b, HIGH);
-                        softPwmSTM32Set(pwm, vel);
+                        digitalWrite(pins[0], LOW);
+                        digitalWrite(pins[1], HIGH);
+                        softPwmSTM32Set(pins[2], values[0]);
                         break;
                   }
 #else
@@ -280,46 +300,46 @@ public:
                   switch (execArgs[1])
                   {
                   case 0:
-                        digitalWrite(a, HIGH);
-                        digitalWrite(b, LOW);
+                        digitalWrite(pins[0], HIGH);
+                        digitalWrite(pins[1], LOW);
                         if (ledcChannel != -1)
                         {
-                              ledcWrite(ledcChannel, map(vel, 0, 100, 0, 65535));
+                              ledcWrite(ledcChannel, map(values[0], 0, 100, 0, 65535));
                         }
                         else
                         {
-                              if (vel >= 0 && vel <= 50)
+                              if (values[0] >= 0 && values[0] <= 50)
                               {
-                                    digitalWrite(pwm, LOW);
+                                    digitalWrite(pins[2], LOW);
                               }
-                              else if (vel > 50 && vel <= 100)
+                              else if (values[0] > 50 && values[0] <= 100)
                               {
-                                    digitalWrite(pwm, HIGH);
+                                    digitalWrite(pins[2], HIGH);
                               }
                         }
 
                         break;
                   case 1:
-                        digitalWrite(a, LOW);
-                        digitalWrite(b, LOW);
+                        digitalWrite(pins[0], LOW);
+                        digitalWrite(pins[1], LOW);
                         ledcWrite(ledcChannel, 0);
                         break;
                   case 2:
-                        digitalWrite(a, LOW);
-                        digitalWrite(b, HIGH);
+                        digitalWrite(pins[0], LOW);
+                        digitalWrite(pins[1], HIGH);
                         if (ledcChannel != -1)
                         {
-                              ledcWrite(ledcChannel, map(vel, 0, 100, 0, 65535));
+                              ledcWrite(ledcChannel, map(values[0], 0, 100, 0, 65535));
                         }
                         else
                         {
-                              if (vel >= 0 && vel <= 50)
+                              if (values[0] >= 0 && values[0] <= 50)
                               {
-                                    digitalWrite(pwm, LOW);
+                                    digitalWrite(pins[2], LOW);
                               }
-                              else if (vel > 50 && vel <= 100)
+                              else if (values[0] > 50 && values[0] <= 100)
                               {
-                                    digitalWrite(pwm, HIGH);
+                                    digitalWrite(pins[2], HIGH);
                               }
                         }
                         break;
@@ -329,20 +349,20 @@ public:
                   switch (execArgs[1])
                   {
                   case 0:
-                        digitalWrite(a, HIGH);
-                        digitalWrite(b, LOW);
-                        SoftPWMSetPercent(pwm, vel);
+                        digitalWrite(pins[0], HIGH);
+                        digitalWrite(pins[1], LOW);
+                        SoftPWMSetPercent(pins[2], values[0]);
 
                         break;
                   case 1:
-                        digitalWrite(a, LOW);
-                        digitalWrite(b, LOW);
-                        SoftPWMSetPercent(pwm, 0);
+                        digitalWrite(pins[0], LOW);
+                        digitalWrite(pins[1], LOW);
+                        SoftPWMSetPercent(pins[2], 0);
                         break;
                   case 2:
-                        digitalWrite(a, LOW);
-                        digitalWrite(b, HIGH);
-                        SoftPWMSetPercent(pwm, vel);
+                        digitalWrite(pins[0], LOW);
+                        digitalWrite(pins[1], HIGH);
+                        SoftPWMSetPercent(pins[2], values[0]);
                         break;
                   }
 #endif
@@ -350,45 +370,46 @@ public:
                   break;
             case LED:
 #if defined(ARDUINO_ARCH_STM32)
-                  softPwmSTM32Set(pin, (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);
+                  softPwmSTM32Set(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
+                                                                                   : execArgs[0]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  intensity = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0];
+                  values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
+                                                                          : execArgs[0];
                   if (ledcChannel != -1)
                   {
-                        ledcWrite(ledcChannel, map(intensity, 0, 100, 0, 65535));
+                        ledcWrite(ledcChannel, map(values[0], 0, 100, 0, 65535));
                   }
                   else
                   {
-                        if (intensity >= 0 && intensity <= 50)
+                        if (values[0] >= 0 && values[0] <= 50)
                         {
-                              digitalWrite(pin, LOW);
+                              digitalWrite(pins[0], LOW);
                         }
-                        else if (intensity > 50 && intensity <= 100)
+                        else if (values[0] > 50 && values[0] <= 100)
                         {
-                              digitalWrite(pin, HIGH);
+                              digitalWrite(pins[0], HIGH);
                         }
                   }
 
-           
-          /* Serial.print(pin);
-            Serial.print(": ");
-            Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);*/
+                  /* Serial.print(pin);
+                    Serial.print(": ");
+                    Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);*/
 
 #else
-                  SoftPWMSetPercent(pin, (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);
+                  SoftPWMSetPercent(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
+                                                                                     : execArgs[0]);
 #endif
 #endif
                   break;
-                  case FREQUENCY:
-                        
-                        /*Serial.println("-----------");
-                        Serial.println(pin);
-                        Serial.println((execArgs[0]*100)+execArgs[1]);
-                        Serial.println((execArgs[2]*10000)+(execArgs[3]*100)+execArgs[4]);
-                        Serial.println(execArgs[5]);*/
-
-                        TimerFreeTone(pin,(execArgs[0]*100)+execArgs[1],(execArgs[2]*10000)+(execArgs[3]*100)+execArgs[4],execArgs[5]);
+            case FREQUENCY:
+                  TimerFreeTone(pins[0], (execArgs[0] * 100) + execArgs[1], (execArgs[2] * 10000) + (execArgs[3] * 100) + execArgs[4], execArgs[5]);
+                  break;
+            case NEOPIXEL:
+                  if(pins[0]==BLE_INDICATOR_PIN) neopixel->setPixelColor(execArgs[3], execArgs[1], execArgs[0], execArgs[2]);
+                  else neopixel->setPixelColor(execArgs[3], execArgs[0], execArgs[1], execArgs[2]);
+                  
+                  neopixel->show();
                   break;
             }
       }
@@ -400,53 +421,68 @@ public:
             {
             case DIGITAL:
 #if defined(ARDUINO_ARCH_STM32)
-                  tempRead = digitalRead(pin);
+                  tempRead = digitalRead(pins[0]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  tempRead = digitalRead(pin);
+                  tempRead = digitalRead(pins[0]);
 #else
-                  tempRead = digitalRead(pin);
+                  tempRead = digitalRead(pins[0]);
 #endif
 #endif
                   break;
             case ANALOGIC:
 #if defined(ARDUINO_ARCH_STM32)
-                  tempRead = map(analogRead(pin), 0, 1023, 0, 100);
+                  tempRead = map(analogRead(pins[0]), 0, 1023, 0, 100);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  tempRead = map(analogRead(pin), 0, 4095, 0, 100);
+                  tempRead = map(analogRead(pins[0]), 0, 4095, 0, 100);
 #else
-                  tempRead = map(analogRead(pin), 0, 1023, 0, 100);
+                  tempRead = map(analogRead(pins[0]), 0, 1023, 0, 100);
 #endif
 #endif
                   break;
             case ULTRASONIC:
 #if defined(ARDUINO_ARCH_STM32)
-                  digitalWrite(trigger, LOW);
+                  digitalWrite(pins[0], LOW);
                   delayMicroseconds(2);
-                  digitalWrite(trigger, HIGH);
+                  digitalWrite(pins[0], HIGH);
                   delayMicroseconds(10);
-                  digitalWrite(trigger, LOW);
-                  tempRead = pulseIn(echo, HIGH) / 27.6233 / 2;
+                  digitalWrite(pins[0], LOW);
+                  tempRead = pulseIn(pins[1], HIGH) / 27.6233 / 2;
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  digitalWrite(trigger, LOW);
+                  digitalWrite(pins[0], LOW);
                   delayMicroseconds(2);
-                  digitalWrite(trigger, HIGH);
+                  digitalWrite(pins[0], HIGH);
                   delayMicroseconds(10);
-                  digitalWrite(trigger, LOW);
-                  tempRead = pulseIn(echo, HIGH) / 27.6233 / 2;
+                  digitalWrite(pins[0], LOW);
+                  tempRead = pulseIn(pins[1], HIGH) / 27.6233 / 2;
 #else
-                  
+
                   tempRead = sonar->ping_cm();
 #endif
 #endif
                   static int lastValue;
-                  lastValue=(tempRead==0)?lastValue:tempRead;
-                  tempRead=(tempRead==0)?lastValue:tempRead;
+                  static int zeroCounter = 0;
+
+                  if (zeroCounter == 3)
+                  {
+                        if (tempRead == 0)
+                              tempRead = 99;
+                        else
+                              zeroCounter = 0;
+                  }
+                  else
+                  {
+                        if (tempRead == 0)
+                              zeroCounter++;
+                        lastValue = (tempRead == 0) ? lastValue : tempRead;
+                        tempRead = (tempRead == 0) ? lastValue : tempRead;
+                  }
                   break;
             }
-            return (tempRead < 0) ? 0 : (tempRead > 100) ? 100 : tempRead;
+            return (tempRead < 0) ? 0 : (tempRead > 100) ? 100
+                                                         : tempRead;
       }
 
       void sendSensVal(uint8_t type)
@@ -493,39 +529,42 @@ public:
 #endif
 #endif
                   break;
+            case NEOPIXEL:
+                  free(neopixel);
+                  break;
             case MOTOR:
 #if defined(ARDUINO_ARCH_STM32)
-                  digitalWrite(a, LOW);
-                  digitalWrite(b, LOW);
-                  softPwmSTM32Set(pwm, 0);
-                  softPwmSTM32Dettach(pwm);
+                  digitalWrite(pins[0], LOW);
+                  digitalWrite(pins[1], LOW);
+                  softPwmSTM32Set(pins[2], 0);
+                  softPwmSTM32Dettach(pins[2]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  digitalWrite(a, LOW);
-                  digitalWrite(b, LOW);
+                  digitalWrite(pins[0], LOW);
+                  digitalWrite(pins[1], LOW);
                   ledcWrite(ledcChannel, 0);
-                  ledcDetachPin(pwm);
+                  ledcDetachPin(pins[2]);
 #else
-                  digitalWrite(a, LOW);
-                  digitalWrite(b, LOW);
-                  SoftPWMSet(pwm, 0);
-                  SoftPWMEnd(pwm);
+                  digitalWrite(pins[0], LOW);
+                  digitalWrite(pins[1], LOW);
+                  SoftPWMSet(pins[2], 0);
+                  SoftPWMEnd(pins[2]);
 #endif
 #endif
                   break;
             case LED:
 #if defined(ARDUINO_ARCH_STM32)
-                  softPwmSTM32Set(pin, 0);
-                  softPwmSTM32Dettach(pin);
+                  softPwmSTM32Set(pins[0], 0);
+                  softPwmSTM32Dettach(pins[0]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
 
                   ledcWrite(ledcChannel, 0);
-                  ledcDetachPin(pin);
+                  ledcDetachPin(pins[0]);
 
 #else
-                  SoftPWMSet(pin, 0);
-                  SoftPWMEnd(pin);
+                  SoftPWMSet(pins[0], 0);
+                  SoftPWMEnd(pins[0]);
 #endif
 #endif
                   break;
