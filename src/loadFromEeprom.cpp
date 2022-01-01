@@ -61,8 +61,9 @@ extern LinkedList<component *> listUltrasonics;
 extern bool running;
 LinkedList<variable *> listVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
+LinkedList<int> directionsStack = LinkedList<int>();
 
-uint32_t currentOffset = 4;
+uint32_t currentOffset = 7;
 uint32_t ProgrammSize = 0;
 uint32_t initdirection =0;
 extern uint16_t descArgsBuffer[5];
@@ -146,7 +147,8 @@ uint8_t readByte(uint32_t address)
 
 uint8_t nextByte()
 {
-    if (currentOffset == (ProgrammSize + 4))
+    
+    if (currentOffset == (ProgrammSize ))
     {
         while (callInterrupt() == 0)
         {
@@ -155,7 +157,9 @@ uint8_t nextByte()
     if (running)
     {
         uint8_t auxByte = readByte(currentOffset);
-
+        Serial.print(currentOffset);
+        Serial.print(" ");
+        Serial.println(auxByte);
         currentOffset++;
         return auxByte;
     }
@@ -170,14 +174,19 @@ void loadEepromDescriptor()
     if (readByte(0) == 1)
     {
         running = true;
+
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
+        Serial.println(initdirection);
+        Serial.println(ProgrammSize);
+        
         nextServo();
     }
 }
 
 void nextServo()
 {
+    
     uint8_t currentByte;
     while (!loadedServos)
     {
@@ -241,6 +250,7 @@ void nextDC()
 
 void nextLed()
 {
+    
     uint8_t currentByte;
     while (!loadedLeds)
     {
@@ -381,7 +391,7 @@ void nextUltra()
 
 void nextVariable()
 {
-
+    
     uint8_t currentByte;
     while (!loadedVariables)
     {
@@ -419,7 +429,10 @@ int32_t getValue()
 
 int32_t getVariableValue()
 {
-    return listVariables.get(nextByte())->value;
+    int32_t val =listVariables.get(nextByte())->value;
+    Serial.print("                                  ");
+    Serial.println(val);
+    return val;
 }
 
 int32_t getComparatorValue()
@@ -654,11 +667,15 @@ void runMotorDc(uint8_t id)
 
 void runLed(uint8_t id)
 {
+   
     int32_t intensity = getInputValue(nextByte());
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100
                                                         : intensity;
     execBuffer[0] = intensity;
     listLeds.get(id)->execAct(execBuffer, LED);
+
+     //Serial.print("led ");
+     //Serial.println(intensity);
 }
 
 void runIf()
@@ -669,7 +686,7 @@ void runIf()
     {
         eosBytes[i] = nextByte();
     }
-    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
+    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] ;
     if (conditionValue != 0)
     {
     }
@@ -716,7 +733,7 @@ void runRepeat()
     }
     if (currentBegin == NULL)
     {
-        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
+        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] ;
         currentBegin = new repeatBegin(sos, eos, loop, times);
         // Serial.print("eos: ");
         // Serial.println(currentBegin->offsetEnd);
@@ -767,8 +784,25 @@ void runGoToFunction(){
     {
         jumBytes[i] = nextByte();
     }
-        uint32_t jump = (jumBytes[0] * 10000) + (jumBytes[1] * 100) + jumBytes[2];
+    uint16_t jump = (jumBytes[0] * 10000) + (jumBytes[1] * 100) + jumBytes[2];
+    bool contains=false;
+    for(uint16_t i=0;i<directionsStack.size();i++){
+        if(directionsStack.get(i)==currentOffset){
+            contains=true;
+        }
+    }
+    if(!contains){
+        directionsStack.add(currentOffset);
+    }
+    currentOffset=jump;
+}
 
+void runEndOfFunction(){
+    uint16_t jump = directionsStack.get(directionsStack.size()-1);
+    directionsStack.remove(directionsStack.size()-1);
+    Serial.print("Jump:  ");
+    Serial.println(jump);
+    currentOffset=jump;
 }
 
 void freeVariables()
@@ -795,7 +829,6 @@ void freeVolatileMemory()
 {
     if (running)
     {
-        currentOffset = 4;
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         freeVariables();
         freeRepeatBegins();
@@ -903,7 +936,9 @@ void nairdaRunMachineState()
 #if defined(ARDUINO_ARCH_ESP32)
         idleAnimation(false, false, true,bleIndicatorAvailable());
 #endif
-        switch (nextByte())
+        uint8_t auxByte=nextByte();
+        
+        switch (auxByte)
         {
         case delayCommand:
             runDelay();
@@ -929,6 +964,12 @@ void nairdaRunMachineState()
         case ifCommand:
             runIf();
             break;
+        case goToFunctionCommand:
+            runGoToFunction();
+        break;
+        case endFunctionCommand:
+         runEndOfFunction();
+        break;
         case repeatCommand:
             runRepeat();
             break;

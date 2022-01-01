@@ -434,6 +434,7 @@ void nairdaLoop()
   if ((millis() - runProgrammTimeOut) > 2500 && declaratedServos == false)
   {
 #endif
+    
     loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }
@@ -589,6 +590,8 @@ void nairdaDebug(uint8_t tempValue)
       writeByte(2, savingBuffer[2]);
       writeByte(3, savingBuffer[3]);
       programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
+      Serial.print("program size ");
+      Serial.println(programmSize);
       currentProgramOffset = 4;
     }
     else
