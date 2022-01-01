@@ -157,9 +157,6 @@ uint8_t nextByte()
     if (running)
     {
         uint8_t auxByte = readByte(currentOffset);
-        Serial.print(currentOffset);
-        Serial.print(" ");
-        Serial.println(auxByte);
         currentOffset++;
         return auxByte;
     }
@@ -177,8 +174,6 @@ void loadEepromDescriptor()
 
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
-        Serial.println(initdirection);
-        Serial.println(ProgrammSize);
         
         nextServo();
     }
@@ -430,8 +425,6 @@ int32_t getValue()
 int32_t getVariableValue()
 {
     int32_t val =listVariables.get(nextByte())->value;
-    Serial.print("                                  ");
-    Serial.println(val);
     return val;
 }
 
@@ -599,7 +592,7 @@ void runDelay()
 {
     uint32_t delayTime = getInputValue(nextByte());
 #if defined(ARDUINO_ARCH_ESP32)
-    for (uint64_t i = 0; i < delayTime * 300; i++)
+    for (uint64_t i = 0; i < delayTime * 400; i++)
     {
         idleAnimation(false, false, true,bleIndicatorAvailable());
         if (callInterrupt() == 1)
@@ -800,8 +793,6 @@ void runGoToFunction(){
 void runEndOfFunction(){
     uint16_t jump = directionsStack.get(directionsStack.size()-1);
     directionsStack.remove(directionsStack.size()-1);
-    Serial.print("Jump:  ");
-    Serial.println(jump);
     currentOffset=jump;
 }
 
