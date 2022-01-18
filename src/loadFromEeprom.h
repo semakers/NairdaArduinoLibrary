@@ -66,7 +66,7 @@
 #define endFunctionCommand 135
 #define goToFunctionCommand 136
 
-#define CURRENT_VERSION 2
+#define CURRENT_VERSION 3
 
 uint8_t getCurrentChannel();
 void nextCurrentChannel();
