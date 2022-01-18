@@ -15,7 +15,8 @@ public:
     }
     void setvalue(int32_t newValue)
     {
-        value = (newValue > 999999) ? 999999 : (newValue < -999999) ? -999999 : newValue;
+        value = (newValue > 999999) ? 999999 : (newValue < -999999) ? -999999
+                                                                    : newValue;
     }
 };
 
@@ -39,6 +40,7 @@ void nextServo();
 void nextDC();
 void nextLed();
 void nextFrequency();
+void nextNeopixel();
 void nextAnalogic();
 void nextDigital();
 void nextUltra();
@@ -52,38 +54,45 @@ extern LinkedList<component *> listServos;
 extern LinkedList<component *> listDC;
 extern LinkedList<component *> listLeds;
 extern LinkedList<component *> listFrequencies;
+extern LinkedList<component *> listNeopixels;
 extern LinkedList<component *> listAnalogics;
 extern LinkedList<component *> listDigitals;
 extern LinkedList<component *> listUltrasonics;
 extern bool running;
 LinkedList<variable *> listVariables = LinkedList<variable *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
+LinkedList<int> directionsStack = LinkedList<int>();
 
-uint32_t currentOffset = 4;
+uint32_t currentOffset = 7;
 uint32_t ProgrammSize = 0;
+uint32_t initdirection =0;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[2];
 bool loadedServos = false;
 bool loadedMotors = false;
 bool loadedLeds = false;
-bool loadedFrequencies =false;
+bool loadedFrequencies = false;
+bool loadedNeoPixels =false;
 bool loadedDigitals = false;
 bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
 
-uint8_t currentChannel=0;
+uint8_t currentChannel = 0;
 
-uint8_t getCurrentChannel(){
+uint8_t getCurrentChannel()
+{
     return currentChannel;
 }
 
-void nextCurrentChannel(){
+void nextCurrentChannel()
+{
     currentChannel++;
 }
 
-void clearCurrentChannel(){
-    currentChannel=0;
+void clearCurrentChannel()
+{
+    currentChannel = 0;
 }
 
 void writeByte(uint32_t address, uint8_t byte)
@@ -104,11 +113,11 @@ void writeByte(uint32_t address, uint8_t byte)
         delay(5);
     }
 #else
-     //eeprom_write_byte(address, byte);
-   EEPROM.update(address, byte);
-   //HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, (address + DATA_EEPROM_BASE), (uint32_t)byte);
+    // eeprom_write_byte(address, byte);
+    EEPROM.update(address, byte);
+    // HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, (address + DATA_EEPROM_BASE), (uint32_t)byte);
     Serial.println(byte);
-   // delay(30);
+    // delay(30);
 #endif
 #endif
 }
@@ -138,7 +147,8 @@ uint8_t readByte(uint32_t address)
 
 uint8_t nextByte()
 {
-    if (currentOffset == (ProgrammSize + 4))
+    
+    if (currentOffset == (ProgrammSize ))
     {
         while (callInterrupt() == 0)
         {
@@ -147,7 +157,6 @@ uint8_t nextByte()
     if (running)
     {
         uint8_t auxByte = readByte(currentOffset);
-        
         currentOffset++;
         return auxByte;
     }
@@ -162,14 +171,17 @@ void loadEepromDescriptor()
     if (readByte(0) == 1)
     {
         running = true;
-        ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
 
+        ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
+        initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
+        
         nextServo();
     }
 }
 
 void nextServo()
 {
+    
     uint8_t currentByte;
     while (!loadedServos)
     {
@@ -233,6 +245,7 @@ void nextDC()
 
 void nextLed()
 {
+    
     uint8_t currentByte;
     while (!loadedLeds)
     {
@@ -258,7 +271,6 @@ void nextFrequency()
     while (!loadedFrequencies)
     {
         currentByte = nextByte();
-        Serial.println(currentByte);
         if (currentByte == endFrequencies)
         {
             loadedFrequencies = true;
@@ -269,6 +281,33 @@ void nextFrequency()
             descArgsBuffer[1] = getMapedPin(currentByte);
             component *tempFrequency = new component(descArgsBuffer);
             listFrequencies.add(tempFrequency);
+        }
+    }
+    nextNeopixel();
+}
+
+void nextNeopixel()
+{
+    uint8_t currentByte;
+    
+    while (!loadedNeoPixels)
+    {
+        currentByte = nextByte();
+
+       
+        if (currentByte == endNeopixels)
+        {
+            loadedNeoPixels = true;
+        }
+        else
+        {
+            descArgsBuffer[0] = NEOPIXEL;
+            descArgsBuffer[1] = getMapedPin(currentByte);
+            descArgsBuffer[2] = nextByte();
+
+
+            component *tempNeopixel = new component(descArgsBuffer);
+            listNeopixels.add(tempNeopixel);
         }
     }
     nextAnalogic();
@@ -347,7 +386,7 @@ void nextUltra()
 
 void nextVariable()
 {
-
+    
     uint8_t currentByte;
     while (!loadedVariables)
     {
@@ -385,7 +424,8 @@ int32_t getValue()
 
 int32_t getVariableValue()
 {
-    return listVariables.get(nextByte())->value;
+    int32_t val =listVariables.get(nextByte())->value;
+    return val;
 }
 
 int32_t getComparatorValue()
@@ -393,10 +433,10 @@ int32_t getComparatorValue()
     int32_t firstValue = getInputValue(nextByte());
     uint8_t operation = nextByte();
     int32_t secondByte = getInputValue(nextByte());
-    //Serial.println("=====================");
-    //Serial.println(firstValue);
-    //Serial.println(operation);
-    //Serial.println(secondByte);
+    // Serial.println("=====================");
+    // Serial.println(firstValue);
+    // Serial.println(operation);
+    // Serial.println(secondByte);
     switch (operation)
     {
     case 0:
@@ -469,8 +509,8 @@ int32_t getMapValue()
     return map(source, inMin, inMax, outMin, outMax);
 }
 
-
-int32_t getRandomValue(){
+int32_t getRandomValue()
+{
     int32_t from = getInputValue(nextByte());
     int32_t to = getInputValue(nextByte());
     return random(from, to);
@@ -493,7 +533,7 @@ int32_t getUltraValue()
 
 int32_t getInputValue(uint8_t firstByte)
 {
-    
+
     switch (firstByte)
     {
     case valueCommand:
@@ -523,20 +563,47 @@ int32_t getInputValue(uint8_t firstByte)
     }
 }
 
+
+#if defined(ARDUINO_ARCH_ESP32)
+bool hasBleIndicatorPin(LinkedList<component *> components){
+    for (uint8_t i = 0; i < components.size(); i++)
+    {
+        for (uint8_t j = 0; j < 5; j++)
+        {
+            if(components.get(i)->pins[j]==BLE_INDICATOR_PIN){
+                return true;
+            }
+            /* code */
+        }
+        return false;
+        /* code */
+    }
+}
+
+bool bleIndicatorAvailable(){
+    return !(hasBleIndicatorPin(listServos) || hasBleIndicatorPin(listDC) || hasBleIndicatorPin(listLeds) || 
+    hasBleIndicatorPin(listFrequencies) || hasBleIndicatorPin(listNeopixels) || hasBleIndicatorPin(listAnalogics) || 
+    hasBleIndicatorPin(listDigitals) || hasBleIndicatorPin(listUltrasonics) );
+}
+#endif
+
+
 void runDelay()
 {
     uint32_t delayTime = getInputValue(nextByte());
-    #if defined(ARDUINO_ARCH_ESP32)
-    for(uint64_t i=0;i<delayTime*500;i++){
-        idleAnimation(false,false,true);
-        if(callInterrupt()==1)break;
+#if defined(ARDUINO_ARCH_ESP32)
+    for (uint64_t i = 0; i < delayTime * 400; i++)
+    {
+        idleAnimation(false, false, true,bleIndicatorAvailable());
+        if (callInterrupt() == 1)
+            break;
     }
-    #else
+#else
     uint32_t currentTime = millis();
     while ((millis() - currentTime) < delayTime && callInterrupt() == 0)
     {
     }
-    #endif
+#endif
 }
 
 void runSetVatValue(uint8_t id)
@@ -557,20 +624,33 @@ void runFrequency(uint8_t id)
     execBuffer[2] = getInputValue(nextByte());
     uint32_t frequencyBuffer[6];
 
-    frequencyBuffer[0]=(uint32_t)secondValue(execBuffer[0]);
-    frequencyBuffer[1]=(uint32_t)thirdValue(execBuffer[0]);
-    frequencyBuffer[2]=(uint32_t)firstValue(execBuffer[2]);
-    frequencyBuffer[3]=(uint32_t)secondValue(execBuffer[2]);
-    frequencyBuffer[4]=(uint32_t)thirdValue(execBuffer[2]);
-    frequencyBuffer[5]=execBuffer[1];
+    frequencyBuffer[0] = (uint32_t)secondValue(execBuffer[0]);
+    frequencyBuffer[1] = (uint32_t)thirdValue(execBuffer[0]);
+    frequencyBuffer[2] = (uint32_t)firstValue(execBuffer[2]);
+    frequencyBuffer[3] = (uint32_t)secondValue(execBuffer[2]);
+    frequencyBuffer[4] = (uint32_t)thirdValue(execBuffer[2]);
+    frequencyBuffer[5] = execBuffer[1];
 
     listFrequencies.get(id)->execAct(frequencyBuffer, FREQUENCY);
+}
+
+void runNeopixel(uint8_t id ){
+
+
+    execBuffer[0] = getInputValue(nextByte());
+    execBuffer[1] = getInputValue(nextByte());
+    execBuffer[2] = getInputValue(nextByte());
+    execBuffer[3] = getInputValue(nextByte());
+
+
+    listNeopixels.get(id)->execAct(execBuffer,NEOPIXEL);
 }
 
 void runMotorDc(uint8_t id)
 {
     int32_t vel = getInputValue(nextByte());
-    vel = (vel < 0) ? 0 : (vel > 100) ? 100 : vel;
+    vel = (vel < 0) ? 0 : (vel > 100) ? 100
+                                      : vel;
 
     execBuffer[0] = vel;
     execBuffer[1] = nextByte();
@@ -580,10 +660,15 @@ void runMotorDc(uint8_t id)
 
 void runLed(uint8_t id)
 {
+   
     int32_t intensity = getInputValue(nextByte());
-    intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100 : intensity;
+    intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100
+                                                        : intensity;
     execBuffer[0] = intensity;
     listLeds.get(id)->execAct(execBuffer, LED);
+
+     //Serial.print("led ");
+     //Serial.println(intensity);
 }
 
 void runIf()
@@ -594,7 +679,7 @@ void runIf()
     {
         eosBytes[i] = nextByte();
     }
-    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
+    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] ;
     if (conditionValue != 0)
     {
     }
@@ -641,15 +726,15 @@ void runRepeat()
     }
     if (currentBegin == NULL)
     {
-        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] + 4;
+        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2] ;
         currentBegin = new repeatBegin(sos, eos, loop, times);
-        //Serial.print("eos: ");
-        //Serial.println(currentBegin->offsetEnd);
+        // Serial.print("eos: ");
+        // Serial.println(currentBegin->offsetEnd);
         listRepeatBegins.add(currentBegin);
     }
 
-    //Serial.print("Repeat times: ");
-    //Serial.println(currentBegin->times);
+    // Serial.print("Repeat times: ");
+    // Serial.println(currentBegin->times);
 
     if (currentBegin->loop == 0)
     {
@@ -659,7 +744,7 @@ void runRepeat()
             currentOffset = currentBegin->offsetEnd;
             listRepeatBegins.remove(findRepeatBeginIndex(currentBegin->offsetStart));
             free(currentBegin);
-            //listRepeatBegins.remove(listRepeatBegins.size()-1);
+            // listRepeatBegins.remove(listRepeatBegins.size()-1);
         }
         else
         {
@@ -671,10 +756,10 @@ void runRepeat()
 void runEndRepeat()
 {
     currentOffset = listRepeatBegins.get(listRepeatBegins.size() - 1)->offsetStart;
-    //Serial.print("repeats: ");
-    //Serial.println(listRepeatBegins.size());
-    //Serial.print("Start repeat: ");
-    //Serial.println(listRepeatBegins.get(0)->offsetStart);
+    // Serial.print("repeats: ");
+    // Serial.println(listRepeatBegins.size());
+    // Serial.print("Start repeat: ");
+    // Serial.println(listRepeatBegins.get(0)->offsetStart);
 }
 
 void runBreak()
@@ -683,6 +768,32 @@ void runBreak()
     currentOffset = breakBegin->offsetEnd;
     listRepeatBegins.remove(listRepeatBegins.size() - 1);
     free(breakBegin);
+}
+
+
+void runGoToFunction(){
+    uint8_t jumBytes[3];
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        jumBytes[i] = nextByte();
+    }
+    uint16_t jump = (jumBytes[0] * 10000) + (jumBytes[1] * 100) + jumBytes[2];
+    bool contains=false;
+    for(uint16_t i=0;i<directionsStack.size();i++){
+        if(directionsStack.get(i)==currentOffset){
+            contains=true;
+        }
+    }
+    if(!contains){
+        directionsStack.add(currentOffset);
+    }
+    currentOffset=jump;
+}
+
+void runEndOfFunction(){
+    uint16_t jump = directionsStack.get(directionsStack.size()-1);
+    directionsStack.remove(directionsStack.size()-1);
+    currentOffset=jump;
 }
 
 void freeVariables()
@@ -709,7 +820,6 @@ void freeVolatileMemory()
 {
     if (running)
     {
-        currentOffset = 4;
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         freeVariables();
         freeRepeatBegins();
@@ -718,28 +828,24 @@ void freeVolatileMemory()
     // resetLeonardoMemory();
 }
 
-
-
-
 #endif
 
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-void restartRunFromEeprom(){
+void restartRunFromEeprom()
+{
     resetMemory();
-            freeVolatileMemory();
-            running = false;
-             loadedServos = false;
-             loadedMotors = false;
-             loadedLeds = false;
-             loadedFrequencies=false;
-             loadedDigitals = false;
-             loadedAnalogics = false;
-             loadedUltrasonics = false;
-             loadedVariables = false;
+    freeVolatileMemory();
+    running = false;
+    loadedServos = false;
+    loadedMotors = false;
+    loadedLeds = false;
+    loadedFrequencies = false;
+    loadedDigitals = false;
+    loadedAnalogics = false;
+    loadedUltrasonics = false;
+    loadedVariables = false;
 }
 #endif
-
-
 
 uint8_t callInterrupt()
 {
@@ -796,7 +902,7 @@ uint8_t callInterrupt()
         {
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
             restartRunFromEeprom();
-            
+
             return 1;
 #else
             asm volatile("jmp 0");
@@ -815,12 +921,15 @@ uint8_t callInterrupt()
 
 void nairdaRunMachineState()
 {
+    currentOffset=initdirection;
     while (callInterrupt() == 0)
     {
-        #if defined (ARDUINO_ARCH_ESP32)
-        idleAnimation(false,false,true);
-        #endif
-        switch (nextByte())
+#if defined(ARDUINO_ARCH_ESP32)
+        idleAnimation(false, false, true,bleIndicatorAvailable());
+#endif
+        uint8_t auxByte=nextByte();
+        
+        switch (auxByte)
         {
         case delayCommand:
             runDelay();
@@ -830,6 +939,9 @@ void nairdaRunMachineState()
             break;
         case frequencyCommand:
             runFrequency(nextByte());
+            break;
+        case neopixelCommand:
+            runNeopixel(nextByte());
             break;
         case servoCommand:
             runServo(nextByte());
@@ -843,6 +955,12 @@ void nairdaRunMachineState()
         case ifCommand:
             runIf();
             break;
+        case goToFunctionCommand:
+            runGoToFunction();
+        break;
+        case endFunctionCommand:
+         runEndOfFunction();
+        break;
         case repeatCommand:
             runRepeat();
             break;
