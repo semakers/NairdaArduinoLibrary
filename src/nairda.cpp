@@ -19,7 +19,6 @@ void cleanSavingBoolean();
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-#define BLE_INDICATOR_PIN 19
 
 extern "C" void espShow(
     uint16_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
@@ -27,45 +26,23 @@ extern "C" void espShow(
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
-int bleIndicatorFragmentTime = 0;
-uint8_t bleIndicator[3] = {0, 0, 0};
-bool bleIndicatorFlag = false;
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
-void setBleIndicatorColor(uint8_t red, uint8_t green, uint8_t blue)
-{
-  bleIndicator[0] = green;
-  bleIndicator[1] = red;
-  bleIndicator[2] = blue;
-  espShow(BLE_INDICATOR_PIN, bleIndicator, 3, false);
-}
 
-void initBleIndicator()
-{
-  pinMode(BLE_INDICATOR_PIN, OUTPUT);
-}
-
-void deinitBleIndicator()
-{
-  setBleIndicatorColor(0, 0, 0);
-  pinMode(BLE_INDICATOR_PIN, INPUT);
-}
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
   {
-    bleIndicatorFlag = true;
     preInit = true;
     restartRunFromEeprom();
-    deinitBleIndicator();
   };
   void onDisconnect(BLEServer *pServer)
   {
-    bleIndicatorFlag = false;
     preInit = false;
+    resetMemory();
     BLEDevice::startAdvertising();
   };
 };
@@ -126,25 +103,6 @@ void bleWrite(uint8_t byte)
   // pCharacteristic->indicate();
 }
 
-  void idleAnimation(bool red,bool green,bool blue,bool execute){
-   static int16_t indicatorIntensity = 0;
-    static bool upDownIntensity = true;
-    if (millis() - bleIndicatorFragmentTime > 25)
-    {
-      bleIndicatorFragmentTime = millis();
-      if (indicatorIntensity > 205)
-        upDownIntensity = false;
-      if (indicatorIntensity < 10)
-        upDownIntensity = true;
-
-      if (upDownIntensity)
-        indicatorIntensity = indicatorIntensity > 205 ? 255 : indicatorIntensity + 15;
-      else
-        indicatorIntensity = indicatorIntensity < 10 ? 0 : indicatorIntensity - 15;
-
-      if(execute)setBleIndicatorColor(red?indicatorIntensity:0, green?indicatorIntensity:0, blue?indicatorIntensity:0);
-    }
-}
 
 #endif
 
@@ -372,7 +330,7 @@ void nairdaBegin(const char *deviceName)
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
 
-  initBleIndicator();
+ // initBleIndicator();
 
 
 
@@ -429,7 +387,6 @@ void nairdaLoop()
 #if defined(ARDUINO_ARCH_ESP32)
   if ((millis() - runProgrammTimeOut) > 2500 && preInit == false)
   {
-    deinitBleIndicator();
 #else
   if ((millis() - runProgrammTimeOut) > 2500 && declaratedServos == false)
   {
@@ -444,10 +401,7 @@ void nairdaLoop()
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-  if (bleIndicatorFlag == false)
-  {
-   idleAnimation(false,false,true,true);
-  }
+ 
 
   if (bleAvailable())
   {
@@ -583,14 +537,14 @@ void nairdaDebug(uint8_t tempValue)
     }
     else if (!savingBoolean[3])
     {
+      currentProgramOffset = 4;
       savingBoolean[3] = true;
       savingBuffer[3] = tempValue;
       writeByte(0, savingBuffer[0]);
       writeByte(1, savingBuffer[1]);
       writeByte(2, savingBuffer[2]);
       writeByte(3, savingBuffer[3]);
-      programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3];
-      currentProgramOffset = 4;
+      programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3]-currentProgramOffset;
     }
     else
     {

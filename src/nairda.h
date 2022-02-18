@@ -11,7 +11,7 @@ void resetMemory();
 
 #if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) 
 
-void idleAnimation(bool red,bool green,bool blue,bool execute);
+//void idleAnimation(bool red,bool green,bool blue,bool execute);
 void bleWrite(uint8_t byte);
 bool bleAvailable();
 uint8_t bleRead();
