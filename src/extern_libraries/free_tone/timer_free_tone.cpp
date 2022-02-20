@@ -5,7 +5,7 @@
 // See "TimerFreeTone.h" for purpose, syntax, version history, links, and more.
 // ---------------------------------------------------------------------------
 
-#include "TimerFreeTone.h"
+#include "timer_free_tone.h"
 
 uint8_t _tft_volume[] = { 255, 200, 150, 125, 100, 87, 50, 33, 22, 2 }; // Duty for linear volume control.
 

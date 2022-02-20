@@ -4,7 +4,7 @@
 // See NewPing.h for license, purpose, syntax, version history, links, etc.
 // ---------------------------------------------------------------------------
 
-#include "NewPing.h"
+#include "new_ping.h"
 
 
 // ---------------------------------------------------------------------------

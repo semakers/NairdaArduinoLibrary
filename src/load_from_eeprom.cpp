@@ -1,4 +1,4 @@
-#include "loadFromEeprom.h"
+#include "load_from_eeprom.h"
 #include "nairda.h"
 #include <EEPROM.h>
 #include <Wire.h>
@@ -427,10 +427,6 @@ int32_t getComparatorValue()
     int32_t firstValue = getInputValue(nextByte());
     uint8_t operation = nextByte();
     int32_t secondByte = getInputValue(nextByte());
-    // Serial.println("=====================");
-    // Serial.println(firstValue);
-    // Serial.println(operation);
-    // Serial.println(secondByte);
     switch (operation)
     {
     case 0:

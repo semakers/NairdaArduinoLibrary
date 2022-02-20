@@ -1,15 +1,16 @@
-#include "linked/LinkedList.h"
+#include "extern_libraries/linked_list/linked_list.h"
 #include <Arduino.h>
 
 #include <stdint.h>
 #include "nairda.h"
 
-#include "freeTone/TimerFreeTone.h"
-#include "NeoPixel/Adafruit_NeoPixel.h"
+#include "components/outputs/servo/servo_component.h"
+
+#include "extern_libraries/free_tone/timer_free_tone.h"
+#include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 
 #if defined(ARDUINO_ARCH_STM32)
-#include <Servo.h>
-#include "softPwmSTM32/softPwmStm32.h"
+#include "extern_libraries/soft_pwm_stm32/softPwmStm32.h"
 #else
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -18,12 +19,10 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include "esp_spi_flash.h"
-#include "esp32Servo/ServoESP32.h"
 
 #else
-#include <Servo.h>
-#include "softpwm/SoftPWM.h"
-#include "ping/NewPing.h"
+#include "extern_libraries/soft_pwm/soft_pwm.h"
+#include "extern_libraries/new_ping/new_ping.h"
 #endif
 #endif
 
@@ -88,60 +87,31 @@ class component
 {
 public:
       // analogc digital led
-      
+
       Adafruit_NeoPixel *neopixel;
-      
+       int8_t ledcChannel = -1;
 
 #if defined(ARDUINO_ARCH_STM32)
-      // servo
-      Servo servo;
 
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-      // servo
-      Servo servo;
-      int8_t ledcChannel = -1;
+     
 #else
-      // servo
-      Servo servo;
-      // ultrasonic
       NewPing *sonar;
-      // neopixel
 
 #endif
 
 #endif
-      uint8_t pins[5]={0,0,0,0,0};
-      uint8_t values[5]={0,0,0,0,0};
+      uint8_t pins[5] = {0, 0, 0, 0, 0};
+      uint8_t values[5] = {0, 0, 0, 0, 0};
 
       component(uint16_t *args)
       {
             switch (args[0])
             {
             case SERVO:
-            pins[0]=args[1];
-#if defined(ARDUINO_ARCH_STM32)
-                  servo.attach(args[1], args[2], args[3]);
-                  servo.write(args[4]);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-
-                  if (getCurrentChannel() < 16)
-                  {
-                        servo.attach(args[1], getCurrentChannel(), 0, 180, args[2], args[3]);
-                        servo.write(args[4]);
-                        ledcChannel = getCurrentChannel();
-                        nextCurrentChannel();
-                  }
-
-#else
-
-                  servo.attach(args[1], args[2], args[3]);
-                  servo.write(args[4]);
-
-#endif
-#endif
-                  break;
+                  servo_create(args,pins,&ledcChannel);
+            break;
             case MOTOR:
 
                   pins[0] = args[1];
@@ -212,13 +182,13 @@ public:
             case DIGITAL:
                   pins[0] = args[1];
 #if defined(ARDUINO_ARCH_STM32)
-                  pinMode(pins[0] , INPUT);
+                  pinMode(pins[0], INPUT);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-                  pinMode(pins[0] , INPUT);
+                  pinMode(pins[0], INPUT);
 #else
 
-                  pinMode(pins[0] , INPUT);
+                  pinMode(pins[0], INPUT);
 #endif
 #endif
                   break;
@@ -236,18 +206,18 @@ public:
 #endif
                   break;
             case ULTRASONIC:
-            pins[0] = args[1];
-            pins[1] = args[2];
+                  pins[0] = args[1];
+                  pins[1] = args[2];
 #if defined(ARDUINO_ARCH_STM32)
-                 
-            pinMode(args[1], OUTPUT);
-            pinMode(args[2], INPUT);
+
+                  pinMode(args[1], OUTPUT);
+                  pinMode(args[2], INPUT);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-            pinMode(args[1], OUTPUT);
-            pinMode(args[2], INPUT);
+                  pinMode(args[1], OUTPUT);
+                  pinMode(args[2], INPUT);
 #else
-            sonar = new NewPing(args[1], args[2], 100);
+                  sonar = new NewPing(args[1], args[2], 100);
 #endif
 #endif
                   break;
@@ -259,22 +229,11 @@ public:
             switch (type)
             {
             case SERVO:
-#if defined(ARDUINO_ARCH_STM32)
-                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
-                                                                          : execArgs[0]);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
-                                                                          : execArgs[0]);
-#else
-                  servo.write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
-                                                                          : execArgs[0]);
-#endif
-#endif
+                  servo_exec(execArgs);
                   break;
             case MOTOR:
                   values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                    : execArgs[0];
+                                                                          : execArgs[0];
 #if defined(ARDUINO_ARCH_STM32)
                   switch (execArgs[1])
                   {
@@ -371,7 +330,7 @@ public:
             case LED:
 #if defined(ARDUINO_ARCH_STM32)
                   softPwmSTM32Set(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                                   : execArgs[0]);
+                                                                                       : execArgs[0]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
                   values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
@@ -392,13 +351,9 @@ public:
                         }
                   }
 
-                  /* Serial.print(pin);
-                    Serial.print(": ");
-                    Serial.println((execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100 : execArgs[0]);*/
-
 #else
                   SoftPWMSetPercent(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                                     : execArgs[0]);
+                                                                                         : execArgs[0]);
 #endif
 #endif
                   break;
@@ -406,9 +361,11 @@ public:
                   TimerFreeTone(pins[0], (execArgs[0] * 100) + execArgs[1], (execArgs[2] * 10000) + (execArgs[3] * 100) + execArgs[4], execArgs[5]);
                   break;
             case NEOPIXEL:
-                  if(pins[0]==BLE_INDICATOR_PIN) neopixel->setPixelColor(execArgs[3], execArgs[1], execArgs[0], execArgs[2]);
-                  else neopixel->setPixelColor(execArgs[3], execArgs[0], execArgs[1], execArgs[2]);
-                  
+                  if (pins[0] == BLE_INDICATOR_PIN)
+                        neopixel->setPixelColor(execArgs[3], execArgs[1], execArgs[0], execArgs[2]);
+                  else
+                        neopixel->setPixelColor(execArgs[3], execArgs[0], execArgs[1], execArgs[2]);
+
                   neopixel->show();
                   break;
             }
@@ -508,15 +465,7 @@ public:
             switch (type)
             {
             case SERVO:
-#if defined(ARDUINO_ARCH_STM32)
-                  servo.detach();
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  servo.detach();
-#else
-                  servo.detach();
-#endif
-#endif
+                  servo_off();
                   break;
             case ULTRASONIC:
 #if defined(ARDUINO_ARCH_STM32)

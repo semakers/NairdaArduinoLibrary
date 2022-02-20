@@ -1,7 +1,7 @@
 #include "nairda.h"
 #include <EEPROM.h>
 #include <Wire.h>
-#include "loadFromEeprom.h"
+#include "load_from_eeprom.h"
 
 void nairdaDebug(uint8_t tempValue);
 bool running = false;
