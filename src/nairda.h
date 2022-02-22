@@ -2,7 +2,6 @@
 #define nairda_h
 #include <stdint.h>
 
-#define BLE_INDICATOR_PIN 19
 
 #if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
 void resetLeonardoMemory();

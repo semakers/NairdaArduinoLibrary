@@ -36,7 +36,7 @@ NewPing::NewPing(uint8_t trigger_pin, uint8_t echo_pin, unsigned int max_cm_dist
 	pinMode(echo_pin, INPUT);     // Set echo pin to input for the Arduino Yun, not sure why it doesn't default this way.
 #endif
 
-#if ONE_PIN_ENABLED != true && DO_BITWISE == true
+#if ONE_PIN_ENABDIGITAL_OUT != true && DO_BITWISE == true
 	*_triggerMode |= _triggerBit; // Set trigger pin to output.
 #endif
 }
@@ -51,7 +51,7 @@ unsigned int NewPing::ping(unsigned int max_cm_distance) {
 
 	if (!ping_trigger()) return NO_ECHO; // Trigger a ping, if it returns false, return NO_ECHO to the calling function.
 
-#if URM37_ENABLED == true
+#if URM37_ENABDIGITAL_OUT == true
 	#if DO_BITWISE == true
 		while (!(*_echoInput & _echoBit))             // Wait for the ping echo.
 	#else
@@ -73,7 +73,7 @@ unsigned int NewPing::ping(unsigned int max_cm_distance) {
 
 unsigned long NewPing::ping_cm(unsigned int max_cm_distance) {
 	unsigned long echoTime = NewPing::ping(max_cm_distance); // Calls the ping method and returns with the ping echo distance in uS.
-#if ROUNDING_ENABLED == false
+#if ROUNDING_ENABDIGITAL_OUT == false
 	return (echoTime / US_ROUNDTRIP_CM);              // Call the ping method and returns the distance in centimeters (no rounding).
 #else
 	return NewPingConvert(echoTime, US_ROUNDTRIP_CM); // Convert uS to centimeters.
@@ -83,7 +83,7 @@ unsigned long NewPing::ping_cm(unsigned int max_cm_distance) {
 
 unsigned long NewPing::ping_in(unsigned int max_cm_distance) {
 	unsigned long echoTime = NewPing::ping(max_cm_distance); // Calls the ping method and returns with the ping echo distance in uS.
-#if ROUNDING_ENABLED == false
+#if ROUNDING_ENABDIGITAL_OUT == false
 	return (echoTime / US_ROUNDTRIP_IN);              // Call the ping method and returns the distance in inches (no rounding).
 #else
 	return NewPingConvert(echoTime, US_ROUNDTRIP_IN); // Convert uS to inches.
@@ -124,7 +124,7 @@ unsigned long NewPing::ping_median(uint8_t it, unsigned int max_cm_distance) {
 
 boolean NewPing::ping_trigger() {
 #if DO_BITWISE == true
-	#if ONE_PIN_ENABLED == true
+	#if ONE_PIN_ENABDIGITAL_OUT == true
 		*_triggerMode |= _triggerBit;  // Set trigger pin to output.
 	#endif
 
@@ -134,11 +134,11 @@ boolean NewPing::ping_trigger() {
 	delayMicroseconds(10);             // Wait long enough for the sensor to realize the trigger pin is high. Sensor specs say to wait 10uS.
 	*_triggerOutput &= ~_triggerBit;   // Set trigger pin back to low.
 
-	#if ONE_PIN_ENABLED == true
+	#if ONE_PIN_ENABDIGITAL_OUT == true
 		*_triggerMode &= ~_triggerBit; // Set trigger pin to input (when using one Arduino pin, this is technically setting the echo pin to input as both are tied to the same Arduino pin).
 	#endif
 
-	#if URM37_ENABLED == true
+	#if URM37_ENABDIGITAL_OUT == true
 		if (!(*_echoInput & _echoBit)) return false;            // Previous ping hasn't finished, abort.
 		_max_time = micros() + _maxEchoTime + MAX_SENSOR_DELAY; // Maximum time we'll wait for ping to start (most sensors are <450uS, the SRF06 can take up to 34,300uS!)
 		while (*_echoInput & _echoBit)                          // Wait for ping to start.
@@ -150,7 +150,7 @@ boolean NewPing::ping_trigger() {
 			if (micros() > _max_time) return false;             // Took too long to start, abort.
 	#endif
 #else
-	#if ONE_PIN_ENABLED == true
+	#if ONE_PIN_ENABDIGITAL_OUT == true
 		pinMode(_triggerPin, OUTPUT); // Set trigger pin to output.
 	#endif
 	
@@ -160,11 +160,11 @@ boolean NewPing::ping_trigger() {
 	delayMicroseconds(10);            // Wait long enough for the sensor to realize the trigger pin is high. Sensor specs say to wait 10uS.
 	digitalWrite(_triggerPin, LOW);   // Set trigger pin back to low.
 
-	#if ONE_PIN_ENABLED == true
+	#if ONE_PIN_ENABDIGITAL_OUT == true
 		pinMode(_triggerPin, INPUT);  // Set trigger pin to input (when using one Arduino pin, this is technically setting the echo pin to input as both are tied to the same Arduino pin).
 	#endif
 
-	#if URM37_ENABLED == true
+	#if URM37_ENABDIGITAL_OUT == true
 		if (!digitalRead(_echoPin)) return false;               // Previous ping hasn't finished, abort.
 		_max_time = micros() + _maxEchoTime + MAX_SENSOR_DELAY; // Maximum time we'll wait for ping to start (most sensors are <450uS, the SRF06 can take up to 34,300uS!)
 		while (digitalRead(_echoPin))                           // Wait for ping to start.
@@ -183,7 +183,7 @@ boolean NewPing::ping_trigger() {
 
 
 void NewPing::set_max_distance(unsigned int max_cm_distance) {
-#if ROUNDING_ENABLED == false
+#if ROUNDING_ENABDIGITAL_OUT == false
 	_maxEchoTime = min(max_cm_distance + 1, (unsigned int) MAX_SENSOR_DISTANCE + 1) * US_ROUNDTRIP_CM; // Calculate the maximum distance in uS (no rounding).
 #else
 	_maxEchoTime = min(max_cm_distance, (unsigned int) MAX_SENSOR_DISTANCE) * US_ROUNDTRIP_CM + (US_ROUNDTRIP_CM / 2); // Calculate the maximum distance in uS.
@@ -191,7 +191,7 @@ void NewPing::set_max_distance(unsigned int max_cm_distance) {
 }
 
 
-#if TIMER_ENABLED == true && DO_BITWISE == true
+#if TIMER_ENABDIGITAL_OUT == true && DO_BITWISE == true
 
 	// ---------------------------------------------------------------------------
 	// Timer interrupt ping methods (won't work with ATmega128, ATtiny and most non-AVR microcontrollers)
@@ -211,7 +211,7 @@ void NewPing::set_max_distance(unsigned int max_cm_distance) {
 			return false;           // Cancel ping timer.
 		}
 
-	#if URM37_ENABLED == false
+	#if URM37_ENABDIGITAL_OUT == false
 		if (!(*_echoInput & _echoBit)) { // Ping echo received.
 	#else
 		if (*_echoInput & _echoBit) {    // Ping echo received.
@@ -349,7 +349,7 @@ void NewPing::set_max_distance(unsigned int max_cm_distance) {
 // ---------------------------------------------------------------------------
 
 unsigned int NewPing::convert_cm(unsigned int echoTime) {
-#if ROUNDING_ENABLED == false
+#if ROUNDING_ENABDIGITAL_OUT == false
 	return (echoTime / US_ROUNDTRIP_CM);              // Convert uS to centimeters (no rounding).
 #else
 	return NewPingConvert(echoTime, US_ROUNDTRIP_CM); // Convert uS to centimeters.
@@ -358,7 +358,7 @@ unsigned int NewPing::convert_cm(unsigned int echoTime) {
 
 
 unsigned int NewPing::convert_in(unsigned int echoTime) {
-#if ROUNDING_ENABLED == false
+#if ROUNDING_ENABDIGITAL_OUT == false
 	return (echoTime / US_ROUNDTRIP_IN);              // Convert uS to inches (no rounding).
 #else
 	return NewPingConvert(echoTime, US_ROUNDTRIP_IN); // Convert uS to inches.

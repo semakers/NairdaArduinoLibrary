@@ -5,14 +5,18 @@
 #include "nairda.h"
 
 #include "components/outputs/servo/servo_component.h"
+#include "components/outputs/motor/motor_component.h"
+#include "components/outputs/digital_out/digital_out_component.h"
+#include "components/outputs/frequency/frequency_component.h"
+#include "components/outputs/neo_pixel/neo_pixel_component.h"
 
-#include "extern_libraries/free_tone/timer_free_tone.h"
-#include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
+#include "components/inputs/analogic/analogic_component.h"
+#include "components/inputs/digital_in/digital_in_component.h"
+#include "components/inputs/ultrasonic/ultrasonic_component.h"
 
 #if defined(ARDUINO_ARCH_STM32)
-#include "extern_libraries/soft_pwm_stm32/softPwmStm32.h"
-#else
-#if defined(ARDUINO_ARCH_ESP32)
+#include <Servo.h>
+#elif defined(ARDUINO_ARCH_ESP32)
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -20,13 +24,15 @@
 #include <BLE2902.h>
 #include "esp_spi_flash.h"
 
+#include "extern_libraries/esp32_servo/esp32_servo.h"
+
 #else
-#include "extern_libraries/soft_pwm/soft_pwm.h"
 #include "extern_libraries/new_ping/new_ping.h"
-#endif
+#include "extern_libraries/soft_pwm/soft_pwm.h"
+#include <Servo.h>
 #endif
 
-//#define _24LC_512
+#include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 
 #define projectInit 100
 #define endServos 101
@@ -75,10 +81,10 @@ enum
 {
       SERVO = 0,
       MOTOR,
-      LED,
+      DIGITAL_OUT,
       FREQUENCY,
       NEOPIXEL,
-      DIGITAL,
+      DIGITAL_IN,
       ANALOGIC,
       ULTRASONIC
 };
@@ -86,139 +92,47 @@ enum
 class component
 {
 public:
-      // analogc digital led
-
-      Adafruit_NeoPixel *neopixel;
-       int8_t ledcChannel = -1;
-
-#if defined(ARDUINO_ARCH_STM32)
-
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-     
-#else
-      NewPing *sonar;
-
-#endif
-
-#endif
+      int8_t ledcChannel = -1;
       uint8_t pins[5] = {0, 0, 0, 0, 0};
       uint8_t values[5] = {0, 0, 0, 0, 0};
+
+      Adafruit_NeoPixel *neopixel;
+      Servo *servo;
+
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+      NewPing *sonar;
+#endif
 
       component(uint16_t *args)
       {
             switch (args[0])
             {
             case SERVO:
-                  servo_create(args,pins,&ledcChannel);
-            break;
-            case MOTOR:
-
-                  pins[0] = args[1];
-                  pins[1] = args[2];
-                  pins[2] = args[3];
-#if defined(ARDUINO_ARCH_STM32)
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], OUTPUT);
-                  softPwmSTM32Attach(args[3], 0);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], OUTPUT);
-                  if (getCurrentChannel() < 16)
-                  {
-                        ledcSetup(getCurrentChannel(), 50, 16);
-                        ledcAttachPin(args[3], getCurrentChannel());
-                        ledcChannel = getCurrentChannel();
-                        nextCurrentChannel();
-                  }
-                  else
-                  {
-                        pinMode(args[3], OUTPUT);
-                  }
-
-#else
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], OUTPUT);
-                  SoftPWMSet(args[3], 0);
-
-#endif
-#endif
+                  servoCreate(args, pins, &ledcChannel, servo);
                   break;
-            case LED:
-                  pins[0] = args[1];
-#if defined(ARDUINO_ARCH_STM32)
-                  softPwmSTM32Attach(args[1], 0);
-
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  if (getCurrentChannel() < 16)
-                  {
-                        ledcSetup(getCurrentChannel(), 50, 16);
-                        ledcAttachPin(args[1], getCurrentChannel());
-                        ledcChannel = getCurrentChannel();
-                        nextCurrentChannel();
-                  }
-                  else
-                  {
-                        pinMode(args[1], OUTPUT);
-                  }
-#else
-                  pinMode(args[1], OUTPUT);
-                  SoftPWMSet(args[1], 0);
-
-#endif
-#endif
+            case MOTOR:
+                  motorCreate(args, pins, &ledcChannel);
+                  break;
+            case DIGITAL_OUT:
+                  digitalOutCreate(args, pins, &ledcChannel);
                   break;
             case FREQUENCY:
-                  pins[0] = args[1];
+                  frequencyCreate(args, pins);
                   break;
-
             case NEOPIXEL:
-                  pins[0] = args[1];
-                  neopixel = new Adafruit_NeoPixel(args[2], pins[0], NEO_GRB + NEO_KHZ800);
-                  neopixel->begin();
+                  neoPixelCreate(args, pins, neopixel);
                   break;
-            case DIGITAL:
-                  pins[0] = args[1];
-#if defined(ARDUINO_ARCH_STM32)
-                  pinMode(pins[0], INPUT);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  pinMode(pins[0], INPUT);
-#else
-
-                  pinMode(pins[0], INPUT);
-#endif
-#endif
+            case DIGITAL_IN:
+                  digitalInCreate(args, pins);
                   break;
-
             case ANALOGIC:
-                  pins[0] = args[1];
-#if defined(ARDUINO_ARCH_STM32)
-
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-
-#else
-
-#endif
-#endif
+                  analogicCreate(args, pins);
                   break;
             case ULTRASONIC:
-                  pins[0] = args[1];
-                  pins[1] = args[2];
-#if defined(ARDUINO_ARCH_STM32)
-
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], INPUT);
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+                  ultrasonicCreate(args, pins, sonar);
 #else
-#if defined(ARDUINO_ARCH_ESP32)
-                  pinMode(args[1], OUTPUT);
-                  pinMode(args[2], INPUT);
-#else
-                  sonar = new NewPing(args[1], args[2], 100);
-#endif
+                  ultrasonicCreate(args, pins);
 #endif
                   break;
             }
@@ -229,144 +143,19 @@ public:
             switch (type)
             {
             case SERVO:
-                  servo_exec(execArgs);
+                  servoExec(execArgs, servo);
                   break;
             case MOTOR:
-                  values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                          : execArgs[0];
-#if defined(ARDUINO_ARCH_STM32)
-                  switch (execArgs[1])
-                  {
-                  case 0:
-                        digitalWrite(pins[0], HIGH);
-                        digitalWrite(pins[1], LOW);
-                        softPwmSTM32Set(pins[2], values[0]);
-
-                        break;
-                  case 1:
-                        digitalWrite(pins[0], LOW);
-                        digitalWrite(pins[1], LOW);
-                        softPwmSTM32Set(pins[2], 0);
-                        break;
-                  case 2:
-                        digitalWrite(pins[0], LOW);
-                        digitalWrite(pins[1], HIGH);
-                        softPwmSTM32Set(pins[2], values[0]);
-                        break;
-                  }
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  switch (execArgs[1])
-                  {
-                  case 0:
-                        digitalWrite(pins[0], HIGH);
-                        digitalWrite(pins[1], LOW);
-                        if (ledcChannel != -1)
-                        {
-                              ledcWrite(ledcChannel, map(values[0], 0, 100, 0, 65535));
-                        }
-                        else
-                        {
-                              if (values[0] >= 0 && values[0] <= 50)
-                              {
-                                    digitalWrite(pins[2], LOW);
-                              }
-                              else if (values[0] > 50 && values[0] <= 100)
-                              {
-                                    digitalWrite(pins[2], HIGH);
-                              }
-                        }
-
-                        break;
-                  case 1:
-                        digitalWrite(pins[0], LOW);
-                        digitalWrite(pins[1], LOW);
-                        ledcWrite(ledcChannel, 0);
-                        break;
-                  case 2:
-                        digitalWrite(pins[0], LOW);
-                        digitalWrite(pins[1], HIGH);
-                        if (ledcChannel != -1)
-                        {
-                              ledcWrite(ledcChannel, map(values[0], 0, 100, 0, 65535));
-                        }
-                        else
-                        {
-                              if (values[0] >= 0 && values[0] <= 50)
-                              {
-                                    digitalWrite(pins[2], LOW);
-                              }
-                              else if (values[0] > 50 && values[0] <= 100)
-                              {
-                                    digitalWrite(pins[2], HIGH);
-                              }
-                        }
-                        break;
-                  }
-
-#else
-                  switch (execArgs[1])
-                  {
-                  case 0:
-                        digitalWrite(pins[0], HIGH);
-                        digitalWrite(pins[1], LOW);
-                        SoftPWMSetPercent(pins[2], values[0]);
-
-                        break;
-                  case 1:
-                        digitalWrite(pins[0], LOW);
-                        digitalWrite(pins[1], LOW);
-                        SoftPWMSetPercent(pins[2], 0);
-                        break;
-                  case 2:
-                        digitalWrite(pins[0], LOW);
-                        digitalWrite(pins[1], HIGH);
-                        SoftPWMSetPercent(pins[2], values[0]);
-                        break;
-                  }
-#endif
-#endif
+                  motorExec(execArgs, pins, values, &ledcChannel);
                   break;
-            case LED:
-#if defined(ARDUINO_ARCH_STM32)
-                  softPwmSTM32Set(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                                       : execArgs[0]);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                          : execArgs[0];
-                  if (ledcChannel != -1)
-                  {
-                        ledcWrite(ledcChannel, map(values[0], 0, 100, 0, 65535));
-                  }
-                  else
-                  {
-                        if (values[0] >= 0 && values[0] <= 50)
-                        {
-                              digitalWrite(pins[0], LOW);
-                        }
-                        else if (values[0] > 50 && values[0] <= 100)
-                        {
-                              digitalWrite(pins[0], HIGH);
-                        }
-                  }
-
-#else
-                  SoftPWMSetPercent(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
-                                                                                         : execArgs[0]);
-#endif
-#endif
+            case DIGITAL_OUT:
+                  digitalOutExec(execArgs, pins, values, &ledcChannel);
                   break;
             case FREQUENCY:
-                  TimerFreeTone(pins[0], (execArgs[0] * 100) + execArgs[1], (execArgs[2] * 10000) + (execArgs[3] * 100) + execArgs[4], execArgs[5]);
+                  frequencyExec(execArgs, pins);
                   break;
             case NEOPIXEL:
-                  if (pins[0] == BLE_INDICATOR_PIN)
-                        neopixel->setPixelColor(execArgs[3], execArgs[1], execArgs[0], execArgs[2]);
-                  else
-                        neopixel->setPixelColor(execArgs[3], execArgs[0], execArgs[1], execArgs[2]);
-
-                  neopixel->show();
+                  neoPixelExec(execArgs, neopixel);
                   break;
             }
       }
@@ -376,66 +165,19 @@ public:
             uint8_t tempRead;
             switch (type)
             {
-            case DIGITAL:
-#if defined(ARDUINO_ARCH_STM32)
-                  tempRead = digitalRead(pins[0]);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  tempRead = digitalRead(pins[0]);
-#else
-                  tempRead = digitalRead(pins[0]);
-#endif
-#endif
+            case DIGITAL_IN:
+                  digitalInSense(pins, &tempRead);
                   break;
             case ANALOGIC:
-#if defined(ARDUINO_ARCH_STM32)
-                  tempRead = map(analogRead(pins[0]), 0, 1023, 0, 100);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  tempRead = map(analogRead(pins[0]), 0, 4095, 0, 100);
-#else
-                  tempRead = map(analogRead(pins[0]), 0, 1023, 0, 100);
-#endif
-#endif
+                  analogicSense(pins, &tempRead);
                   break;
             case ULTRASONIC:
-#if defined(ARDUINO_ARCH_STM32)
-                  digitalWrite(pins[0], LOW);
-                  delayMicroseconds(2);
-                  digitalWrite(pins[0], HIGH);
-                  delayMicroseconds(10);
-                  digitalWrite(pins[0], LOW);
-                  tempRead = pulseIn(pins[1], HIGH) / 27.6233 / 2;
+            #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+                   ultrasonicSense(pins, &tempRead,sonar);
 #else
-#if defined(ARDUINO_ARCH_ESP32)
-                  digitalWrite(pins[0], LOW);
-                  delayMicroseconds(2);
-                  digitalWrite(pins[0], HIGH);
-                  delayMicroseconds(10);
-                  digitalWrite(pins[0], LOW);
-                  tempRead = pulseIn(pins[1], HIGH) / 27.6233 / 2;
-#else
-
-                  tempRead = sonar->ping_cm();
+                   ultrasonicSense(pins, &tempRead);
 #endif
-#endif
-                  static int lastValue;
-                  static int zeroCounter = 0;
-
-                  if (zeroCounter == 3)
-                  {
-                        if (tempRead == 0)
-                              tempRead = 99;
-                        else
-                              zeroCounter = 0;
-                  }
-                  else
-                  {
-                        if (tempRead == 0)
-                              zeroCounter++;
-                        lastValue = (tempRead == 0) ? lastValue : tempRead;
-                        tempRead = (tempRead == 0) ? lastValue : tempRead;
-                  }
+                 
                   break;
             }
             return (tempRead < 0) ? 0 : (tempRead > 100) ? 100
@@ -464,63 +206,31 @@ public:
       {
             switch (type)
             {
+            case NEOPIXEL:
+                  neoPixelOff(neopixel);
+                  break;
             case SERVO:
-                  servo_off();
+                  servoOff(servo);
                   break;
             case ULTRASONIC:
-#if defined(ARDUINO_ARCH_STM32)
-
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-
-#else
-                  free(sonar);
-#endif
-#endif
-                  break;
-            case NEOPIXEL:
-                  free(neopixel);
+                  #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+                   ultrasonicOff(sonar);
+                   #endif
                   break;
             case MOTOR:
-#if defined(ARDUINO_ARCH_STM32)
-                  digitalWrite(pins[0], LOW);
-                  digitalWrite(pins[1], LOW);
-                  softPwmSTM32Set(pins[2], 0);
-                  softPwmSTM32Dettach(pins[2]);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-                  digitalWrite(pins[0], LOW);
-                  digitalWrite(pins[1], LOW);
-                  ledcWrite(ledcChannel, 0);
-                  ledcDetachPin(pins[2]);
-#else
-                  digitalWrite(pins[0], LOW);
-                  digitalWrite(pins[1], LOW);
-                  SoftPWMSet(pins[2], 0);
-                  SoftPWMEnd(pins[2]);
-#endif
-#endif
+                  motorOff(pins, &ledcChannel);
                   break;
-            case LED:
-#if defined(ARDUINO_ARCH_STM32)
-                  softPwmSTM32Set(pins[0], 0);
-                  softPwmSTM32Dettach(pins[0]);
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-
-                  ledcWrite(ledcChannel, 0);
-                  ledcDetachPin(pins[0]);
-
-#else
-                  SoftPWMSet(pins[0], 0);
-                  SoftPWMEnd(pins[0]);
-#endif
-#endif
+            case DIGITAL_OUT:
+                  digitalOutOff(pins, &ledcChannel);
                   break;
             }
       }
 };
 
+void nextVariable();
+
+uint8_t nextByte();
+int32_t getInputValue(uint8_t firstByte);
 uint8_t getMapedPin(uint8_t pin);
 void loadEepromDescriptor();
 void writeByte(uint32_t address, uint8_t byte);

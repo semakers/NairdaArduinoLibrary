@@ -36,27 +36,18 @@ public:
     }
 };
 
-void nextServo();
-void nextDC();
-void nextLed();
-void nextFrequency();
-void nextNeopixel();
-void nextAnalogic();
-void nextDigital();
-void nextUltra();
-void nextVariable();
 uint8_t readByte(uint32_t address);
 void nairdaRunMachineState();
-int32_t getInputValue(uint8_t firstByte);
+
 uint8_t callInterrupt();
 
 extern LinkedList<component *> listServos;
-extern LinkedList<component *> listDC;
-extern LinkedList<component *> listLeds;
+extern LinkedList<component *> listMotors;
+extern LinkedList<component *> listDigitalOuts;
 extern LinkedList<component *> listFrequencies;
 extern LinkedList<component *> listNeopixels;
 extern LinkedList<component *> listAnalogics;
-extern LinkedList<component *> listDigitals;
+extern LinkedList<component *> listDigitalIns;
 extern LinkedList<component *> listUltrasonics;
 extern bool running;
 LinkedList<variable *> listVariables = LinkedList<variable *>();
@@ -67,13 +58,13 @@ uint32_t currentOffset = 7;
 uint32_t ProgrammSize = 0;
 uint32_t initdirection = 0;
 extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[2];
+extern uint32_t execBuffer[6];
 bool loadedServos = false;
 bool loadedMotors = false;
-bool loadedLeds = false;
+bool loadedDigitalOuts = false;
 bool loadedFrequencies = false;
 bool loadedNeoPixels = false;
-bool loadedDigitals = false;
+bool loadedDigitalIns = false;
 bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
@@ -175,208 +166,8 @@ void loadEepromDescriptor()
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
 
-        nextServo();
+        servoEepromLoad();
     }
-}
-
-void nextServo()
-{
-
-    uint8_t currentByte;
-    while (!loadedServos)
-    {
-        currentByte = nextByte();
-        if (currentByte == endServos)
-        {
-            loadedServos = true;
-        }
-        else
-        {
-            uint8_t servoBytes[7];
-            servoBytes[0] = currentByte;
-            for (uint8_t i = 1; i < 7; i++)
-            {
-                servoBytes[i] = nextByte();
-            }
-            descArgsBuffer[0] = SERVO;
-            descArgsBuffer[1] = getMapedPin(servoBytes[0]);
-            descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
-            descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
-            descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
-            component *tempServo = new component(descArgsBuffer);
-            listServos.add(tempServo);
-        }
-    }
-    nextDC();
-}
-
-void nextDC()
-{
-    uint8_t currentByte;
-    while (!loadedMotors)
-    {
-        currentByte = nextByte();
-        if (currentByte == endDC)
-        {
-            loadedMotors = true;
-        }
-        else
-        {
-            uint8_t dcBytes[3];
-            dcBytes[0] = currentByte;
-            for (uint8_t i = 1; i < 3; i++)
-            {
-                dcBytes[i] = nextByte();
-            }
-
-            descArgsBuffer[0] = MOTOR;
-            descArgsBuffer[1] = getMapedPin(dcBytes[0]);
-            descArgsBuffer[2] = getMapedPin(dcBytes[1]);
-            descArgsBuffer[3] = getMapedPin(dcBytes[2]);
-
-            component *tempDC = new component(descArgsBuffer);
-
-            listDC.add(tempDC);
-        }
-    }
-    nextLed();
-}
-
-void nextLed()
-{
-    uint8_t currentByte;
-    while (!loadedLeds)
-    {
-        currentByte = nextByte();
-        if (currentByte == endLeds)
-        {
-            loadedLeds = true;
-        }
-        else
-        {
-            descArgsBuffer[0] = LED;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            component *tempLed = new component(descArgsBuffer);
-            listLeds.add(tempLed);
-        }
-    }
-    nextFrequency();
-}
-
-void nextFrequency()
-{
-    uint8_t currentByte;
-    while (!loadedFrequencies)
-    {
-        currentByte = nextByte();
-        if (currentByte == endFrequencies)
-        {
-            loadedFrequencies = true;
-        }
-        else
-        {
-            descArgsBuffer[0] = FREQUENCY;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            component *tempFrequency = new component(descArgsBuffer);
-            listFrequencies.add(tempFrequency);
-        }
-    }
-    nextNeopixel();
-}
-
-void nextNeopixel()
-{
-    uint8_t currentByte;
-
-    while (!loadedNeoPixels)
-    {
-        currentByte = nextByte();
-
-        if (currentByte == endNeopixels)
-        {
-            loadedNeoPixels = true;
-        }
-        else
-        {
-            descArgsBuffer[0] = NEOPIXEL;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            descArgsBuffer[2] = nextByte();
-
-            component *tempNeopixel = new component(descArgsBuffer);
-            listNeopixels.add(tempNeopixel);
-        }
-    }
-    nextAnalogic();
-}
-
-void nextAnalogic()
-{
-    uint8_t currentByte;
-    while (!loadedAnalogics)
-    {
-        currentByte = nextByte();
-        if (currentByte == endAnalogics)
-        {
-            loadedAnalogics = true;
-        }
-        else
-        {
-            descArgsBuffer[0] = ANALOGIC;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            component *tempAnalogic = new component(descArgsBuffer);
-            listAnalogics.add(tempAnalogic);
-        }
-    }
-    nextDigital();
-}
-
-void nextDigital()
-{
-    uint8_t currentByte;
-    while (!loadedDigitals)
-    {
-        currentByte = nextByte();
-        if (currentByte == endDigitals)
-        {
-            loadedDigitals = true;
-        }
-        else
-        {
-            descArgsBuffer[0] = DIGITAL;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            component *tempDigital = new component(descArgsBuffer);
-            listDigitals.add(tempDigital);
-        }
-    }
-    nextUltra();
-}
-
-void nextUltra()
-{
-    uint8_t currentByte;
-    while (!loadedUltrasonics)
-    {
-        currentByte = nextByte();
-        if (currentByte == endUltrasonics)
-        {
-            loadedUltrasonics = true;
-        }
-        else
-        {
-            uint8_t ultraBytes[2];
-            ultraBytes[0] = currentByte;
-            for (uint8_t i = 1; i < 2; i++)
-            {
-                ultraBytes[i] = nextByte();
-            }
-            descArgsBuffer[0] = ULTRASONIC;
-            descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
-            descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-            component *tempUltrasonic = new component(descArgsBuffer);
-            listUltrasonics.add(tempUltrasonic);
-        }
-    }
-    nextVariable();
 }
 
 void nextVariable()
@@ -506,24 +297,10 @@ int32_t getRandomValue()
     return random(from, to);
 }
 
-int32_t getAnalogicValue()
-{
-    return listAnalogics.get(nextByte())->getSensVal(ANALOGIC);
-}
 
-int32_t getDigitalValue()
-{
-    return listDigitals.get(nextByte())->getSensVal(DIGITAL);
-}
-
-int32_t getUltraValue()
-{
-    return listUltrasonics.get(nextByte())->getSensVal(ULTRASONIC);
-}
 
 int32_t getInputValue(uint8_t firstByte)
 {
-
     switch (firstByte)
     {
     case valueCommand:
@@ -541,11 +318,11 @@ int32_t getInputValue(uint8_t firstByte)
     case mapCommand:
         return getMapValue();
     case analogicCommand:
-        return getAnalogicValue();
+        return analogicEepromRead();
     case digitalCommand:
-        return getDigitalValue();
+        return digitalInEepromRead();
     case ultrasonicCommand:
-        return getUltraValue();
+        return ultrasonicEepromRead();
     case randomCommand:
         return getRandomValue();
     default:
@@ -581,64 +358,7 @@ void runSetVatValue(uint8_t id)
     listVariables.get(id)->setvalue(getInputValue(nextByte()));
 }
 
-void runServo(uint8_t id)
-{
-    execBuffer[0] = getInputValue(nextByte());
-    listServos.get(id)->execAct(execBuffer, SERVO);
-}
 
-void runFrequency(uint8_t id)
-{
-    execBuffer[0] = getInputValue(nextByte());
-    execBuffer[1] = getInputValue(nextByte());
-    execBuffer[2] = getInputValue(nextByte());
-    uint32_t frequencyBuffer[6];
-
-    frequencyBuffer[0] = (uint32_t)secondValue(execBuffer[0]);
-    frequencyBuffer[1] = (uint32_t)thirdValue(execBuffer[0]);
-    frequencyBuffer[2] = (uint32_t)firstValue(execBuffer[2]);
-    frequencyBuffer[3] = (uint32_t)secondValue(execBuffer[2]);
-    frequencyBuffer[4] = (uint32_t)thirdValue(execBuffer[2]);
-    frequencyBuffer[5] = execBuffer[1];
-
-    listFrequencies.get(id)->execAct(frequencyBuffer, FREQUENCY);
-}
-
-void runNeopixel(uint8_t id)
-{
-
-    execBuffer[0] = getInputValue(nextByte());
-    execBuffer[1] = getInputValue(nextByte());
-    execBuffer[2] = getInputValue(nextByte());
-    execBuffer[3] = getInputValue(nextByte());
-
-    listNeopixels.get(id)->execAct(execBuffer, NEOPIXEL);
-}
-
-void runMotorDc(uint8_t id)
-{
-    int32_t vel = getInputValue(nextByte());
-    vel = (vel < 0) ? 0 : (vel > 100) ? 100
-                                      : vel;
-
-    execBuffer[0] = vel;
-    execBuffer[1] = nextByte();
-
-    listDC.get(id)->execAct(execBuffer, MOTOR);
-}
-
-void runLed(uint8_t id)
-{
-
-    int32_t intensity = getInputValue(nextByte());
-    intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100
-                                                        : intensity;
-    execBuffer[0] = intensity;
-    listLeds.get(id)->execAct(execBuffer, LED);
-
-    // Serial.print("led ");
-    // Serial.println(intensity);
-}
 
 void runIf()
 {
@@ -812,9 +532,9 @@ void restartRunFromEeprom()
     running = false;
     loadedServos = false;
     loadedMotors = false;
-    loadedLeds = false;
+    loadedDigitalOuts = false;
     loadedFrequencies = false;
-    loadedDigitals = false;
+    loadedDigitalIns = false;
     loadedAnalogics = false;
     loadedUltrasonics = false;
     loadedVariables = false;
@@ -911,19 +631,19 @@ void nairdaRunMachineState()
             runSetVatValue(nextByte());
             break;
         case frequencyCommand:
-            runFrequency(nextByte());
+            frequencyEepromRun(nextByte());
             break;
         case neopixelCommand:
-            runNeopixel(nextByte());
+            neoPixelEepromRun(nextByte());
             break;
         case servoCommand:
-            runServo(nextByte());
+            servoEepromRun(nextByte());
             break;
         case motorDcCommand:
-            runMotorDc(nextByte());
+            motorEepromRun(nextByte());
             break;
         case ledCommand:
-            runLed(nextByte());
+            digitalOutEepromRun(nextByte());
             break;
         case ifCommand:
             runIf();

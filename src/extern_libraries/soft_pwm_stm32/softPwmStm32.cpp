@@ -1,6 +1,6 @@
 #include "softPwmStm32.h"
 
-#if defined(HAL_TIM_MODULE_ENABLED) && defined(TIMER_TONE) && !defined(HAL_TIM_MODULE_ONLY)
+#if defined(HAL_TIM_MODULE_ENABDIGITAL_OUT) && defined(TIMER_TONE) && !defined(HAL_TIM_MODULE_ONLY)
 
 uint8_t count=0;
 soft_pwm_t channels[SOFTPWM_MAXCHANNELS];
@@ -67,5 +67,5 @@ void softPwmSTM32Init(){
 }
 
 #else
-#warning "TIMER_TONE or HAL_TIM_MODULE_ENABLED not defined"
+#warning "TIMER_TONE or HAL_TIM_MODULE_ENABDIGITAL_OUT not defined"
 #endif

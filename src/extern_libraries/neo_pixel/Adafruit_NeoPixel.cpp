@@ -1,7 +1,7 @@
 /*!
  * @file Adafruit_NeoPixel.cpp
  *
- * @mainpage Arduino Library for driving Adafruit NeoPixel addressable LEDs,
+ * @mainpage Arduino Library for driving Adafruit NeoPixel addressable DIGITAL_OUTs,
  * FLORA RGB Smart Pixels and compatible devicess -- WS2811, WS2812, WS2812B,
  * SK6812, etc.
  *
@@ -99,7 +99,7 @@ Adafruit_NeoPixel::Adafruit_NeoPixel()
 #if defined(NEO_KHZ400)
       is800KHz(true),
 #endif
-      begun(false), numLEDs(0), numBytes(0), pin(-1), brightness(0),
+      begun(false), numDIGITAL_OUTs(0), numBytes(0), pin(-1), brightness(0),
       pixels(NULL), rOffset(1), gOffset(0), bOffset(2), wOffset(1), endTime(0) {
 }
 
@@ -140,9 +140,9 @@ void Adafruit_NeoPixel::updateLength(uint16_t n) {
   numBytes = n * ((wOffset == rOffset) ? 3 : 4);
   if ((pixels = (uint8_t *)malloc(numBytes))) {
     memset(pixels, 0, numBytes);
-    numLEDs = n;
+    numDIGITAL_OUTs = n;
   } else {
-    numLEDs = numBytes = 0;
+    numDIGITAL_OUTs = numBytes = 0;
   }
 }
 
@@ -179,7 +179,7 @@ void Adafruit_NeoPixel::updateType(neoPixelType t) {
   if (pixels) {
     bool newThreeBytesPerPixel = (wOffset == rOffset);
     if (newThreeBytesPerPixel != oldThreeBytesPerPixel)
-      updateLength(numLEDs);
+      updateLength(numDIGITAL_OUTs);
   }
 }
 
@@ -238,7 +238,7 @@ void Adafruit_NeoPixel::show(void) {
     // OUT or ST instructions. It relies on two facts: that peripheral
     // functions (such as PWM) take precedence on output pins, so our PORT-
     // wide writes won't interfere, and that interrupts are globally disabled
-    // while data is being issued to the LEDs, so no other code will be
+    // while data is being issued to the DIGITAL_OUTs, so no other code will be
     // accessing the PORT. The code takes an initial 'snapshot' of the PORT
     // state, computes 'pin high' and 'pin low' values, and writes these back
     // to the PORT register as needed.
@@ -257,10 +257,10 @@ void Adafruit_NeoPixel::show(void) {
       hi,                         // PORT w/output bit set high
       lo;                         // PORT w/output bit set low
 
-  // Hand-tuned assembly code issues data to the LED drivers at a specific
+  // Hand-tuned assembly code issues data to the DIGITAL_OUT drivers at a specific
   // rate. There's separate code for different CPU speeds (8, 12, 16 MHz)
   // for both the WS2811 (400 KHz) and WS2812 (800 KHz) drivers. The
-  // datastream timing for the LED drivers allows a little wiggle room each
+  // datastream timing for the DIGITAL_OUT drivers allows a little wiggle room each
   // way (listed in the datasheets), so the conditions for compiling each
   // case are set up for a range of frequencies rather than just the exact
   // 8, 12 or 16 MHz values, permitting use with some close-but-not-spot-on
@@ -2140,7 +2140,7 @@ void Adafruit_NeoPixel::show(void) {
     // the interrupts. Disabling the interrupts even for short periods of time
     // causes the SoftDevice to stop working.
     // Disable the interrupts only in cases where you need high performance for
-    // the LEDs and if you are not using the EasyDMA feature.
+    // the DIGITAL_OUTs and if you are not using the EasyDMA feature.
     __disable_irq();
 #endif
 
@@ -3032,7 +3032,7 @@ void Adafruit_NeoPixel::setPin(int16_t p) {
 void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
                                       uint8_t b) {
 
-  if (n < numLEDs) {
+  if (n < numDIGITAL_OUTs) {
     if (brightness) { // See notes in setBrightness()
       r = (r * brightness) >> 8;
       g = (g * brightness) >> 8;
@@ -3064,7 +3064,7 @@ void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
 void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
                                       uint8_t b, uint8_t w) {
 
-  if (n < numLEDs) {
+  if (n < numDIGITAL_OUTs) {
     if (brightness) { // See notes in setBrightness()
       r = (r * brightness) >> 8;
       g = (g * brightness) >> 8;
@@ -3092,7 +3092,7 @@ void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
               and least significant byte is blue.
 */
 void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint32_t c) {
-  if (n < numLEDs) {
+  if (n < numDIGITAL_OUTs) {
     uint8_t *p, r = (uint8_t)(c >> 16), g = (uint8_t)(c >> 8), b = (uint8_t)c;
     if (brightness) { // See notes in setBrightness()
       r = (r * brightness) >> 8;
@@ -3126,19 +3126,19 @@ void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint32_t c) {
 void Adafruit_NeoPixel::fill(uint32_t c, uint16_t first, uint16_t count) {
   uint16_t i, end;
 
-  if (first >= numLEDs) {
-    return; // If first LED is past end of strip, nothing to do
+  if (first >= numDIGITAL_OUTs) {
+    return; // If first DIGITAL_OUT is past end of strip, nothing to do
   }
 
   // Calculate the index ONE AFTER the last pixel to fill
   if (count == 0) {
     // Fill to end of strip
-    end = numLEDs;
+    end = numDIGITAL_OUTs;
   } else {
     // Ensure that the loop won't go past the last pixel
     end = first + count;
-    if (end > numLEDs)
-      end = numLEDs;
+    if (end > numDIGITAL_OUTs)
+      end = numDIGITAL_OUTs;
   }
 
   for (i = first; i < end; i++) {
@@ -3166,7 +3166,7 @@ void Adafruit_NeoPixel::fill(uint32_t c, uint16_t first, uint16_t count) {
            operation) else colors may appear washed out. This is not done
            automatically by this function because coders may desire a more
            refined gamma-correction function than the simplified
-           one-size-fits-all operation of gamma32(). Diffusing the LEDs also
+           one-size-fits-all operation of gamma32(). Diffusing the DIGITAL_OUTs also
            really seems to help when using low-saturation colors.
 */
 uint32_t Adafruit_NeoPixel::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) {
@@ -3257,7 +3257,7 @@ uint32_t Adafruit_NeoPixel::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) {
            This gets more pronounced at lower brightness levels.
 */
 uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) const {
-  if (n >= numLEDs)
+  if (n >= numDIGITAL_OUTs)
     return 0; // Out of bounds, return no color.
 
   uint8_t *p;
@@ -3294,12 +3294,12 @@ uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) const {
 
 /*!
   @brief   Adjust output brightness. Does not immediately affect what's
-           currently displayed on the LEDs. The next call to show() will
-           refresh the LEDs at this level.
+           currently displayed on the DIGITAL_OUTs. The next call to show() will
+           refresh the DIGITAL_OUTs at this level.
   @param   b  Brightness setting, 0=minimum (off), 255=brightest.
   @note    This was intended for one-time use in one's setup() function,
            not as an animation effect in itself. Because of the way this
-           library "pre-multiplies" LED colors in RAM, changing the
+           library "pre-multiplies" DIGITAL_OUT colors in RAM, changing the
            brightness is often a "lossy" operation -- what you write to
            pixels isn't necessary the same as what you'll read back.
            Repeated brightness changes using this function exacerbate the

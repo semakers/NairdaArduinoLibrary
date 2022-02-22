@@ -83,13 +83,13 @@
 //   compatibility via port registers which can be done (see the Teensy 3.2).
 //
 // 06/17/2014 v1.6 - Corrected delay between pings when using ping_median()
-//   method. Added support for the URM37 sensor (must change URM37_ENABLED from
+//   method. Added support for the URM37 sensor (must change URM37_ENABDIGITAL_OUT from
 //   false to true). Added support for Arduino microcontrollers like the $20
 //   32 bit ARM Cortex-M4 based Teensy 3.2. Added automatic support for the
 //   Atmel ATtiny family of microcontrollers. Added timer support for the
 //   ATmega8 microcontroller. Rounding disabled by default, reduces compiled
-//   code size (can be turned on with ROUNDING_ENABLED switch). Added
-//   TIMER_ENABLED switch to get around compile-time "__vector_7" errors when
+//   code size (can be turned on with ROUNDING_ENABDIGITAL_OUT switch). Added
+//   TIMER_ENABDIGITAL_OUT switch to get around compile-time "__vector_7" errors when
 //   using the Tone library, or you can use the toneAC, NewTone or
 //   TimerFreeTone libraries: https://bitbucket.org/teckel12/arduino-toneac/
 //   Other speed and compiled size optimizations.
@@ -164,10 +164,10 @@
 	#define MAX_SENSOR_DISTANCE 500 // Maximum sensor distance can be as high as 500cm, no reason to wait for ping longer than sound takes to travel this distance and back. Default=500
 	#define US_ROUNDTRIP_CM 57      // Microseconds (uS) it takes sound to travel round-trip 1cm (2cm total), uses integer to save compiled code space. Default=57
 	#define US_ROUNDTRIP_IN 146     // Microseconds (uS) it takes sound to travel round-trip 1 inch (2 inches total), uses integer to save compiled code space. Defalult=146
-	#define ONE_PIN_ENABLED true    // Set to "false" to disable one pin mode which saves around 14-26 bytes of binary size. Default=true
-	#define ROUNDING_ENABLED false  // Set to "true" to enable distance rounding which also adds 64 bytes to binary size. Default=false
-	#define URM37_ENABLED false     // Set to "true" to enable support for the URM37 sensor in PWM mode. Default=false
-	#define TIMER_ENABLED true      // Set to "false" to disable the timer ISR (if getting "__vector_7" compile errors set this to false). Default=true
+	#define ONE_PIN_ENABDIGITAL_OUT true    // Set to "false" to disable one pin mode which saves around 14-26 bytes of binary size. Default=true
+	#define ROUNDING_ENABDIGITAL_OUT false  // Set to "true" to enable distance rounding which also adds 64 bytes to binary size. Default=false
+	#define URM37_ENABDIGITAL_OUT false     // Set to "true" to enable support for the URM37 sensor in PWM mode. Default=false
+	#define TIMER_ENABDIGITAL_OUT true      // Set to "false" to disable the timer ISR (if getting "__vector_7" compile errors set this to false). Default=true
 
 	// Probably shouldn't change these values unless you really know what you're doing.
 	#define NO_ECHO 0               // Value returned if there's no ping echo within the specified MAX_SENSOR_DISTANCE or max_cm_distance. Default=0
@@ -176,7 +176,7 @@
 	#define PING_MEDIAN_DELAY 29000 // Microsecond delay between pings in the ping_median method. Default=29000
 	#define PING_OVERHEAD 5         // Ping overhead in microseconds (uS). Default=5
 	#define PING_TIMER_OVERHEAD 13  // Ping timer overhead in microseconds (uS). Default=13
-	#if URM37_ENABLED == true
+	#if URM37_ENABDIGITAL_OUT == true
 		#undef  US_ROUNDTRIP_CM
 		#undef  US_ROUNDTRIP_IN
 		#define US_ROUNDTRIP_CM 50  // Every 50uS PWM signal is low indicates 1cm distance. Default=50
@@ -198,8 +198,8 @@
 		#define PING_OVERHEAD 1
 		#undef  PING_TIMER_OVERHEAD
 		#define PING_TIMER_OVERHEAD 1
-		#undef  TIMER_ENABLED
-		#define TIMER_ENABLED false
+		#undef  TIMER_ENABDIGITAL_OUT
+		#define TIMER_ENABDIGITAL_OUT false
 		#define DO_BITWISE false
 	#else
 		#define DO_BITWISE true
@@ -207,8 +207,8 @@
 
 	// Disable the timer interrupts when using ATmega128 and all ATtiny microcontrollers.
 	#if defined (__AVR_ATmega128__) || defined (__AVR_ATtiny24__) || defined (__AVR_ATtiny44__) || defined (__AVR_ATtiny441__) || defined (__AVR_ATtiny84__) || defined (__AVR_ATtiny841__) || defined (__AVR_ATtiny25__) || defined (__AVR_ATtiny45__) || defined (__AVR_ATtiny85__) || defined (__AVR_ATtiny261__) || defined (__AVR_ATtiny461__) || defined (__AVR_ATtiny861__) || defined (__AVR_ATtiny43U__)
-		#undef  TIMER_ENABLED
-		#define TIMER_ENABLED false
+		#undef  TIMER_ENABDIGITAL_OUT
+		#define TIMER_ENABDIGITAL_OUT false
 	#endif
 
 	// Define timers when using ATmega8, ATmega16, ATmega32 and ATmega8535 microcontrollers.
@@ -227,7 +227,7 @@
 			unsigned long ping_median(uint8_t it = 5, unsigned int max_cm_distance = 0);
 			static unsigned int convert_cm(unsigned int echoTime);
 			static unsigned int convert_in(unsigned int echoTime);
-	#if TIMER_ENABLED == true
+	#if TIMER_ENABDIGITAL_OUT == true
 			void ping_timer(void (*userFunc)(void), unsigned int max_cm_distance = 0);
 			boolean check_timer();
 			unsigned long ping_result;
@@ -238,7 +238,7 @@
 		private:
 			boolean ping_trigger();
 			void set_max_distance(unsigned int max_cm_distance);
-	#if TIMER_ENABLED == true
+	#if TIMER_ENABDIGITAL_OUT == true
 			boolean ping_trigger_timer(unsigned int trigger_delay);
 			boolean ping_wait_timer();
 			static void timer_setup();

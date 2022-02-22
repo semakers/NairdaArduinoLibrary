@@ -1,7 +1,7 @@
 // Implements the RMT peripheral on Espressif SoCs
 // Copyright (c) 2020 Lucian Copeland for Adafruit Industries
 
-/* Uses code from Espressif RGB LED Strip demo and drivers
+/* Uses code from Espressif RGB DIGITAL_OUT Strip demo and drivers
  * Copyright 2015-2020 Espressif Systems (Shanghai) PTE LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

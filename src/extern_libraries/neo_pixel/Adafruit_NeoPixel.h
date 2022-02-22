@@ -208,7 +208,7 @@ static const uint8_t PROGMEM _NeoPixelGammaTable[256] = {
 class Adafruit_NeoPixel {
 
 public:
-  // Constructor: number of LEDs, pin number, LED type
+  // Constructor: number of DIGITAL_OUTs, pin number, DIGITAL_OUT type
   Adafruit_NeoPixel(uint16_t n, int16_t pin = 6,
                     neoPixelType type = NEO_GRB + NEO_KHZ800);
   Adafruit_NeoPixel(void);
@@ -285,7 +285,7 @@ public:
     @brief   Return the number of pixels in an Adafruit_NeoPixel strip object.
     @return  Pixel count (0 if not set).
   */
-  uint16_t numPixels(void) const { return numLEDs; }
+  uint16_t numPixels(void) const { return numDIGITAL_OUTs; }
   uint32_t getPixelColor(uint16_t n) const;
   /*!
     @brief   An 8-bit integer sine wave function, not directly compatible
@@ -325,7 +325,7 @@ public:
     @return  32-bit packed RGB value, which can then be assigned to a
              variable for later use or passed to the setPixelColor()
              function. Packed RGB format is predictable, regardless of
-             LED strand color order.
+             DIGITAL_OUT strand color order.
   */
   static uint32_t Color(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
@@ -340,7 +340,7 @@ public:
     @return  32-bit packed WRGB value, which can then be assigned to a
              variable for later use or passed to the setPixelColor()
              function. Packed WRGB format is predictable, regardless of
-             LED strand color order.
+             DIGITAL_OUT strand color order.
   */
   static uint32_t Color(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
     return ((uint32_t)w << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
@@ -365,11 +365,11 @@ protected:
   bool is800KHz; ///< true if 800 KHz pixels
 #endif
   bool begun;         ///< true if begin() previously called
-  uint16_t numLEDs;   ///< Number of RGB LEDs in strip
+  uint16_t numDIGITAL_OUTs;   ///< Number of RGB DIGITAL_OUTs in strip
   uint16_t numBytes;  ///< Size of 'pixels' buffer below
   int16_t pin;        ///< Output pin number (-1 if not yet set)
   uint8_t brightness; ///< Strip brightness 0-255 (stored as +1)
-  uint8_t *pixels;    ///< Holds LED color values (3 or 4 bytes each)
+  uint8_t *pixels;    ///< Holds DIGITAL_OUT color values (3 or 4 bytes each)
   uint8_t rOffset;    ///< Red index within each 3- or 4-byte pixel
   uint8_t gOffset;    ///< Index of green byte
   uint8_t bOffset;    ///< Index of blue byte

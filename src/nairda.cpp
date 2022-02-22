@@ -170,12 +170,12 @@ void resetLeonardoMemory()
 #endif
 
 LinkedList<component *> listServos = LinkedList<component *>();
-LinkedList<component *> listDC = LinkedList<component *>();
-LinkedList<component *> listLeds = LinkedList<component *>();
+LinkedList<component *> listMotors = LinkedList<component *>();
+LinkedList<component *> listDigitalOuts = LinkedList<component *>();
 LinkedList<component *> listFrequencies = LinkedList<component *>();
 LinkedList<component *> listNeopixels = LinkedList<component *>();
 LinkedList<component *> listAnalogics = LinkedList<component *>();
-LinkedList<component *> listDigitals = LinkedList<component *>();
+LinkedList<component *> listDigitalIns = LinkedList<component *>();
 LinkedList<component *> listUltrasonics = LinkedList<component *>();
 
 uint8_t firstValue(uint32_t value)
@@ -279,19 +279,19 @@ void resetMemory()
   cleanExecuteNeopixelBoolean();
   cleanSavingBoolean();
   freeCompList(&listServos, SERVO);
-  freeCompList(&listDC, MOTOR);
-  freeCompList(&listLeds, LED);
+  freeCompList(&listMotors, MOTOR);
+  freeCompList(&listDigitalOuts, DIGITAL_OUT);
   freeCompList(&listFrequencies, FREQUENCY);
   freeCompList(&listAnalogics, ANALOGIC);
-  freeCompList(&listDigitals, DIGITAL);
+  freeCompList(&listDigitalIns, DIGITAL_IN);
   freeCompList(&listUltrasonics, ULTRASONIC);
   freeCompList(&listNeopixels,NEOPIXEL);
 }
 #else
 void resetMemory()
 {
-  freeCompList(&listDC, MOTOR);
-  freeCompList(&listLeds, LED);
+  freeCompList(&listMotors, MOTOR);
+  freeCompList(&listDigitalOuts, DIGITAL_OUT);
 }
 
 #endif
@@ -684,16 +684,16 @@ void nairdaDebug(uint8_t tempValue)
         descArgsBuffer[3] = getMapedPin(dcBuffer[2]);
 
         component *tempDC = new component(descArgsBuffer);
-        listDC.add(tempDC);
+        listMotors.add(tempDC);
         cleanDCBoolean();
       }
     }
     else if (declaratedLeds == false && tempValue < 100)
     {
-      descArgsBuffer[0] = LED;
+      descArgsBuffer[0] = DIGITAL_OUT;
       descArgsBuffer[1] = getMapedPin(tempValue);
       component *tempLed = new component(descArgsBuffer);
-      listLeds.add(tempLed);
+      listDigitalOuts.add(tempLed);
     }
     else if (declaratedFrequencies == false && tempValue < 100)
     {
@@ -724,10 +724,10 @@ void nairdaDebug(uint8_t tempValue)
     }
     else if (declaratedDigitals == false && tempValue < 100)
     {
-      descArgsBuffer[0] = DIGITAL;
+      descArgsBuffer[0] = DIGITAL_IN;
       descArgsBuffer[1] = getMapedPin(tempValue);
       component *tempDigital = new component(descArgsBuffer);
-      listDigitals.add(tempDigital);
+      listDigitalIns.add(tempDigital);
     }
     else if (declaratedUltrasonics == false && tempValue < 100)
     {
@@ -752,12 +752,12 @@ void nairdaDebug(uint8_t tempValue)
     if (executeServo == false && executeDC == false && executeLed == false && executeFrequency ==false && executeNeopixel==false)
     {
       int indexServos = listServos.size();
-      int indexMotors = indexServos + listDC.size();
-      int indexLeds = indexMotors + listLeds.size();
+      int indexMotors = indexServos + listMotors.size();
+      int indexLeds = indexMotors + listDigitalOuts.size();
       int indexFrequencies = indexLeds + listFrequencies.size();
       int indexNeopixels = indexFrequencies + listNeopixels.size();
       int indexAnalogics = indexNeopixels + listAnalogics.size();
-      int indexDigitals = indexAnalogics + listDigitals.size();
+      int indexDigitals = indexAnalogics + listDigitalIns.size();
       int indexUltraosnics = indexDigitals + listUltrasonics.size();
       
 
@@ -766,12 +766,12 @@ void nairdaDebug(uint8_t tempValue)
         i = tempValue;
         executeServo = true;
       }
-      else if (tempValue >= indexServos && tempValue < indexMotors && listDC.size() > 0)
+      else if (tempValue >= indexServos && tempValue < indexMotors && listMotors.size() > 0)
       {
         executeDCBuffer[0] = tempValue - indexServos;
         executeDC = true;
       }
-      else if (tempValue >= indexMotors && tempValue < indexLeds && listLeds.size() > 0)
+      else if (tempValue >= indexMotors && tempValue < indexLeds && listDigitalOuts.size() > 0)
       {
         i = tempValue - indexMotors;
         executeLed = true;
@@ -791,10 +791,10 @@ void nairdaDebug(uint8_t tempValue)
         int tempPin = tempValue - indexNeopixels;
         listAnalogics.get(tempPin)->sendSensVal(ANALOGIC);
       }
-      else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitals.size() > 0)
+      else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitalIns.size() > 0)
       {
         int tempPin = tempValue - indexAnalogics;
-        listDigitals.get(tempPin)->sendSensVal(DIGITAL);
+        listDigitalIns.get(tempPin)->sendSensVal(DIGITAL_IN);
       }
       else if (tempValue >= indexDigitals && tempValue < indexUltraosnics && listUltrasonics.size() > 0)
       {
@@ -827,7 +827,7 @@ void nairdaDebug(uint8_t tempValue)
           execBuffer[0] = executeDCBuffer[1];
           execBuffer[1] = executeDCBuffer[2];
 
-          listDC.get(executeDCBuffer[0])->execAct(execBuffer, MOTOR);
+          listMotors.get(executeDCBuffer[0])->execAct(execBuffer, MOTOR);
           cleanExecuteDCBoolean();
           executeDC = false;
         }
@@ -835,7 +835,7 @@ void nairdaDebug(uint8_t tempValue)
       else if (executeLed == true)
       {
         execBuffer[0] = tempValue;
-        listLeds.get(i)->execAct(execBuffer, LED);
+        listDigitalOuts.get(i)->execAct(execBuffer, DIGITAL_OUT);
         executeLed = false;
       }
       else if (executeFrequency == true)
