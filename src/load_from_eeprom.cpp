@@ -2,23 +2,10 @@
 #include "nairda.h"
 #include <EEPROM.h>
 #include <Wire.h>
+#include "components/component.h"
 
 #ifndef __AVR_ATmega168__
 
-class variable
-{
-public:
-    int32_t value;
-    variable(int32_t cValue)
-    {
-        value = cValue;
-    }
-    void setvalue(int32_t newValue)
-    {
-        value = (newValue > 999999) ? 999999 : (newValue < -999999) ? -999999
-                                                                    : newValue;
-    }
-};
 
 class repeatBegin
 {
@@ -41,24 +28,14 @@ void nairdaRunMachineState();
 
 uint8_t callInterrupt();
 
-extern LinkedList<component *> listServos;
-extern LinkedList<component *> listMotors;
-extern LinkedList<component *> listDigitalOuts;
-extern LinkedList<component *> listFrequencies;
-extern LinkedList<component *> listNeopixels;
-extern LinkedList<component *> listAnalogics;
-extern LinkedList<component *> listDigitalIns;
-extern LinkedList<component *> listUltrasonics;
 extern bool running;
-LinkedList<variable *> listVariables = LinkedList<variable *>();
+LinkedList<int32_t *> listVariables = LinkedList<int32_t *>();
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 LinkedList<int> directionsStack = LinkedList<int>();
 
 uint32_t currentOffset = 7;
 uint32_t ProgrammSize = 0;
 uint32_t initdirection = 0;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
 bool loadedServos = false;
 bool loadedMotors = false;
 bool loadedDigitalOuts = false;
@@ -70,6 +47,13 @@ bool loadedUltrasonics = false;
 bool loadedVariables = false;
 
 uint8_t currentChannel = 0;
+
+void setVarValue(int32_t newValue,int32_t *value)
+    {
+        value[0] = (newValue > 999999) ? 999999 : (newValue < -999999) ? -999999
+                                                                    : newValue;
+    }
+
 
 uint8_t getCurrentChannel()
 {
@@ -189,8 +173,8 @@ void nextVariable()
                 varBytes[i] = nextByte();
             }
             int32_t positiveValue = (varBytes[1] * 10000) + (varBytes[2] * 100) + varBytes[3];
-            variable *tempVariable = new variable(varBytes[0] == 0 ? positiveValue : (positiveValue * -1));
-            listVariables.add(tempVariable);
+            int32_t tempVariable = varBytes[0] == 0 ? positiveValue : (positiveValue * -1);
+            listVariables.add(&tempVariable);
         }
     }
     nairdaRunMachineState();
@@ -209,8 +193,7 @@ int32_t getValue()
 
 int32_t getVariableValue()
 {
-    int32_t val = listVariables.get(nextByte())->value;
-    return val;
+    return listVariables.get(nextByte())[0];
 }
 
 int32_t getComparatorValue()
@@ -355,7 +338,7 @@ void runDelay()
 
 void runSetVatValue(uint8_t id)
 {
-    listVariables.get(id)->setvalue(getInputValue(nextByte()));
+    setVarValue(getInputValue(nextByte()), listVariables.get(id));
 }
 
 

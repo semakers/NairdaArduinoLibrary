@@ -1,10 +1,11 @@
 #include "motor_component.h"
 #include "components/outputs/digital_out/digital_out_component.h"
+#include "components/component.h"
 #include "load_from_eeprom.h"
 
 #include <Arduino.h>
 
-extern LinkedList<component *> listMotors;
+extern LinkedList<component_t *> listMotors;
 extern bool loadedMotors;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -182,7 +183,7 @@ void motorEepromLoad()
             descArgsBuffer[2] = getMapedPin(dcBytes[1]);
             descArgsBuffer[3] = getMapedPin(dcBytes[2]);
 
-            component *tempDC = new component(descArgsBuffer);
+            component_t *tempDC = newComponent(descArgsBuffer);
 
             listMotors.add(tempDC);
         }
@@ -200,5 +201,5 @@ void motorEepromRun(uint8_t id)
     execBuffer[0] = vel;
     execBuffer[1] = nextByte();
 
-    listMotors.get(id)->execAct(execBuffer, MOTOR);
+    execAct(execBuffer, MOTOR,listMotors.get(id));
 }

@@ -8,10 +8,11 @@
 
 #include "load_from_eeprom.h"
 #include "servo_component.h"
+#include "components/component.h"
 #include "components/outputs/motor/motor_component.h"
 #include <Arduino.h>
 
-extern LinkedList<component *> listServos;
+extern LinkedList<component_t *> listServos;
 extern bool loadedServos;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -80,7 +81,7 @@ void servoEepromLoad(){
             descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
             descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
             descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
-            component *tempServo = new component(descArgsBuffer);
+            component_t *tempServo = newComponent(descArgsBuffer);
             listServos.add(tempServo);
         }
     }
@@ -89,7 +90,7 @@ void servoEepromLoad(){
 
 void servoEepromRun(uint8_t id){
     execBuffer[0] = getInputValue(nextByte());
-    listServos.get(id)->execAct(execBuffer, SERVO);
+    execAct(execBuffer, SERVO,listServos.get(id));
 }
 
 

@@ -1,5 +1,6 @@
 #include "ultrasonic_component.h"
 #include "load_from_eeprom.h"
+#include "components/component.h"
 
 #include <Arduino.h>
 
@@ -7,7 +8,7 @@
 #include "extern_libraries/new_ping/new_ping.h"
 #endif
 
-extern LinkedList<component *> listUltrasonics;
+extern LinkedList<component_t *> listUltrasonics;
 extern bool loadedUltrasonics;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -126,7 +127,7 @@ void ultrasonicEepromLoad()
             descArgsBuffer[0] = ULTRASONIC;
             descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
             descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-            component *tempUltrasonic = new component(descArgsBuffer);
+            component_t *tempUltrasonic = newComponent(descArgsBuffer);
             listUltrasonics.add(tempUltrasonic);
         }
     }
@@ -135,5 +136,5 @@ void ultrasonicEepromLoad()
 
 int32_t ultrasonicEepromRead()
 {
-     return listUltrasonics.get(nextByte())->getSensVal(ULTRASONIC);
+     return getSensVal(ULTRASONIC,listUltrasonics.get(nextByte()));
 }

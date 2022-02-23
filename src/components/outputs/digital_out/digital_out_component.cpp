@@ -1,5 +1,6 @@
 #include "digital_out_component.h"
 #include "load_from_eeprom.h"
+#include "components/component.h"
 #include "components/outputs/frequency/frequency_component.h"
 
 #include <Arduino.h>
@@ -11,7 +12,7 @@
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
 
-extern LinkedList<component *> listDigitalOuts;
+extern LinkedList<component_t *> listDigitalOuts;
 extern bool loadedDigitalOuts;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -101,7 +102,7 @@ void digitalOutEepromLoad()
         {
             descArgsBuffer[0] = DIGITAL_OUT;
             descArgsBuffer[1] = getMapedPin(currentByte);
-            component *digitalOut = new component(descArgsBuffer);
+            component_t *digitalOut = newComponent(descArgsBuffer);
             listDigitalOuts.add(digitalOut);
         }
     }
@@ -114,5 +115,5 @@ void digitalOutEepromRun(uint8_t id)
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100
                                                         : intensity;
     execBuffer[0] = intensity;
-    listDigitalOuts.get(id)->execAct(execBuffer, DIGITAL_OUT);
+    execAct(execBuffer, DIGITAL_OUT,listDigitalOuts.get(id));
 }

@@ -1,11 +1,12 @@
 #include "analogic_component.h"
 #include "load_from_eeprom.h"
 #include "components/inputs/digital_in/digital_in_component.h"
+#include "components/component.h"
 
 #include <Arduino.h>
 
 
-extern LinkedList<component *> listAnalogics;
+extern LinkedList<component_t *> listAnalogics;
 extern bool loadedAnalogics;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -42,7 +43,7 @@ void analogicEepromLoad(){
         {
             descArgsBuffer[0] = ANALOGIC;
             descArgsBuffer[1] = getMapedPin(currentByte);
-            component *tempAnalogic = new component(descArgsBuffer);
+            component_t *tempAnalogic = newComponent(descArgsBuffer);
             listAnalogics.add(tempAnalogic);
         }
     }
@@ -50,6 +51,6 @@ void analogicEepromLoad(){
 }
 
 int32_t analogicEepromRead(){
-     return listAnalogics.get(nextByte())->getSensVal(ANALOGIC);
+     return getSensVal(ANALOGIC,listAnalogics.get(nextByte()));
 }
 

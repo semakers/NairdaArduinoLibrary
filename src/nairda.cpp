@@ -2,6 +2,7 @@
 #include <EEPROM.h>
 #include <Wire.h>
 #include "load_from_eeprom.h"
+#include "components/component.h"
 
 void nairdaDebug(uint8_t tempValue);
 bool running = false;
@@ -169,14 +170,14 @@ void resetLeonardoMemory()
 
 #endif
 
-LinkedList<component *> listServos = LinkedList<component *>();
-LinkedList<component *> listMotors = LinkedList<component *>();
-LinkedList<component *> listDigitalOuts = LinkedList<component *>();
-LinkedList<component *> listFrequencies = LinkedList<component *>();
-LinkedList<component *> listNeopixels = LinkedList<component *>();
-LinkedList<component *> listAnalogics = LinkedList<component *>();
-LinkedList<component *> listDigitalIns = LinkedList<component *>();
-LinkedList<component *> listUltrasonics = LinkedList<component *>();
+LinkedList<component_t *> listServos = LinkedList<component_t *>();
+LinkedList<component_t *> listMotors = LinkedList<component_t *>();
+LinkedList<component_t *> listDigitalOuts = LinkedList<component_t *>();
+LinkedList<component_t *> listFrequencies = LinkedList<component_t *>();
+LinkedList<component_t *> listNeopixels = LinkedList<component_t *>();
+LinkedList<component_t *> listAnalogics = LinkedList<component_t *>();
+LinkedList<component_t *> listDigitalIns = LinkedList<component_t *>();
+LinkedList<component_t *> listUltrasonics = LinkedList<component_t *>();
 
 uint8_t firstValue(uint32_t value)
 {
@@ -194,11 +195,11 @@ uint8_t thirdValue(uint32_t value)
   return uint8_t(value - ((uint8_t(value / 100)) * 100));
 }
 
-void freeCompList(LinkedList<component *> *list, uint8_t type)
+void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 {
   for (int i = 0; i < list->size(); i++)
   {
-    list->get(i)->off(type);
+    off(type,list->get(i));
     free(list->get(i));
   }
   list->clear();
@@ -655,7 +656,7 @@ void nairdaDebug(uint8_t tempValue)
         descArgsBuffer[2] = (servoBuffer[1] * 100) + servoBuffer[2];
         descArgsBuffer[3] = (servoBuffer[3] * 100) + servoBuffer[4];
         descArgsBuffer[4] = (servoBuffer[5] * 100) + servoBuffer[6];
-        component *tempServo = new component(descArgsBuffer);
+        component_t *tempServo = newComponent(descArgsBuffer);
         listServos.add(tempServo);
         cleanServoBoolean();
       }
@@ -683,7 +684,7 @@ void nairdaDebug(uint8_t tempValue)
         descArgsBuffer[2] = getMapedPin(dcBuffer[1]);
         descArgsBuffer[3] = getMapedPin(dcBuffer[2]);
 
-        component *tempDC = new component(descArgsBuffer);
+        component_t *tempDC = newComponent(descArgsBuffer);
         listMotors.add(tempDC);
         cleanDCBoolean();
       }
@@ -692,14 +693,14 @@ void nairdaDebug(uint8_t tempValue)
     {
       descArgsBuffer[0] = DIGITAL_OUT;
       descArgsBuffer[1] = getMapedPin(tempValue);
-      component *tempLed = new component(descArgsBuffer);
+      component_t *tempLed = newComponent(descArgsBuffer);
       listDigitalOuts.add(tempLed);
     }
     else if (declaratedFrequencies == false && tempValue < 100)
     {
       descArgsBuffer[0] = FREQUENCY;
       descArgsBuffer[1] = getMapedPin(tempValue);
-      component *tempFrequency = new component(descArgsBuffer);
+      component_t *tempFrequency = newComponent(descArgsBuffer);
       listFrequencies.add(tempFrequency);
     }
     else if (declaratedNeopixels == false && tempValue <100)
@@ -711,7 +712,7 @@ void nairdaDebug(uint8_t tempValue)
         descArgsBuffer[0]=NEOPIXEL;
         descArgsBuffer[1]=getMapedPin(i);
         descArgsBuffer[2]=tempValue;
-        component *tempNeopixel = new component(descArgsBuffer);
+        component_t *tempNeopixel = newComponent(descArgsBuffer);
         listNeopixels.add(tempNeopixel);
       }
     }
@@ -719,14 +720,14 @@ void nairdaDebug(uint8_t tempValue)
     {
       descArgsBuffer[0] = ANALOGIC;
       descArgsBuffer[1] = getMapedPin(tempValue);
-      component *tempAnalogic = new component(descArgsBuffer);
+      component_t *tempAnalogic = newComponent(descArgsBuffer);
       listAnalogics.add(tempAnalogic);
     }
     else if (declaratedDigitals == false && tempValue < 100)
     {
       descArgsBuffer[0] = DIGITAL_IN;
       descArgsBuffer[1] = getMapedPin(tempValue);
-      component *tempDigital = new component(descArgsBuffer);
+      component_t *tempDigital = newComponent(descArgsBuffer);
       listDigitalIns.add(tempDigital);
     }
     else if (declaratedUltrasonics == false && tempValue < 100)
@@ -741,7 +742,7 @@ void nairdaDebug(uint8_t tempValue)
         descArgsBuffer[0] = ULTRASONIC;
         descArgsBuffer[1] = getMapedPin(i);
         descArgsBuffer[2] = getMapedPin(tempValue);
-        component *tempUltrasonic = new component(descArgsBuffer);
+        component_t *tempUltrasonic = newComponent(descArgsBuffer);
         listUltrasonics.add(tempUltrasonic);
         ultraosnicBoolean = false;
       }
@@ -789,17 +790,17 @@ void nairdaDebug(uint8_t tempValue)
       else if (tempValue >= indexNeopixels && tempValue < indexAnalogics && listAnalogics.size() > 0)
       {
         int tempPin = tempValue - indexNeopixels;
-        listAnalogics.get(tempPin)->sendSensVal(ANALOGIC);
+        sendSensVal(ANALOGIC,listAnalogics.get(tempPin));
       }
       else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitalIns.size() > 0)
       {
         int tempPin = tempValue - indexAnalogics;
-        listDigitalIns.get(tempPin)->sendSensVal(DIGITAL_IN);
+        sendSensVal(DIGITAL_IN,listDigitalIns.get(tempPin));
       }
       else if (tempValue >= indexDigitals && tempValue < indexUltraosnics && listUltrasonics.size() > 0)
       {
         int tempPin = tempValue - indexDigitals;
-        listUltrasonics.get(tempPin)->sendSensVal(ULTRASONIC);
+        sendSensVal(ULTRASONIC,listUltrasonics.get(tempPin));
       }
     }
     else
@@ -808,7 +809,7 @@ void nairdaDebug(uint8_t tempValue)
       {
         //adquirir valores para la ejecucion del servo
         execBuffer[0] = map(tempValue, 0, 99, 0, 180);
-        listServos.get(i)->execAct(execBuffer, SERVO);
+        execAct(execBuffer, SERVO,listServos.get(i));
         executeServo = false;
       }
       else if (executeDC == true)
@@ -827,7 +828,7 @@ void nairdaDebug(uint8_t tempValue)
           execBuffer[0] = executeDCBuffer[1];
           execBuffer[1] = executeDCBuffer[2];
 
-          listMotors.get(executeDCBuffer[0])->execAct(execBuffer, MOTOR);
+          execAct(execBuffer, MOTOR,listMotors.get(executeDCBuffer[0]));
           cleanExecuteDCBoolean();
           executeDC = false;
         }
@@ -835,7 +836,7 @@ void nairdaDebug(uint8_t tempValue)
       else if (executeLed == true)
       {
         execBuffer[0] = tempValue;
-        listDigitalOuts.get(i)->execAct(execBuffer, DIGITAL_OUT);
+        execAct(execBuffer, DIGITAL_OUT,listDigitalOuts.get(i));
         executeLed = false;
       }
       else if (executeFrequency == true)
@@ -862,7 +863,7 @@ void nairdaDebug(uint8_t tempValue)
 
           for(uint8_t i=0;i<6;i++)execBuffer[i] = executeFrequencyBuffer[i+1];
 
-          listFrequencies.get(executeFrequencyBuffer[0])->execAct(execBuffer, FREQUENCY);
+          execAct(execBuffer, FREQUENCY,listFrequencies.get(executeFrequencyBuffer[0]));
           cleanExecuteFrequencyBoolean();
           executeFrequency = false;
         }
@@ -882,7 +883,7 @@ void nairdaDebug(uint8_t tempValue)
           executeNeopixelBuffer[4] = tempValue;
 
           for(uint8_t i=0;i<4;i++)execBuffer[i] = executeNeopixelBuffer[i+1];
-            listNeopixels.get(executeNeopixelBuffer[0])->execAct(execBuffer,NEOPIXEL);
+            execAct(execBuffer,NEOPIXEL,listNeopixels.get(executeNeopixelBuffer[0]));
             cleanExecuteNeopixelBoolean();
             executeNeopixel=false;
         }

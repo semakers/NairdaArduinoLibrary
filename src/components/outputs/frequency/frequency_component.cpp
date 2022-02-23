@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include "load_from_eeprom.h"
 #include "frequency_component.h"
+#include "components/component.h"
 #include "components/outputs/neo_pixel/neo_pixel_component.h"
 #include "extern_libraries/free_tone/timer_free_tone.h"
 
-extern LinkedList<component *> listFrequencies;
+extern LinkedList<component_t *> listFrequencies;
 extern bool loadedFrequencies;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -37,7 +38,7 @@ void frequencyEepromLoad()
         {
             descArgsBuffer[0] = FREQUENCY;
             descArgsBuffer[1] = getMapedPin(currentByte);
-            component *tempFrequency = new component(descArgsBuffer);
+            component_t *tempFrequency = newComponent(descArgsBuffer);
             listFrequencies.add(tempFrequency);
         }
     }
@@ -58,5 +59,5 @@ void frequencyEepromRun(uint8_t id)
     frequencyBuffer[4] = (uint32_t)thirdValue(execBuffer[2]);
     frequencyBuffer[5] = execBuffer[1];
 
-    listFrequencies.get(id)->execAct(frequencyBuffer, FREQUENCY);
+    execAct(frequencyBuffer, FREQUENCY,listFrequencies.get(id));
 }

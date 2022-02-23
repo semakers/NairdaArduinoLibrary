@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include "load_from_eeprom.h"
 #include "neo_pixel_component.h"
+#include "components/component.h"
 #include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 #include "components/inputs/analogic/analogic_component.h"
 
-extern LinkedList<component *> listNeopixels;
+extern LinkedList<component_t *> listNeopixels;
 extern bool loadedNeoPixels;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
@@ -47,7 +48,7 @@ void neoPixelEepromLoad()
             descArgsBuffer[1] = getMapedPin(currentByte);
             descArgsBuffer[2] = nextByte();
 
-            component *tempNeopixel = new component(descArgsBuffer);
+            component_t *tempNeopixel = newComponent(descArgsBuffer);
             listNeopixels.add(tempNeopixel);
         }
     }
@@ -61,5 +62,5 @@ void neoPixelEepromRun(uint8_t id)
     execBuffer[2] = getInputValue(nextByte());
     execBuffer[3] = getInputValue(nextByte());
 
-    listNeopixels.get(id)->execAct(execBuffer, NEOPIXEL);
+    execAct(execBuffer, NEOPIXEL,listNeopixels.get(id));
 }
