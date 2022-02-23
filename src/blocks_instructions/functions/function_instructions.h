@@ -1,0 +1,4 @@
+
+
+void runGoToFunction();
+void runEndOfFunction();

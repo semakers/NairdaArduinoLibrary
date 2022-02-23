@@ -1,38 +1,5 @@
-#include "extern_libraries/linked_list/linked_list.h"
-#include <Arduino.h>
-
 #include <stdint.h>
-#include "nairda.h"
 
-#include "components/outputs/servo/servo_component.h"
-#include "components/outputs/motor/motor_component.h"
-#include "components/outputs/digital_out/digital_out_component.h"
-#include "components/outputs/frequency/frequency_component.h"
-#include "components/outputs/neo_pixel/neo_pixel_component.h"
-
-#include "components/inputs/analogic/analogic_component.h"
-#include "components/inputs/digital_in/digital_in_component.h"
-#include "components/inputs/ultrasonic/ultrasonic_component.h"
-
-#if defined(ARDUINO_ARCH_STM32)
-#include <Servo.h>
-#elif defined(ARDUINO_ARCH_ESP32)
-
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-#include "esp_spi_flash.h"
-
-#include "extern_libraries/esp32_servo/esp32_servo.h"
-
-#else
-#include "extern_libraries/new_ping/new_ping.h"
-#include "extern_libraries/soft_pwm/soft_pwm.h"
-#include <Servo.h>
-#endif
-
-#include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 
 #define projectInit 100
 #define endServos 101
@@ -73,10 +40,6 @@
 
 #define CURRENT_VERSION 3
 
-uint8_t getCurrentChannel();
-void nextCurrentChannel();
-void clearCurrentChannel();
-
 enum
 {
       SERVO = 0,
@@ -89,9 +52,11 @@ enum
       ULTRASONIC
 };
 
-
-void nextVariable();
-
+uint8_t getCurrentChannel();
+void nextCurrentChannel();
+void clearCurrentChannel();
+void nairdaRunMachineState();
+uint8_t callInterrupt();
 uint8_t nextByte();
 int32_t getInputValue(uint8_t firstByte);
 uint8_t getMapedPin(uint8_t pin);

@@ -11,6 +11,7 @@
 #include "components/component.h"
 #include "components/outputs/motor/motor_component.h"
 #include <Arduino.h>
+#include "extern_libraries/linked_list/linked_list.h"
 
 extern LinkedList<component_t *> listServos;
 extern bool loadedServos;

@@ -3,6 +3,21 @@
 #include <Wire.h>
 #include "load_from_eeprom.h"
 #include "components/component.h"
+#include "extern_libraries/linked_list/linked_list.h"
+#include "value_conversion/value_conversion.h"
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include "esp_spi_flash.h"
+#endif
+
+#if !defined(ARDUINO_ARCH_STM32)  && !defined(ARDUINO_ARCH_ESP32)
+#include "extern_libraries/soft_pwm/soft_pwm.h"
+#endif
 
 void nairdaDebug(uint8_t tempValue);
 bool running = false;
@@ -179,21 +194,7 @@ LinkedList<component_t *> listAnalogics = LinkedList<component_t *>();
 LinkedList<component_t *> listDigitalIns = LinkedList<component_t *>();
 LinkedList<component_t *> listUltrasonics = LinkedList<component_t *>();
 
-uint8_t firstValue(uint32_t value)
-{
-  return (uint8_t)(value / 10000);
-}
 
-uint8_t secondValue(uint32_t value)
-{
-  uint8_t first = firstValue(value);
-  return (uint8_t)(first > 0) ? ((value - (first * 10000)) / 100) : (value / 100);
-}
-
-uint8_t thirdValue(uint32_t value)
-{
-  return uint8_t(value - ((uint8_t(value / 100)) * 100));
-}
 
 void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 {

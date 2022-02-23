@@ -1,9 +1,15 @@
 #include "motor_component.h"
 #include "components/outputs/digital_out/digital_out_component.h"
+#include "extern_libraries/linked_list/linked_list.h"
 #include "components/component.h"
 #include "load_from_eeprom.h"
 
 #include <Arduino.h>
+
+
+#if !defined(ARDUINO_ARCH_STM32)  && !defined(ARDUINO_ARCH_ESP32)
+#include "extern_libraries/soft_pwm/soft_pwm.h"
+#endif
 
 extern LinkedList<component_t *> listMotors;
 extern bool loadedMotors;

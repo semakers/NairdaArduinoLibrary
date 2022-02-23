@@ -1,5 +1,15 @@
 #include "component.h"
 #include "load_from_eeprom.h"
+#include "nairda.h"
+#include "components/outputs/servo/servo_component.h"
+#include "components/outputs/motor/motor_component.h"
+#include "components/outputs/digital_out/digital_out_component.h"
+#include "components/outputs/frequency/frequency_component.h"
+#include "components/outputs/neo_pixel/neo_pixel_component.h"
+
+#include "components/inputs/analogic/analogic_component.h"
+#include "components/inputs/digital_in/digital_in_component.h"
+#include "components/inputs/ultrasonic/ultrasonic_component.h"
 
 component_t *newComponent(uint16_t *args)
 {

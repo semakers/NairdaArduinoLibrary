@@ -1,6 +1,7 @@
 #include "digital_out_component.h"
 #include "load_from_eeprom.h"
 #include "components/component.h"
+#include "extern_libraries/linked_list/linked_list.h"
 #include "components/outputs/frequency/frequency_component.h"
 
 #include <Arduino.h>

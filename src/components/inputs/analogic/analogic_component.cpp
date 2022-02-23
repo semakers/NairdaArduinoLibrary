@@ -1,6 +1,7 @@
 #include "analogic_component.h"
 #include "load_from_eeprom.h"
 #include "components/inputs/digital_in/digital_in_component.h"
+#include "extern_libraries/linked_list/linked_list.h"
 #include "components/component.h"
 
 #include <Arduino.h>

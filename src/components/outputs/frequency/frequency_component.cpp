@@ -3,7 +3,9 @@
 #include "frequency_component.h"
 #include "components/component.h"
 #include "components/outputs/neo_pixel/neo_pixel_component.h"
+#include "extern_libraries/linked_list/linked_list.h"
 #include "extern_libraries/free_tone/timer_free_tone.h"
+#include "value_conversion/value_conversion.h"
 
 extern LinkedList<component_t *> listFrequencies;
 extern bool loadedFrequencies;

@@ -4,35 +4,40 @@
 #include <Wire.h>
 #include "components/component.h"
 
+#include "extern_libraries/linked_list/linked_list.h"
+#include <Arduino.h>
+
+
+#include "components/outputs/servo/servo_component.h"
+#include "components/outputs/motor/motor_component.h"
+#include "components/outputs/digital_out/digital_out_component.h"
+#include "components/outputs/frequency/frequency_component.h"
+#include "components/outputs/neo_pixel/neo_pixel_component.h"
+
+#include "components/inputs/analogic/analogic_component.h"
+#include "components/inputs/digital_in/digital_in_component.h"
+#include "components/inputs/ultrasonic/ultrasonic_component.h"
+
+#include "blocks_instructions/follow/follow_instructions.h"
+#include "blocks_instructions/logic/loginc_instructions.h"
+#include "blocks_instructions/functions/function_instructions.h"
+#include "blocks_instructions/variables/variables_instructions.h"
+#include "blocks_instructions/math/math_instructions.h"
+
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include "esp_spi_flash.h"
+#endif
+
 #ifndef __AVR_ATmega168__
 
-
-class repeatBegin
-{
-public:
-    uint32_t offsetStart;
-    uint32_t offsetEnd;
-    uint8_t loop;
-    uint32_t times;
-    repeatBegin(uint32_t cOffsetStart, uint32_t cOffsetEnd, uint8_t cLoop, uint32_t cTimes)
-    {
-        offsetStart = cOffsetStart;
-        offsetEnd = cOffsetEnd;
-        loop = cLoop;
-        times = cTimes;
-    }
-};
-
 uint8_t readByte(uint32_t address);
-void nairdaRunMachineState();
-
-uint8_t callInterrupt();
-
 extern bool running;
-LinkedList<int32_t *> listVariables = LinkedList<int32_t *>();
-LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
-LinkedList<int> directionsStack = LinkedList<int>();
-
 uint32_t currentOffset = 7;
 uint32_t ProgrammSize = 0;
 uint32_t initdirection = 0;
@@ -47,13 +52,6 @@ bool loadedUltrasonics = false;
 bool loadedVariables = false;
 
 uint8_t currentChannel = 0;
-
-void setVarValue(int32_t newValue,int32_t *value)
-    {
-        value[0] = (newValue > 999999) ? 999999 : (newValue < -999999) ? -999999
-                                                                    : newValue;
-    }
-
 
 uint8_t getCurrentChannel()
 {
@@ -154,32 +152,6 @@ void loadEepromDescriptor()
     }
 }
 
-void nextVariable()
-{
-    uint8_t currentByte;
-    while (!loadedVariables)
-    {
-        currentByte = nextByte();
-        if (currentByte == endVariables)
-        {
-            loadedVariables = true;
-        }
-        else
-        {
-            uint8_t varBytes[4];
-            varBytes[0] = currentByte;
-            for (uint8_t i = 1; i < 4; i++)
-            {
-                varBytes[i] = nextByte();
-            }
-            int32_t positiveValue = (varBytes[1] * 10000) + (varBytes[2] * 100) + varBytes[3];
-            int32_t tempVariable = varBytes[0] == 0 ? positiveValue : (positiveValue * -1);
-            listVariables.add(&tempVariable);
-        }
-    }
-    nairdaRunMachineState();
-}
-
 int32_t getValue()
 {
     uint8_t valueBytes[4];
@@ -190,97 +162,6 @@ int32_t getValue()
     int32_t positiveValue = (valueBytes[1] * 10000) + (valueBytes[2] * 100) + valueBytes[3];
     return valueBytes[0] == 0 ? positiveValue : (positiveValue * -1);
 }
-
-int32_t getVariableValue()
-{
-    return listVariables.get(nextByte())[0];
-}
-
-int32_t getComparatorValue()
-{
-    int32_t firstValue = getInputValue(nextByte());
-    uint8_t operation = nextByte();
-    int32_t secondByte = getInputValue(nextByte());
-    switch (operation)
-    {
-    case 0:
-        return (firstValue == secondByte) ? 1 : 0;
-    case 1:
-        return (firstValue != secondByte) ? 1 : 0;
-    case 2:
-        return (firstValue < secondByte) ? 1 : 0;
-    case 3:
-        return (firstValue <= secondByte) ? 1 : 0;
-    case 4:
-        return (firstValue > secondByte) ? 1 : 0;
-    case 5:
-        return (firstValue >= secondByte) ? 1 : 0;
-    default:
-        return 0;
-    }
-}
-
-int32_t getLogicValue()
-{
-    uint8_t firstValue = getInputValue(nextByte()) == 0 ? 0 : 1;
-    uint8_t operation = nextByte();
-    uint8_t secondByte = getInputValue(nextByte()) == 0 ? 0 : 1;
-    switch (operation)
-    {
-    case 0:
-        return (firstValue && secondByte) ? 1 : 0;
-    case 1:
-        return (firstValue || secondByte) ? 1 : 0;
-    default:
-        return 0;
-    }
-}
-
-int32_t getNotValue()
-{
-    return (getInputValue(nextByte()) == 0) ? 1 : 0;
-}
-
-int32_t getAritmeticValue()
-{
-    int32_t firstValue = getInputValue(nextByte());
-    uint8_t operation = nextByte();
-    int32_t secondByte = getInputValue(nextByte());
-    switch (operation)
-    {
-    case 0:
-        return firstValue + secondByte;
-    case 1:
-        return firstValue - secondByte;
-    case 2:
-        return firstValue * secondByte;
-    case 3:
-        return firstValue / secondByte;
-    case 4:
-        return firstValue % secondByte;
-    default:
-        return 0;
-    }
-}
-
-int32_t getMapValue()
-{
-    int32_t source = getInputValue(nextByte());
-    int32_t inMin = getInputValue(nextByte());
-    int32_t inMax = getInputValue(nextByte());
-    int32_t outMin = getInputValue(nextByte());
-    int32_t outMax = getInputValue(nextByte());
-    return map(source, inMin, inMax, outMin, outMax);
-}
-
-int32_t getRandomValue()
-{
-    int32_t from = getInputValue(nextByte());
-    int32_t to = getInputValue(nextByte());
-    return random(from, to);
-}
-
-
 
 int32_t getInputValue(uint8_t firstByte)
 {
@@ -313,183 +194,6 @@ int32_t getInputValue(uint8_t firstByte)
     }
 }
 
-void runDelay()
-{
-    uint32_t delayTime = getInputValue(nextByte());
-#if defined(ARDUINO_ARCH_ESP32)
-    for (uint64_t i = 0; i < delayTime * 2500; i++)
-    {
-        if (i % 2500 == 0)
-        {
-            if (callInterrupt() == 1)
-            {
-                Serial.println("Interrupt called");
-                break;
-            }
-        }
-    }
-#else
-    uint32_t currentTime = millis();
-    while ((millis() - currentTime) < delayTime && callInterrupt() == 0)
-    {
-    }
-#endif
-}
-
-void runSetVatValue(uint8_t id)
-{
-    setVarValue(getInputValue(nextByte()), listVariables.get(id));
-}
-
-
-
-void runIf()
-{
-    int32_t conditionValue = getInputValue(nextByte());
-    uint8_t eosBytes[3];
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        eosBytes[i] = nextByte();
-    }
-    uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2];
-    if (conditionValue != 0)
-    {
-    }
-    else
-    {
-        currentOffset = eos;
-    }
-}
-
-repeatBegin *findRepeatBegin(uint32_t repeatStartOffset)
-{
-    for (uint8_t i = 0; i < listRepeatBegins.size(); i++)
-    {
-        if (listRepeatBegins.get(i)->offsetStart == repeatStartOffset)
-        {
-            return listRepeatBegins.get(i);
-        }
-    }
-    return NULL;
-}
-
-uint8_t findRepeatBeginIndex(uint32_t repeatStartOffset)
-{
-    for (uint8_t i = 0; i < listRepeatBegins.size(); i++)
-    {
-        if (listRepeatBegins.get(i)->offsetStart == repeatStartOffset)
-        {
-            return i;
-        }
-    }
-    return 0;
-}
-
-void runRepeat()
-{
-    uint32_t sos = currentOffset - 1;
-    repeatBegin *currentBegin = findRepeatBegin(sos);
-    uint8_t loop = nextByte();
-    int32_t times = getInputValue(nextByte());
-    uint8_t eosBytes[3];
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        eosBytes[i] = nextByte();
-    }
-    if (currentBegin == NULL)
-    {
-        uint32_t eos = (eosBytes[0] * 10000) + (eosBytes[1] * 100) + eosBytes[2];
-        currentBegin = new repeatBegin(sos, eos, loop, times);
-        // Serial.print("eos: ");
-        // Serial.println(currentBegin->offsetEnd);
-        listRepeatBegins.add(currentBegin);
-    }
-
-    // Serial.print("Repeat times: ");
-    // Serial.println(currentBegin->times);
-
-    if (currentBegin->loop == 0)
-    {
-
-        if (currentBegin->times == 0)
-        {
-            currentOffset = currentBegin->offsetEnd;
-            listRepeatBegins.remove(findRepeatBeginIndex(currentBegin->offsetStart));
-            free(currentBegin);
-            // listRepeatBegins.remove(listRepeatBegins.size()-1);
-        }
-        else
-        {
-            currentBegin->times = currentBegin->times - 1;
-        }
-    }
-}
-
-void runEndRepeat()
-{
-    currentOffset = listRepeatBegins.get(listRepeatBegins.size() - 1)->offsetStart;
-    // Serial.print("repeats: ");
-    // Serial.println(listRepeatBegins.size());
-    // Serial.print("Start repeat: ");
-    // Serial.println(listRepeatBegins.get(0)->offsetStart);
-}
-
-void runBreak()
-{
-    repeatBegin *breakBegin = listRepeatBegins.get(listRepeatBegins.size() - 1);
-    currentOffset = breakBegin->offsetEnd;
-    listRepeatBegins.remove(listRepeatBegins.size() - 1);
-    free(breakBegin);
-}
-
-void runGoToFunction()
-{
-    uint8_t jumBytes[3];
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        jumBytes[i] = nextByte();
-    }
-    uint16_t jump = (jumBytes[0] * 10000) + (jumBytes[1] * 100) + jumBytes[2];
-    bool contains = false;
-    for (uint16_t i = 0; i < directionsStack.size(); i++)
-    {
-        if (directionsStack.get(i) == currentOffset)
-        {
-            contains = true;
-        }
-    }
-    if (!contains)
-    {
-        directionsStack.add(currentOffset);
-    }
-    currentOffset = jump;
-}
-
-void runEndOfFunction()
-{
-    uint16_t jump = directionsStack.get(directionsStack.size() - 1);
-    directionsStack.remove(directionsStack.size() - 1);
-    currentOffset = jump;
-}
-
-void freeVariables()
-{
-    for (int i = 0; i < listVariables.size(); i++)
-    {
-        free(listVariables.get(i));
-    }
-    listVariables.clear();
-}
-
-void freeRepeatBegins()
-{
-    for (int i = 0; i < listRepeatBegins.size(); i++)
-    {
-        free(listRepeatBegins.get(i));
-    }
-    listRepeatBegins.clear();
-}
-
 #if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
 
 void freeVolatileMemory()
@@ -500,8 +204,6 @@ void freeVolatileMemory()
         freeVariables();
         freeRepeatBegins();
     }
-
-    // resetLeonardoMemory();
 }
 
 #endif
@@ -611,7 +313,7 @@ void nairdaRunMachineState()
             runDelay();
             break;
         case setVarValueCommand:
-            runSetVatValue(nextByte());
+            runSetVarValue(nextByte());
             break;
         case frequencyCommand:
             frequencyEepromRun(nextByte());

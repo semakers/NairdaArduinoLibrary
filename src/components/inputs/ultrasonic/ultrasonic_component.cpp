@@ -1,6 +1,8 @@
 #include "ultrasonic_component.h"
 #include "load_from_eeprom.h"
 #include "components/component.h"
+#include "extern_libraries/linked_list/linked_list.h"
+#include "blocks_instructions/variables/variables_instructions.h"
 
 #include <Arduino.h>
 
@@ -131,7 +133,7 @@ void ultrasonicEepromLoad()
             listUltrasonics.add(tempUltrasonic);
         }
     }
-    nextVariable();
+    variableEepromLoad();
 }
 
 int32_t ultrasonicEepromRead()

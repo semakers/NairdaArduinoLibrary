@@ -8,7 +8,7 @@ void resetLeonardoMemory();
 void resetMemory();
 #endif
 
-#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_ARCH_ESP32) 
+#if defined(ARDUINO_ARCH_ESP32) 
 
 //void idleAnimation(bool red,bool green,bool blue,bool execute);
 void bleWrite(uint8_t byte);
@@ -24,11 +24,5 @@ void nairdaBegin(const char*deviceName);
 void nairdaBegin(long int bauds);
 #endif
 void nairdaLoop();
-
-uint8_t firstValue(uint32_t value);
-uint8_t secondValue(uint32_t value);
-uint8_t thirdValue(uint32_t value);
-
-
 
 #endif

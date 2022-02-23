@@ -13,7 +13,7 @@
 #include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 
 struct component_t{
-      int8_t* ledcChannel = -1;
+      int8_t* ledcChannel;
       uint8_t pins[5] = {0, 0, 0, 0, 0};
       uint8_t values[5] = {0, 0, 0, 0, 0};
 

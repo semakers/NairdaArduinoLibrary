@@ -4,6 +4,7 @@
 #include "components/component.h"
 #include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 #include "components/inputs/analogic/analogic_component.h"
+#include "extern_libraries/linked_list/linked_list.h"
 
 extern LinkedList<component_t *> listNeopixels;
 extern bool loadedNeoPixels;
