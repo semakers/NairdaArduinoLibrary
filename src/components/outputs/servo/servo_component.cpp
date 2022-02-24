@@ -12,6 +12,7 @@
 #include "components/outputs/motor/motor_component.h"
 #include <Arduino.h>
 #include "extern_libraries/linked_list/linked_list.h"
+#include "volatile_memory/volatile_memory.h"
 
 extern LinkedList<component_t *> listServos;
 extern bool loadedServos;
@@ -59,6 +60,15 @@ void servoOff(Servo* servo)
     servo->detach();
 }
 
+void servoDebugLoad(VolatileMemory* volatileMemory){
+     volatileMemory->descArgsBuffer[0] = SERVO;
+        volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+        volatileMemory->descArgsBuffer[2] = (volatileMemory->declarationBuffer[1] * 100) + volatileMemory->declarationBuffer[2];
+        volatileMemory->descArgsBuffer[3] = (volatileMemory->declarationBuffer[3] * 100) + volatileMemory->declarationBuffer[4];
+        volatileMemory->descArgsBuffer[4] = (volatileMemory->declarationBuffer[5] * 100) + volatileMemory->declarationBuffer[6];
+        component_t *tempServo = newComponent(volatileMemory->descArgsBuffer);
+        volatileMemory->components[SERVO].add(tempServo);
+}
 
 void servoEepromLoad(){
     uint8_t currentByte;

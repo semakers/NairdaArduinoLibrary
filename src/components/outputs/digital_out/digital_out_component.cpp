@@ -12,6 +12,7 @@
 #else
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
+#include "volatile_memory/volatile_memory.h"
 
 extern LinkedList<component_t *> listDigitalOuts;
 extern bool loadedDigitalOuts;
@@ -73,7 +74,7 @@ void digitalOutExec(uint32_t *execArgs, uint8_t *pins, uint8_t *values, int8_t *
 #endif
 }
 
-void digitalOutOff(uint8_t *pins,int8_t *ledcChannel)
+void digitalOutOff(uint8_t *pins, int8_t *ledcChannel)
 {
 #if defined(ARDUINO_ARCH_STM32)
     softPwmSTM32Set(pins[0], 0);
@@ -87,6 +88,14 @@ void digitalOutOff(uint8_t *pins,int8_t *ledcChannel)
     SoftPWMSet(pins[0], 0);
     SoftPWMEnd(pins[0]);
 #endif
+}
+
+void digitalOutDebugLoad(VolatileMemory *volatileMemory)
+{
+    volatileMemory->descArgsBuffer[0] = DIGITAL_OUT;
+    volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+    component_t *tempDigitalOut = newComponent(volatileMemory->descArgsBuffer);
+    volatileMemory->components[DIGITAL_OUT].add(tempDigitalOut);
 }
 
 void digitalOutEepromLoad()
@@ -116,5 +125,5 @@ void digitalOutEepromRun(uint8_t id)
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100
                                                         : intensity;
     execBuffer[0] = intensity;
-    execAct(execBuffer, DIGITAL_OUT,listDigitalOuts.get(id));
+    execAct(execBuffer, DIGITAL_OUT, listDigitalOuts.get(id));
 }

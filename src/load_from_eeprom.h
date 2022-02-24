@@ -40,17 +40,7 @@
 
 #define CURRENT_VERSION 3
 
-enum
-{
-      SERVO = 0,
-      MOTOR,
-      DIGITAL_OUT,
-      FREQUENCY,
-      NEOPIXEL,
-      DIGITAL_IN,
-      ANALOGIC,
-      ULTRASONIC
-};
+
 
 uint8_t getCurrentChannel();
 void nextCurrentChannel();

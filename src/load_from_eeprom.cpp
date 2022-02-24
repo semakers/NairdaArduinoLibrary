@@ -1,4 +1,5 @@
 #include "load_from_eeprom.h"
+#include "blue_methods/blue_methods.h"
 #include "nairda.h"
 #include <EEPROM.h>
 #include <Wire.h>

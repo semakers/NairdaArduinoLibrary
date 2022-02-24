@@ -5,17 +5,14 @@
 #include "components/component.h"
 #include "extern_libraries/linked_list/linked_list.h"
 #include "value_conversion/value_conversion.h"
+#include "blue_methods/blue_methods.h"
+#include "volatile_memory/volatile_memory.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
-
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
 #include "esp_spi_flash.h"
 #endif
 
-#if !defined(ARDUINO_ARCH_STM32)  && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
 
@@ -33,95 +30,6 @@ uint8_t savingBuffer[4];
 
 void cleanSavingBoolean();
 
-#if defined(ARDUINO_ARCH_ESP32)
-
-
-extern "C" void espShow(
-    uint16_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
-
-BLECharacteristic *pCharacteristic;
-uint8_t bleBuffer[255];
-uint8_t bleIndex = 0;
-
-#define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
-#define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
-
-
-
-class MyServerCallbacks : public BLEServerCallbacks
-{
-  void onConnect(BLEServer *pServer)
-  {
-    preInit = true;
-    restartRunFromEeprom();
-  };
-  void onDisconnect(BLEServer *pServer)
-  {
-    preInit = false;
-    resetMemory();
-    BLEDevice::startAdvertising();
-  };
-};
-
-class MyCallbacks : public BLECharacteristicCallbacks
-{
-  void onWrite(BLECharacteristic *pCharacteristic)
-  {
-    std::string rxValue = pCharacteristic->getValue();
-    if (rxValue.length() > 0)
-    {
-      for (int i = 0; i < rxValue.length(); i++)
-      {
-        if (!running)
-        {
-          nairdaDebug(rxValue[i]);
-        }
-        else
-        {
-          bleBuffer[bleIndex] = (uint8_t)rxValue[(rxValue.length() - 1) - i];
-          bleIndex++;
-        }
-      }
-    }
-  }
-};
-
-bool bleAvailable()
-{
-  if (bleIndex > 0)
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
-
-uint8_t bleRead()
-{
-  if (bleAvailable())
-  {
-    bleIndex--;
-    return bleBuffer[bleIndex];
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-void bleWrite(uint8_t byte)
-{
-  std::string myStringForUnit8((char *)&byte, 1);
-  pCharacteristic->setValue(myStringForUnit8);
-  pCharacteristic->notify();
-  // pCharacteristic->indicate();
-}
-
-
-#endif
-
 enum
 {
   noMemory,
@@ -131,96 +39,13 @@ enum
   memory512k
 };
 
-bool declaratedDescriptor = false;
-bool declaratedServos = false;
-bool declaratedDC = false;
-bool declaratedLeds = false;
-bool declaratedFrequencies = false;
-bool declaratedNeopixels =false;
-bool declaratedAnalogics = false;
-bool declaratedDigitals = false;
-bool declaratedUltrasonics = false;
-
-bool executeServo = false;
-bool executeDC = false;
-bool executeLed = false;
-bool executeFrequency = false;
-bool executeNeopixel =false;
-
 uint8_t i;
 uint8_t tempValue;
 int runProgrammTimeOut = 0;
 
-bool executeDCBoolean[3];
-uint8_t executeDCBuffer[3];
+VolatileMemory volatileMemory;
 
 
-bool executeFrequencyBoolean[7];
-uint8_t executeFrequencyBuffer[7];
-
-bool executeNeopixelBoolean[5];
-uint8_t executeNeopixelBuffer[5];
-
-bool servoBoolean[7];
-bool dcBoolean[3];
-bool ultraosnicBoolean;
-bool neopixelBoolean;
-
-uint8_t servoBuffer[7];
-uint8_t dcBuffer[3];
-
-uint16_t descArgsBuffer[5];
-uint32_t execBuffer[6];
-
-
-#if defined(__AVR_ATmega32U4__)
-uint32_t asmOperations = 0;
-
-void (*resetFunc)(void) = 0;
-
-void resetLeonardoMemory()
-{
-  resetFunc();
-}
-
-#endif
-
-LinkedList<component_t *> listServos = LinkedList<component_t *>();
-LinkedList<component_t *> listMotors = LinkedList<component_t *>();
-LinkedList<component_t *> listDigitalOuts = LinkedList<component_t *>();
-LinkedList<component_t *> listFrequencies = LinkedList<component_t *>();
-LinkedList<component_t *> listNeopixels = LinkedList<component_t *>();
-LinkedList<component_t *> listAnalogics = LinkedList<component_t *>();
-LinkedList<component_t *> listDigitalIns = LinkedList<component_t *>();
-LinkedList<component_t *> listUltrasonics = LinkedList<component_t *>();
-
-
-
-void freeCompList(LinkedList<component_t *> *list, uint8_t type)
-{
-  for (int i = 0; i < list->size(); i++)
-  {
-    off(type,list->get(i));
-    free(list->get(i));
-  }
-  list->clear();
-}
-
-void cleanServoBoolean()
-{
-  for (int j = 0; j < 7; j++)
-  {
-    servoBoolean[j] = false;
-  }
-}
-
-void cleanDCBoolean()
-{
-  for (int j = 0; j < 3; j++)
-  {
-    dcBoolean[j] = false;
-  }
-}
 
 #ifndef __AVR_ATmega168__
 void cleanSavingBoolean()
@@ -232,109 +57,12 @@ void cleanSavingBoolean()
 }
 #endif
 
-void cleanExecuteDCBoolean()
-{
-  for (int j = 0; j < 3; j++)
-  {
-    executeDCBoolean[j] = false;
-  }
-}
 
-void cleanExecuteFrequencyBoolean(){
-  for (int j = 0; j < 7; j++)
-  {
-    executeFrequencyBoolean[j] = false;
-  }
-}
-
-void cleanExecuteNeopixelBoolean(){
-  for (int j = 0; j < 5; j++)
-  {
-    executeNeopixelBoolean[j] = false;
-  }
-}
-
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-void resetMemory()
-{
-
-  runProgrammTimeOut = millis();
-  declaratedDescriptor = false;
-  declaratedServos = false;
-  declaratedDC = false;
-  declaratedLeds = false;
-  declaratedFrequencies =false;
-  declaratedNeopixels =false;
-  declaratedAnalogics = false;
-  declaratedDigitals = false;
-  declaratedUltrasonics = false;
-  executeServo = false;
-  executeDC = false;
-  executeLed = false;
-  executeFrequency =false;
-  executeNeopixel =false;
-  clearCurrentChannel();
-  cleanServoBoolean();
-  cleanDCBoolean();
-  cleanExecuteDCBoolean();
-  cleanExecuteFrequencyBoolean();
-  cleanExecuteNeopixelBoolean();
-  cleanSavingBoolean();
-  freeCompList(&listServos, SERVO);
-  freeCompList(&listMotors, MOTOR);
-  freeCompList(&listDigitalOuts, DIGITAL_OUT);
-  freeCompList(&listFrequencies, FREQUENCY);
-  freeCompList(&listAnalogics, ANALOGIC);
-  freeCompList(&listDigitalIns, DIGITAL_IN);
-  freeCompList(&listUltrasonics, ULTRASONIC);
-  freeCompList(&listNeopixels,NEOPIXEL);
-}
-#else
-void resetMemory()
-{
-  freeCompList(&listMotors, MOTOR);
-  freeCompList(&listDigitalOuts, DIGITAL_OUT);
-}
-
-#endif
 
 #if defined(ARDUINO_ARCH_ESP32)
 void nairdaBegin(const char *deviceName)
 {
-
-  BLEDevice::init(deviceName); // Give it a name
-
-  // Create the BLE Server
-  BLEServer *pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  pCharacteristic = pService->createCharacteristic(
-      CHARACTERISTIC_UUID,
-      BLECharacteristic::PROPERTY_NOTIFY |
-          BLECharacteristic::PROPERTY_WRITE |
-          BLECharacteristic::PROPERTY_WRITE_NR |
-          BLECharacteristic::PROPERTY_READ);
-  pCharacteristic->addDescriptor(new BLE2902());
-
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06); // functions that help with iPhone connections issue
-  pAdvertising->setMinPreferred(0x12);
-  BLEDevice::startAdvertising();
-
- // initBleIndicator();
-
-
+  bleInit(deviceName);
 
 #else
 void nairdaBegin(long int bauds)
@@ -353,18 +81,10 @@ void nairdaBegin(long int bauds)
   SoftPWMBegin();
 #endif
 #endif
-
-#ifdef __AVR_ATmega32U4__
-
-resetOffset:
-  asmOperations = 0;
-  resetFunc = &&resetOffset;
-
-#endif
   runProgrammTimeOut = millis();
+
+  initVolatileMemory(&volatileMemory);
 }
-
-
 
 void nairdaLoop()
 {
@@ -393,7 +113,7 @@ void nairdaLoop()
   if ((millis() - runProgrammTimeOut) > 2500 && declaratedServos == false)
   {
 #endif
-    
+
     loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }
@@ -402,8 +122,6 @@ void nairdaLoop()
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
-
- 
 
   if (bleAvailable())
   {
@@ -430,7 +148,6 @@ void nairdaLoop()
   if (Serial.available())
   {
     tempValue = Serial.read();
-    // Serial.println(tempValue);
 
 #endif
 
@@ -445,12 +162,12 @@ void nairdaDebug(uint8_t tempValue)
   if (tempValue == projectInit)
   {
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-    resetMemory();
+    clearVolatileMemory();
 #else
-    resetMemory();
+    clearVolatileMemory();
     asm volatile("jmp 0");
 #endif
-    //Serial.println("Se limpriaron las listas");
+    // Serial.println("Se limpriaron las listas");
   }
   if (tempValue == saveCommand)
   {
@@ -493,31 +210,7 @@ void nairdaDebug(uint8_t tempValue)
 #endif
 
 #endif
-
-#if defined(ARDUINO_ARCH_ESP32)
-    spi_flash_erase_range(0x200000, 4096 * 128);
-    char cleanBuffer[22];
-    memset(cleanBuffer, 0, 22);
-    pCharacteristic->setValue(cleanBuffer);
-    char myString[4];
-    myString[0] = (char)firstValue(memorySize);
-    myString[1] = (char)secondValue(memorySize);
-    myString[2] = (char)thirdValue(memorySize);
-    myString[3] = 0;
-    pCharacteristic->setValue(myString);
-    pCharacteristic->notify();
-
-#else
-
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char)firstValue(memorySize));
-    Serial1.write((char)secondValue(memorySize));
-    Serial1.write((char)thirdValue(memorySize));
-#endif
-    Serial.write((char)firstValue(memorySize));
-    Serial.write((char)secondValue(memorySize));
-    Serial.write((char)thirdValue(memorySize));
-#endif
+    sendMemorySize(memorySize);
   }
   else if (startSaving)
   {
@@ -546,7 +239,7 @@ void nairdaDebug(uint8_t tempValue)
       writeByte(1, savingBuffer[1]);
       writeByte(2, savingBuffer[2]);
       writeByte(3, savingBuffer[3]);
-      programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3]-currentProgramOffset;
+      programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3] - currentProgramOffset;
     }
     else
     {
@@ -578,45 +271,16 @@ void nairdaDebug(uint8_t tempValue)
     Serial.write(((char)CURRENT_VERSION));
 #endif
   }
-  else if (tempValue == endServos)
+  else if (volatileMemory.declaratedDescriptor==false)
   {
-    declaratedServos = true;
-  }
-  else if (tempValue == endDC)
-  {
-    declaratedDC = true;
-  }
-  else if (tempValue == endLeds)
-  {
-    declaratedLeds = true;
-  }
-  else if (tempValue == endFrequencies)
-  {
-    declaratedFrequencies = true;
-  }
-  else if(tempValue == endNeopixels)
-  {
-    declaratedNeopixels =true;
-  }
-  else if (tempValue == endAnalogics)
-  {
-    declaratedAnalogics = true;
-  }
-  else if (tempValue == endDigitals)
-  {
-    declaratedDigitals = true;
-  }
-  else if (tempValue == endUltrasonics)
-  {
-    declaratedUltrasonics = true;
-    declaratedDescriptor = true;
+    declaratedComponents(tempValue,&volatileMemory);
   }
 
-  else if (declaratedDescriptor == false && tempValue < 100)
+  else if (volatileMemory.declaratedDescriptor == false && tempValue < 100)
   {
     if (declaratedServos == false)
     {
-      //pasos para declarar un servo
+      // pasos para declarar un servo
       if (!servoBoolean[0])
       {
         servoBoolean[0] = true;
@@ -664,7 +328,7 @@ void nairdaDebug(uint8_t tempValue)
     }
     else if (declaratedDC == false && tempValue < 100)
     {
-      //pasos para declarar un motor DC
+      // pasos para declarar un motor DC
       if (!dcBoolean[0])
       {
         dcBoolean[0] = true;
@@ -704,15 +368,18 @@ void nairdaDebug(uint8_t tempValue)
       component_t *tempFrequency = newComponent(descArgsBuffer);
       listFrequencies.add(tempFrequency);
     }
-    else if (declaratedNeopixels == false && tempValue <100)
+    else if (declaratedNeopixels == false && tempValue < 100)
     {
-      if(!neopixelBoolean){
-        neopixelBoolean=true;
-        i=tempValue;
-      }else{
-        descArgsBuffer[0]=NEOPIXEL;
-        descArgsBuffer[1]=getMapedPin(i);
-        descArgsBuffer[2]=tempValue;
+      if (!neopixelBoolean)
+      {
+        neopixelBoolean = true;
+        i = tempValue;
+      }
+      else
+      {
+        descArgsBuffer[0] = NEOPIXEL;
+        descArgsBuffer[1] = getMapedPin(i);
+        descArgsBuffer[2] = tempValue;
         component_t *tempNeopixel = newComponent(descArgsBuffer);
         listNeopixels.add(tempNeopixel);
       }
@@ -751,7 +418,7 @@ void nairdaDebug(uint8_t tempValue)
   }
   else
   {
-    if (executeServo == false && executeDC == false && executeLed == false && executeFrequency ==false && executeNeopixel==false)
+    if (executeServo == false && executeDC == false && executeLed == false && executeFrequency == false && executeNeopixel == false)
     {
       int indexServos = listServos.size();
       int indexMotors = indexServos + listMotors.size();
@@ -761,7 +428,6 @@ void nairdaDebug(uint8_t tempValue)
       int indexAnalogics = indexNeopixels + listAnalogics.size();
       int indexDigitals = indexAnalogics + listDigitalIns.size();
       int indexUltraosnics = indexDigitals + listUltrasonics.size();
-      
 
       if (tempValue >= 0 && tempValue < indexServos && listServos.size() > 0)
       {
@@ -780,42 +446,42 @@ void nairdaDebug(uint8_t tempValue)
       }
       else if (tempValue >= indexLeds && tempValue < indexFrequencies && listFrequencies.size() > 0)
       {
-        executeFrequencyBuffer[0]= tempValue - indexLeds;
+        executeFrequencyBuffer[0] = tempValue - indexLeds;
         executeFrequency = true;
       }
       else if (tempValue >= indexFrequencies && tempValue < indexNeopixels && listNeopixels.size() > 0)
       {
-        executeNeopixelBuffer[0]= tempValue - indexFrequencies;
+        executeNeopixelBuffer[0] = tempValue - indexFrequencies;
         executeNeopixel = true;
       }
       else if (tempValue >= indexNeopixels && tempValue < indexAnalogics && listAnalogics.size() > 0)
       {
         int tempPin = tempValue - indexNeopixels;
-        sendSensVal(ANALOGIC,listAnalogics.get(tempPin));
+        sendSensVal(ANALOGIC, listAnalogics.get(tempPin));
       }
       else if (tempValue >= indexAnalogics && tempValue < indexDigitals && listDigitalIns.size() > 0)
       {
         int tempPin = tempValue - indexAnalogics;
-        sendSensVal(DIGITAL_IN,listDigitalIns.get(tempPin));
+        sendSensVal(DIGITAL_IN, listDigitalIns.get(tempPin));
       }
       else if (tempValue >= indexDigitals && tempValue < indexUltraosnics && listUltrasonics.size() > 0)
       {
         int tempPin = tempValue - indexDigitals;
-        sendSensVal(ULTRASONIC,listUltrasonics.get(tempPin));
+        sendSensVal(ULTRASONIC, listUltrasonics.get(tempPin));
       }
     }
     else
     {
       if (executeServo == true)
       {
-        //adquirir valores para la ejecucion del servo
+        // adquirir valores para la ejecucion del servo
         execBuffer[0] = map(tempValue, 0, 99, 0, 180);
-        execAct(execBuffer, SERVO,listServos.get(i));
+        execAct(execBuffer, SERVO, listServos.get(i));
         executeServo = false;
       }
       else if (executeDC == true)
       {
-        //adquirir valores para la ejecucion del motor
+        // adquirir valores para la ejecucion del motor
         if (!executeDCBoolean[0])
         {
           executeDCBoolean[0] = true;
@@ -829,7 +495,7 @@ void nairdaDebug(uint8_t tempValue)
           execBuffer[0] = executeDCBuffer[1];
           execBuffer[1] = executeDCBuffer[2];
 
-          execAct(execBuffer, MOTOR,listMotors.get(executeDCBuffer[0]));
+          execAct(execBuffer, MOTOR, listMotors.get(executeDCBuffer[0]));
           cleanExecuteDCBoolean();
           executeDC = false;
         }
@@ -837,56 +503,76 @@ void nairdaDebug(uint8_t tempValue)
       else if (executeLed == true)
       {
         execBuffer[0] = tempValue;
-        execAct(execBuffer, DIGITAL_OUT,listDigitalOuts.get(i));
+        execAct(execBuffer, DIGITAL_OUT, listDigitalOuts.get(i));
         executeLed = false;
       }
       else if (executeFrequency == true)
       {
-         if (!executeFrequencyBoolean[0]){
-            executeFrequencyBoolean[0] = true;
-            executeFrequencyBuffer[1] = tempValue;
-          }else if (!executeFrequencyBoolean[1]){
-            executeFrequencyBoolean[1] = true;
-            executeFrequencyBuffer[2] = tempValue;
-          }else if (!executeFrequencyBoolean[2]){
-            executeFrequencyBoolean[2] = true;
-            executeFrequencyBuffer[3] = tempValue;
-          }else if (!executeFrequencyBoolean[3]){
-            executeFrequencyBoolean[3] = true;
-            executeFrequencyBuffer[4] = tempValue;
-          }else if (!executeFrequencyBoolean[4]){
-            executeFrequencyBoolean[4] = true;
-            executeFrequencyBuffer[5] = tempValue;
-          }else if (!executeFrequencyBoolean[5])
+        if (!executeFrequencyBoolean[0])
+        {
+          executeFrequencyBoolean[0] = true;
+          executeFrequencyBuffer[1] = tempValue;
+        }
+        else if (!executeFrequencyBoolean[1])
+        {
+          executeFrequencyBoolean[1] = true;
+          executeFrequencyBuffer[2] = tempValue;
+        }
+        else if (!executeFrequencyBoolean[2])
+        {
+          executeFrequencyBoolean[2] = true;
+          executeFrequencyBuffer[3] = tempValue;
+        }
+        else if (!executeFrequencyBoolean[3])
+        {
+          executeFrequencyBoolean[3] = true;
+          executeFrequencyBuffer[4] = tempValue;
+        }
+        else if (!executeFrequencyBoolean[4])
+        {
+          executeFrequencyBoolean[4] = true;
+          executeFrequencyBuffer[5] = tempValue;
+        }
+        else if (!executeFrequencyBoolean[5])
         {
           executeFrequencyBoolean[5] = true;
           executeFrequencyBuffer[6] = tempValue;
 
-          for(uint8_t i=0;i<6;i++)execBuffer[i] = executeFrequencyBuffer[i+1];
+          for (uint8_t i = 0; i < 6; i++)
+            execBuffer[i] = executeFrequencyBuffer[i + 1];
 
-          execAct(execBuffer, FREQUENCY,listFrequencies.get(executeFrequencyBuffer[0]));
+          execAct(execBuffer, FREQUENCY, listFrequencies.get(executeFrequencyBuffer[0]));
           cleanExecuteFrequencyBoolean();
           executeFrequency = false;
         }
       }
-      else if(executeNeopixel == true){
-        if(!executeNeopixelBoolean[0]){
-          executeNeopixelBoolean[0]=true;
-          executeNeopixelBuffer[1] = map(tempValue,0,99,0,255);
-        }else if(!executeNeopixelBoolean[1]){
-          executeNeopixelBoolean[1]=true;
-          executeNeopixelBuffer[2] =  map(tempValue,0,99,0,255);
-        }else if(!executeNeopixelBoolean[2]){
-          executeNeopixelBoolean[2]=true;
-          executeNeopixelBuffer[3] =  map(tempValue,0,99,0,255);
-        }else if(!executeNeopixelBoolean[3]){
-          executeNeopixelBoolean[3]=true;
+      else if (executeNeopixel == true)
+      {
+        if (!executeNeopixelBoolean[0])
+        {
+          executeNeopixelBoolean[0] = true;
+          executeNeopixelBuffer[1] = map(tempValue, 0, 99, 0, 255);
+        }
+        else if (!executeNeopixelBoolean[1])
+        {
+          executeNeopixelBoolean[1] = true;
+          executeNeopixelBuffer[2] = map(tempValue, 0, 99, 0, 255);
+        }
+        else if (!executeNeopixelBoolean[2])
+        {
+          executeNeopixelBoolean[2] = true;
+          executeNeopixelBuffer[3] = map(tempValue, 0, 99, 0, 255);
+        }
+        else if (!executeNeopixelBoolean[3])
+        {
+          executeNeopixelBoolean[3] = true;
           executeNeopixelBuffer[4] = tempValue;
 
-          for(uint8_t i=0;i<4;i++)execBuffer[i] = executeNeopixelBuffer[i+1];
-            execAct(execBuffer,NEOPIXEL,listNeopixels.get(executeNeopixelBuffer[0]));
-            cleanExecuteNeopixelBoolean();
-            executeNeopixel=false;
+          for (uint8_t i = 0; i < 4; i++)
+            execBuffer[i] = executeNeopixelBuffer[i + 1];
+          execAct(execBuffer, NEOPIXEL, listNeopixels.get(executeNeopixelBuffer[0]));
+          cleanExecuteNeopixelBoolean();
+          executeNeopixel = false;
         }
       }
     }

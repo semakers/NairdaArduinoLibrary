@@ -3,11 +3,11 @@
 #include "extern_libraries/linked_list/linked_list.h"
 #include "components/component.h"
 #include "load_from_eeprom.h"
+#include "volatile_memory/volatile_memory.h"
 
 #include <Arduino.h>
 
-
-#if !defined(ARDUINO_ARCH_STM32)  && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
 
@@ -147,7 +147,7 @@ void motorExec(uint32_t *execArgs, uint8_t *pins, uint8_t *values, int8_t *ledcC
 #endif
 #endif
 }
-void motorOff(uint8_t *pins,int8_t *ledcChannel)
+void motorOff(uint8_t *pins, int8_t *ledcChannel)
 {
     digitalWrite(pins[0], LOW);
     digitalWrite(pins[1], LOW);
@@ -163,6 +163,17 @@ void motorOff(uint8_t *pins,int8_t *ledcChannel)
     SoftPWMSet(pins[2], 0);
     SoftPWMEnd(pins[2]);
 #endif
+}
+
+void motorDebugLoad(VolatileMemory *volatileMemory)
+{
+    volatileMemory->descArgsBuffer[0] = MOTOR;
+    volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+    volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
+    volatileMemory->descArgsBuffer[3] = getMapedPin(volatileMemory->declarationBuffer[2]);
+
+    component_t *tempDC = newComponent(volatileMemory.descArgsBuffer);
+    volatileMemory->components[MOTOR].add(tempDC);
 }
 
 void motorEepromLoad()
@@ -194,9 +205,8 @@ void motorEepromLoad()
             listMotors.add(tempDC);
         }
     }
-     digitalOutEepromLoad();
+    digitalOutEepromLoad();
 }
-
 
 void motorEepromRun(uint8_t id)
 {
@@ -207,5 +217,5 @@ void motorEepromRun(uint8_t id)
     execBuffer[0] = vel;
     execBuffer[1] = nextByte();
 
-    execAct(execBuffer, MOTOR,listMotors.get(id));
+    execAct(execBuffer, MOTOR, listMotors.get(id));
 }

@@ -3,6 +3,7 @@
 #include "components/inputs/ultrasonic/ultrasonic_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
 #include "components/component.h"
+#include "volatile_memory/volatile_memory.h"
 
 #include <Arduino.h>
 
@@ -24,6 +25,13 @@ void digitalInSense(uint8_t *pins, uint8_t *tempRead)
 
 void digitalInOff()
 {
+}
+
+void digitalInDebugLoad(VolatileMemory *volatileMemory){
+    volatileMemory->descArgsBuffer[0] = DIGITAL_IN;
+    volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+    component_t *tempDigitalIn = newComponent(volatileMemory->descArgsBuffer);
+    volatileMemory->components[DIGITAL_IN].add(tempDigitalIn);
 }
 
 void digitalInEepromLoad()

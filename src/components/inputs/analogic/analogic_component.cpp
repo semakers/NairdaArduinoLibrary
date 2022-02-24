@@ -3,6 +3,7 @@
 #include "components/inputs/digital_in/digital_in_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
 #include "components/component.h"
+#include "volatile_memory/volatile_memory.h"
 
 #include <Arduino.h>
 
@@ -29,6 +30,13 @@ void analogicSense(uint8_t * pins,uint8_t* tempRead){
 
 void analogicOff(){
 
+}
+
+void analogicDebugLoad(VolatileMemory *volatileMemory){
+    volatileMemory->descArgsBuffer[0] = ANALOGIC;
+    volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+    component_t *tempAnalogic = newComponent(volatileMemory->descArgsBuffer);
+    volatileMemory->components[ANALOGIC].add(tempAnalogic);
 }
 
 void analogicEepromLoad(){

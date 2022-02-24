@@ -7,9 +7,11 @@
 #else
 #include <Servo.h>
 #endif
+#include "volatile_memory/volatile_memory.h"
 
 void servoCreate(uint16_t *args,uint8_t * pins,int8_t* ledcChannel,Servo* servo);
 void servoExec(uint32_t *execArgs,Servo* servo);
 void servoOff(Servo* servo);
 void servoEepromLoad();
 void servoEepromRun(uint8_t id);
+void servoDebugLoad(VolatileMemory* volatileMemory);

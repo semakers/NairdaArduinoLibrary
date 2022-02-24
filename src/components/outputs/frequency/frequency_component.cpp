@@ -6,13 +6,14 @@
 #include "extern_libraries/linked_list/linked_list.h"
 #include "extern_libraries/free_tone/timer_free_tone.h"
 #include "value_conversion/value_conversion.h"
+#include "volatile_memory/volatile_memory.h"
 
 extern LinkedList<component_t *> listFrequencies;
 extern bool loadedFrequencies;
 extern uint16_t descArgsBuffer[5];
 extern uint32_t execBuffer[6];
 
-void frequencyCreate(uint16_t *args,uint8_t *pins)
+void frequencyCreate(uint16_t *args, uint8_t *pins)
 {
     pins[0] = args[1];
 }
@@ -24,6 +25,15 @@ void frequencyExec(uint32_t *execArgs, uint8_t *pins)
 
 void frequencyOff()
 {
+}
+
+void frequencyDebugLoad(VolatileMemory *volatileMemory)
+{
+
+    volatileMemory->descArgsBuffer[0] = FREQUENCY;
+    volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+    component_t *tempFrequency = newComponent(volatileMemory->descArgsBuffer);
+    volatileMemory->components[FREQUENCY].add(tempFrequency);
 }
 
 void frequencyEepromLoad()
@@ -61,5 +71,5 @@ void frequencyEepromRun(uint8_t id)
     frequencyBuffer[4] = (uint32_t)thirdValue(execBuffer[2]);
     frequencyBuffer[5] = execBuffer[1];
 
-    execAct(frequencyBuffer, FREQUENCY,listFrequencies.get(id));
+    execAct(frequencyBuffer, FREQUENCY, listFrequencies.get(id));
 }
