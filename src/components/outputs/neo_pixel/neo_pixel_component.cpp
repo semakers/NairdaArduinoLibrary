@@ -1,11 +1,7 @@
-#include <Arduino.h>
 #include "load_from_eeprom.h"
 #include "neo_pixel_component.h"
-#include "components/component.h"
-#include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
-#include "components/inputs/analogic/analogic_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
-#include "volatile_memory/volatile_memory.h"
+#include <Arduino.h>
 
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -14,10 +10,7 @@ extern "C" void espShow(
 
 #endif
 
-extern LinkedList<component_t *> listNeopixels;
 extern bool loadedNeoPixels;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
 
 void neoPixelCreate(uint16_t *args, uint8_t *pins, Adafruit_NeoPixel *neopixel)
 {
@@ -46,7 +39,7 @@ void neoPixelDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[NEOPIXEL].add(tempNeopixel);
 }
 
-void neoPixelEepromLoad()
+void neoPixelEepromLoad(VolatileMemory *volatileMemory)
 {
     uint8_t currentByte;
 
@@ -60,23 +53,23 @@ void neoPixelEepromLoad()
         }
         else
         {
-            descArgsBuffer[0] = NEOPIXEL;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            descArgsBuffer[2] = nextByte();
+            volatileMemory->descArgsBuffer[0] = NEOPIXEL;
+            volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
+            volatileMemory->descArgsBuffer[2] = nextByte();
 
-            component_t *tempNeopixel = newComponent(descArgsBuffer);
-            listNeopixels.add(tempNeopixel);
+            component_t *tempNeopixel = newComponent(volatileMemory->descArgsBuffer);
+            volatileMemory->components[NEOPIXEL].add(tempNeopixel);
         }
     }
-    analogicEepromLoad();
+    analogicEepromLoad(volatileMemory);
 }
 
-void neoPixelEepromRun(uint8_t id)
+void neoPixelEepromRun(uint8_t id,VolatileMemory *volatileMemory)
 {
-    execBuffer[0] = getInputValue(nextByte());
-    execBuffer[1] = getInputValue(nextByte());
-    execBuffer[2] = getInputValue(nextByte());
-    execBuffer[3] = getInputValue(nextByte());
+    volatileMemory->execBuffer[0] = getInputValue(nextByte());
+    volatileMemory->execBuffer[1] = getInputValue(nextByte());
+    volatileMemory->execBuffer[2] = getInputValue(nextByte());
+    volatileMemory->execBuffer[3] = getInputValue(nextByte());
 
-    execAct(execBuffer, NEOPIXEL, listNeopixels.get(id));
+    execAct(volatileMemory->execBuffer, NEOPIXEL, volatileMemory->components[NEOPIXEL].get(id));
 }

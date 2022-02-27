@@ -1,17 +1,13 @@
-#include <Arduino.h>
+
 #include "load_from_eeprom.h"
 #include "frequency_component.h"
-#include "components/component.h"
-#include "components/outputs/neo_pixel/neo_pixel_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
 #include "extern_libraries/free_tone/timer_free_tone.h"
 #include "value_conversion/value_conversion.h"
-#include "volatile_memory/volatile_memory.h"
 
-extern LinkedList<component_t *> listFrequencies;
+#include <Arduino.h>
+
 extern bool loadedFrequencies;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
 
 void frequencyCreate(uint16_t *args, uint8_t *pins)
 {
@@ -36,7 +32,7 @@ void frequencyDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[FREQUENCY].add(tempFrequency);
 }
 
-void frequencyEepromLoad()
+void frequencyEepromLoad(VolatileMemory *volatileMemory)
 {
     uint8_t currentByte;
     while (!loadedFrequencies)
@@ -48,28 +44,28 @@ void frequencyEepromLoad()
         }
         else
         {
-            descArgsBuffer[0] = FREQUENCY;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t *tempFrequency = newComponent(descArgsBuffer);
-            listFrequencies.add(tempFrequency);
+            volatileMemory->descArgsBuffer[0] = FREQUENCY;
+            volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
+            component_t *tempFrequency = newComponent(volatileMemory->descArgsBuffer);
+            volatileMemory->components[FREQUENCY].add(tempFrequency);
         }
     }
-    neoPixelEepromLoad();
+    neoPixelEepromLoad(volatileMemory);
 }
 
-void frequencyEepromRun(uint8_t id)
+void frequencyEepromRun(uint8_t id,VolatileMemory *volatileMemory)
 {
-    execBuffer[0] = getInputValue(nextByte());
-    execBuffer[1] = getInputValue(nextByte());
-    execBuffer[2] = getInputValue(nextByte());
+    volatileMemory->execBuffer[0] = getInputValue(nextByte());
+    volatileMemory->execBuffer[1] = getInputValue(nextByte());
+    volatileMemory->execBuffer[2] = getInputValue(nextByte());
     uint32_t frequencyBuffer[6];
 
-    frequencyBuffer[0] = (uint32_t)secondValue(execBuffer[0]);
-    frequencyBuffer[1] = (uint32_t)thirdValue(execBuffer[0]);
-    frequencyBuffer[2] = (uint32_t)firstValue(execBuffer[2]);
-    frequencyBuffer[3] = (uint32_t)secondValue(execBuffer[2]);
-    frequencyBuffer[4] = (uint32_t)thirdValue(execBuffer[2]);
-    frequencyBuffer[5] = execBuffer[1];
+    frequencyBuffer[0] = (uint32_t)secondValue(volatileMemory->execBuffer[0]);
+    frequencyBuffer[1] = (uint32_t)thirdValue(volatileMemory->execBuffer[0]);
+    frequencyBuffer[2] = (uint32_t)firstValue(volatileMemory->execBuffer[2]);
+    frequencyBuffer[3] = (uint32_t)secondValue(volatileMemory->execBuffer[2]);
+    frequencyBuffer[4] = (uint32_t)thirdValue(volatileMemory->execBuffer[2]);
+    frequencyBuffer[5] = volatileMemory->execBuffer[1];
 
-    execAct(frequencyBuffer, FREQUENCY, listFrequencies.get(id));
+    execAct(frequencyBuffer, FREQUENCY, volatileMemory->components[FREQUENCY].get(id));
 }

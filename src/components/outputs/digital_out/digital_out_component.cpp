@@ -1,8 +1,6 @@
-#include "digital_out_component.h"
 #include "load_from_eeprom.h"
-#include "components/component.h"
+#include "digital_out_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
-#include "components/outputs/frequency/frequency_component.h"
 
 #include <Arduino.h>
 
@@ -12,12 +10,8 @@
 #else
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
-#include "volatile_memory/volatile_memory.h"
 
-extern LinkedList<component_t *> listDigitalOuts;
 extern bool loadedDigitalOuts;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
 
 void digitalOutCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel)
 {
@@ -98,7 +92,7 @@ void digitalOutDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[DIGITAL_OUT].add(tempDigitalOut);
 }
 
-void digitalOutEepromLoad()
+void digitalOutEepromLoad(VolatileMemory *volatileMemory)
 {
     uint8_t currentByte;
     while (!loadedDigitalOuts)
@@ -110,20 +104,20 @@ void digitalOutEepromLoad()
         }
         else
         {
-            descArgsBuffer[0] = DIGITAL_OUT;
-            descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t *digitalOut = newComponent(descArgsBuffer);
-            listDigitalOuts.add(digitalOut);
+            volatileMemory->descArgsBuffer[0] = DIGITAL_OUT;
+            volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
+            component_t *digitalOut = newComponent(volatileMemory->descArgsBuffer);
+            volatileMemory->components[DIGITAL_OUT].add(digitalOut);
         }
     }
-    frequencyEepromLoad();
+    frequencyEepromLoad(volatileMemory);
 }
 
-void digitalOutEepromRun(uint8_t id)
+void digitalOutEepromRun(uint8_t id,VolatileMemory *volatileMemory)
 {
     int32_t intensity = getInputValue(nextByte());
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100
                                                         : intensity;
-    execBuffer[0] = intensity;
-    execAct(execBuffer, DIGITAL_OUT, listDigitalOuts.get(id));
+    volatileMemory->execBuffer[0] = intensity;
+    execAct(volatileMemory->execBuffer, DIGITAL_OUT, volatileMemory->components[DIGITAL_OUT].get(id));
 }

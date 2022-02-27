@@ -1,9 +1,6 @@
-#include "motor_component.h"
-#include "components/outputs/digital_out/digital_out_component.h"
-#include "extern_libraries/linked_list/linked_list.h"
-#include "components/component.h"
 #include "load_from_eeprom.h"
-#include "volatile_memory/volatile_memory.h"
+#include "motor_component.h"
+#include "extern_libraries/linked_list/linked_list.h"
 
 #include <Arduino.h>
 
@@ -11,10 +8,7 @@
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
 
-extern LinkedList<component_t *> listMotors;
 extern bool loadedMotors;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
 
 void motorCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel)
 {
@@ -172,11 +166,11 @@ void motorDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
     volatileMemory->descArgsBuffer[3] = getMapedPin(volatileMemory->declarationBuffer[2]);
 
-    component_t *tempDC = newComponent(volatileMemory.descArgsBuffer);
+    component_t *tempDC = newComponent(volatileMemory->descArgsBuffer);
     volatileMemory->components[MOTOR].add(tempDC);
 }
 
-void motorEepromLoad()
+void motorEepromLoad(VolatileMemory *volatileMemory)
 {
     uint8_t currentByte;
     while (!loadedMotors)
@@ -195,27 +189,27 @@ void motorEepromLoad()
                 dcBytes[i] = nextByte();
             }
 
-            descArgsBuffer[0] = MOTOR;
-            descArgsBuffer[1] = getMapedPin(dcBytes[0]);
-            descArgsBuffer[2] = getMapedPin(dcBytes[1]);
-            descArgsBuffer[3] = getMapedPin(dcBytes[2]);
+            volatileMemory->descArgsBuffer[0] = MOTOR;
+            volatileMemory->descArgsBuffer[1] = getMapedPin(dcBytes[0]);
+            volatileMemory->descArgsBuffer[2] = getMapedPin(dcBytes[1]);
+            volatileMemory->descArgsBuffer[3] = getMapedPin(dcBytes[2]);
 
-            component_t *tempDC = newComponent(descArgsBuffer);
+            component_t *tempDC = newComponent(volatileMemory->descArgsBuffer);
 
-            listMotors.add(tempDC);
+            volatileMemory->components[MOTOR].add(tempDC);
         }
     }
-    digitalOutEepromLoad();
+    digitalOutEepromLoad(volatileMemory);
 }
 
-void motorEepromRun(uint8_t id)
+void motorEepromRun(uint8_t id,VolatileMemory *volatileMemory)
 {
     int32_t vel = getInputValue(nextByte());
     vel = (vel < 0) ? 0 : (vel > 100) ? 100
                                       : vel;
 
-    execBuffer[0] = vel;
-    execBuffer[1] = nextByte();
+    volatileMemory->execBuffer[0] = vel;
+    volatileMemory->execBuffer[1] = nextByte();
 
-    execAct(execBuffer, MOTOR, listMotors.get(id));
+    execAct(volatileMemory->execBuffer, MOTOR, volatileMemory->components[MOTOR].get(id));
 }

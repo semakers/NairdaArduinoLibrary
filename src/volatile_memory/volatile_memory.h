@@ -3,6 +3,8 @@
 #include "components/component.h"
 
 #define COMPONENTS_SIZE 8
+#define ACTUATORS_SIZE 5
+#define NON_COMPONENT -1
 
 enum
 {
@@ -24,6 +26,7 @@ struct VolatileMemory
     bool declaratedDescriptor = false;
 
     bool declaratedComponents[8];
+    int8_t executedComponent=NON_COMPONENT;
 
     bool executeActuator[5];
 
@@ -37,7 +40,7 @@ struct VolatileMemory
     uint32_t execBuffer[6];
 
     uint8_t currentChannel = 0;
-}
+};
 
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents);
 

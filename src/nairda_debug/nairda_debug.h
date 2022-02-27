@@ -1,5 +1,5 @@
 
 #include <stdint.h>
-#include "volatile_memory/volatile_memory.h"
 
-void declaratedComponents(uint8_t currentValue,VolatileMemory *volatileMemory);
+void declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory);
+void executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory);

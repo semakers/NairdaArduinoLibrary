@@ -1,30 +1,5 @@
 #include "load_from_eeprom.h"
 #include "blue_methods/blue_methods.h"
-#include "nairda.h"
-#include <EEPROM.h>
-#include <Wire.h>
-#include "components/component.h"
-
-#include "extern_libraries/linked_list/linked_list.h"
-#include <Arduino.h>
-
-
-#include "components/outputs/servo/servo_component.h"
-#include "components/outputs/motor/motor_component.h"
-#include "components/outputs/digital_out/digital_out_component.h"
-#include "components/outputs/frequency/frequency_component.h"
-#include "components/outputs/neo_pixel/neo_pixel_component.h"
-
-#include "components/inputs/analogic/analogic_component.h"
-#include "components/inputs/digital_in/digital_in_component.h"
-#include "components/inputs/ultrasonic/ultrasonic_component.h"
-
-#include "blocks_instructions/follow/follow_instructions.h"
-#include "blocks_instructions/logic/loginc_instructions.h"
-#include "blocks_instructions/functions/function_instructions.h"
-#include "blocks_instructions/variables/variables_instructions.h"
-#include "blocks_instructions/math/math_instructions.h"
-
 
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -36,6 +11,8 @@
 #endif
 
 #ifndef __AVR_ATmega168__
+
+VolatileMemory* volatileMemory=0;
 
 uint8_t readByte(uint32_t address);
 extern bool running;
@@ -140,7 +117,7 @@ uint8_t nextByte()
     }
 }
 
-void loadEepromDescriptor()
+void loadEepromDescriptor(VolatileMemory * _volatileMemory)
 {
     if (readByte(0) == 1)
     {
@@ -148,8 +125,8 @@ void loadEepromDescriptor()
 
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
-
-        servoEepromLoad();
+        volatileMemory=_volatileMemory;
+        servoEepromLoad(volatileMemory);
     }
 }
 
@@ -183,11 +160,11 @@ int32_t getInputValue(uint8_t firstByte)
     case mapCommand:
         return getMapValue();
     case analogicCommand:
-        return analogicEepromRead();
+        return analogicEepromRead(volatileMemory);
     case digitalCommand:
-        return digitalInEepromRead();
+        return digitalInEepromRead(volatileMemory);
     case ultrasonicCommand:
-        return ultrasonicEepromRead();
+        return ultrasonicEepromRead(volatileMemory);
     case randomCommand:
         return getRandomValue();
     default:
@@ -213,7 +190,8 @@ void freeVolatileMemory()
 void restartRunFromEeprom()
 {   
     currentOffset=7;
-    resetMemory();
+    
+    clearVolatileMemory(&volatileMemory,true);
     freeVolatileMemory();
     running = false;
     loadedServos = false;
@@ -317,19 +295,19 @@ void nairdaRunMachineState()
             runSetVarValue(nextByte());
             break;
         case frequencyCommand:
-            frequencyEepromRun(nextByte());
+            frequencyEepromRun(nextByte(),volatileMemory);
             break;
         case neopixelCommand:
-            neoPixelEepromRun(nextByte());
+            neoPixelEepromRun(nextByte(),volatileMemory);
             break;
         case servoCommand:
-            servoEepromRun(nextByte());
+            servoEepromRun(nextByte(),volatileMemory);
             break;
         case motorDcCommand:
-            motorEepromRun(nextByte());
+            motorEepromRun(nextByte(),volatileMemory);
             break;
         case ledCommand:
-            digitalOutEepromRun(nextByte());
+            digitalOutEepromRun(nextByte(),volatileMemory);
             break;
         case ifCommand:
             runIf();

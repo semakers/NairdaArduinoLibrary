@@ -1,5 +1,4 @@
 #include "volatile_memory.h"
-#include "components/component.h"
 #include <string.h>
 
 void freeCompList(LinkedList<component_t *> *list, uint8_t type)
@@ -24,6 +23,7 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
     }
     volatileMemory->declaratedComponents = false;
     volatileMemory->currentChannel = 0;
+    volatileMemory->executedComponent=NON_COMPONENT;
     memset(volatileMemory->declaratedComponents, false, 8);
     memset(volatileMemory->executeActuator, false, 5);
     memset(volatileMemory->executionBoolean, false, 7);

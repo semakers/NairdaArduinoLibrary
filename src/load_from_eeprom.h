@@ -1,5 +1,25 @@
-#include <stdint.h>
+#include <EEPROM.h>
+#include <Wire.h>
+#include <Arduino.h>
 
+#include "volatile_memory/volatile_memory.h"
+
+#include "components/outputs/servo/servo_component.h"
+#include "components/outputs/motor/motor_component.h"
+#include "components/outputs/digital_out/digital_out_component.h"
+#include "components/outputs/frequency/frequency_component.h"
+#include "components/outputs/neo_pixel/neo_pixel_component.h"
+
+#include "components/inputs/analogic/analogic_component.h"
+#include "components/inputs/digital_in/digital_in_component.h"
+#include "components/inputs/ultrasonic/ultrasonic_component.h"
+
+#include "blocks_instructions/follow/follow_instructions.h"
+#include "blocks_instructions/logic/loginc_instructions.h"
+#include "blocks_instructions/functions/function_instructions.h"
+#include "blocks_instructions/variables/variables_instructions.h"
+#include "blocks_instructions/math/math_instructions.h"
+#include "nairda.h"
 
 #define projectInit 100
 #define endServos 101
@@ -40,8 +60,6 @@
 
 #define CURRENT_VERSION 3
 
-
-
 uint8_t getCurrentChannel();
 void nextCurrentChannel();
 void clearCurrentChannel();
@@ -50,7 +68,7 @@ uint8_t callInterrupt();
 uint8_t nextByte();
 int32_t getInputValue(uint8_t firstByte);
 uint8_t getMapedPin(uint8_t pin);
-void loadEepromDescriptor();
+void loadEepromDescriptor(VolatileMemory * volatileMemory);
 void writeByte(uint32_t address, uint8_t byte);
 
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)

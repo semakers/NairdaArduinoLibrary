@@ -1,3 +1,9 @@
+
+
+#include "load_from_eeprom.h"
+#include "servo_component.h"
+#include "extern_libraries/linked_list/linked_list.h"
+
 #if defined(ARDUINO_ARCH_STM32)
 #include <Servo.h>
 #elif defined(ARDUINO_ARCH_ESP32)
@@ -6,20 +12,9 @@
 #include <Servo.h>
 #endif
 
-#include "load_from_eeprom.h"
-#include "servo_component.h"
-#include "components/component.h"
-#include "components/outputs/motor/motor_component.h"
 #include <Arduino.h>
-#include "extern_libraries/linked_list/linked_list.h"
-#include "volatile_memory/volatile_memory.h"
 
-extern LinkedList<component_t *> listServos;
 extern bool loadedServos;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
-
-
 
 void servoCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel,Servo* servo)
 {
@@ -70,7 +65,7 @@ void servoDebugLoad(VolatileMemory* volatileMemory){
         volatileMemory->components[SERVO].add(tempServo);
 }
 
-void servoEepromLoad(){
+void servoEepromLoad(VolatileMemory* volatileMemory){
     uint8_t currentByte;
     while (!loadedServos)
     {
@@ -87,21 +82,21 @@ void servoEepromLoad(){
             {
                 servoBytes[i] = nextByte();
             }
-            descArgsBuffer[0] = SERVO;
-            descArgsBuffer[1] = getMapedPin(servoBytes[0]);
-            descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
-            descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
-            descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
-            component_t *tempServo = newComponent(descArgsBuffer);
-            listServos.add(tempServo);
+            volatileMemory->descArgsBuffer[0] = SERVO;
+            volatileMemory->descArgsBuffer[1] = getMapedPin(servoBytes[0]);
+            volatileMemory->descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
+            volatileMemory->descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
+            volatileMemory->descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
+            component_t *tempServo = newComponent(volatileMemory->descArgsBuffer);
+            volatileMemory->components[SERVO].add(tempServo);
         }
     }
-  motorEepromLoad();
+  motorEepromLoad(volatileMemory);
 }
 
-void servoEepromRun(uint8_t id){
-    execBuffer[0] = getInputValue(nextByte());
-    execAct(execBuffer, SERVO,listServos.get(id));
+void servoEepromRun(uint8_t id, VolatileMemory* volatileMemory){
+    volatileMemory->execBuffer[0] = getInputValue(nextByte());
+    execAct(volatileMemory->execBuffer, SERVO,volatileMemory->components[SERVO].get(id));
 }
 
 

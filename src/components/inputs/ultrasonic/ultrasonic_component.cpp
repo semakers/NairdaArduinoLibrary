@@ -1,21 +1,15 @@
-#include "ultrasonic_component.h"
 #include "load_from_eeprom.h"
-#include "components/component.h"
+#include "ultrasonic_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
-#include "blocks_instructions/variables/variables_instructions.h"
 
 #include <Arduino.h>
 
-#include "volatile_memory/volatile_memory.h"
 
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/new_ping/new_ping.h"
 #endif
 
-extern LinkedList<component_t *> listUltrasonics;
 extern bool loadedUltrasonics;
-extern uint16_t descArgsBuffer[5];
-extern uint32_t execBuffer[6];
 
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 
@@ -119,7 +113,7 @@ void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[ULTRASONIC].add(tempUltrasonic);
 }
 
-void ultrasonicEepromLoad()
+void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
 {
     uint8_t currentByte;
     while (!loadedUltrasonics)
@@ -137,17 +131,17 @@ void ultrasonicEepromLoad()
             {
                 ultraBytes[i] = nextByte();
             }
-            descArgsBuffer[0] = ULTRASONIC;
-            descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
-            descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-            component_t *tempUltrasonic = newComponent(descArgsBuffer);
-            listUltrasonics.add(tempUltrasonic);
+            volatileMemory->descArgsBuffer[0] = ULTRASONIC;
+            volatileMemory->descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
+            volatileMemory->descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
+            component_t *tempUltrasonic = newComponent(volatileMemory->descArgsBuffer);
+            volatileMemory->components[ULTRASONIC].add(tempUltrasonic);
         }
     }
     variableEepromLoad();
 }
 
-int32_t ultrasonicEepromRead()
+int32_t ultrasonicEepromRead(VolatileMemory *volatileMemory)
 {
-    return getSensVal(ULTRASONIC, listUltrasonics.get(nextByte()));
+    return getSensVal(ULTRASONIC, volatileMemory->components[ULTRASONIC].get(nextByte()));
 }

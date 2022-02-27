@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "value_conversion/value_conversion.h"
 #include <Arduino.h>
+#include "volatile_memory/volatile_memory.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <BLEDevice.h>
@@ -11,6 +12,7 @@
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
+extern VolatileMemory volatileMemory;
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
@@ -25,7 +27,7 @@ class MyServerCallbacks : public BLEServerCallbacks
     void onDisconnect(BLEServer *pServer)
     {
         preInit = false;
-        resetMemory();
+        clearVolatileMemory(&volatileMemory, true);
         BLEDevice::startAdvertising();
     };
 };
@@ -120,7 +122,7 @@ void bleInit(const char *deviceName)
 }
 #endif
 
-void sendMemorySize(uint32_t sendMemorySize)
+void sendMemorySize(uint32_t memorySize)
 {
 #if defined(ARDUINO_ARCH_ESP32)
     spi_flash_erase_range(0x200000, 4096 * 128);
@@ -146,4 +148,46 @@ void sendMemorySize(uint32_t sendMemorySize)
     Serial.write((char)secondValue(memorySize));
     Serial.write((char)thirdValue(memorySize));
 #endif
+}
+
+bool nextBlueByte(uint8_t *blueByte)
+{
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+    if (bleAvailable())
+    {
+
+        blueByte[0] = bleRead();
+        return true;
+#else
+
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+    int serialAvailable = Serial.available();
+    int serial1Available = Serial1.available();
+    if (serialAvailable > 0 || serial1Available > 0)
+    {
+        if (serialAvailable > 0)
+        {
+            blueByte[0] = Serial.read();
+            return true;
+        }
+        else if (serial1Available > 0)
+        {
+            blueByte[0] = Serial1.read();
+            return true;
+        }
+
+#else
+
+    if (Serial.available())
+    {
+        blueByte[0] = Serial.read();
+        return true;
+
+#endif
+
+#endif
+    }
+    return false;
 }

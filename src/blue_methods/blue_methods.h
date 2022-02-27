@@ -8,4 +8,5 @@ void bleInit(const char *deviceName);
 #endif
 
 
-void sendMemorySize(uint32_t sendMemorySize);
+void sendMemorySize(uint32_t memorySize);
+bool nextBlueByte(uint8_t *blueByte);

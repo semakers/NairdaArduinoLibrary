@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include "volatile_memory/volatile_memory.h"
 
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/new_ping/new_ping.h"
@@ -13,6 +12,6 @@ void ultrasonicOff();
 #endif
 
 
-void ultrasonicEepromLoad();
-int32_t ultrasonicEepromRead();
+void ultrasonicEepromLoad(VolatileMemory *volatileMemory);
+int32_t ultrasonicEepromRead(VolatileMemory *volatileMemory);
 void ultrasonicDebugLoad(VolatileMemory *volatileMemory);
