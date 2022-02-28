@@ -31,7 +31,7 @@ struct VolatileMemory
     bool executeActuator[5];
 
     bool executionBoolean[7];
-    uint8_t executionBuffer[7];
+    uint32_t executionBuffer[7];
 
     bool declarationboolean[7];
     uint8_t declarationBuffer[7];

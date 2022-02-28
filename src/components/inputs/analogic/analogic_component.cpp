@@ -1,4 +1,4 @@
-#include "load_from_eeprom.h"
+#include "virtual_machine/virtual_machine.h"
 #include "analogic_component.h"
 #include "components/inputs/digital_in/digital_in_component.h"
 #include "extern_libraries/linked_list/linked_list.h"

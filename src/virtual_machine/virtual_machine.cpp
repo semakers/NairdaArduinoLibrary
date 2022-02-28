@@ -1,4 +1,4 @@
-#include "load_from_eeprom.h"
+#include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
@@ -12,7 +12,7 @@
 
 #ifndef __AVR_ATmega168__
 
-VolatileMemory* volatileMemory=0;
+extern VolatileMemory* volatileMemory;
 
 uint8_t readByte(uint32_t address);
 extern bool running;
@@ -117,7 +117,7 @@ uint8_t nextByte()
     }
 }
 
-void loadEepromDescriptor(VolatileMemory * _volatileMemory)
+void loadEepromDescriptor()
 {
     if (readByte(0) == 1)
     {
@@ -125,7 +125,6 @@ void loadEepromDescriptor(VolatileMemory * _volatileMemory)
 
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
-        volatileMemory=_volatileMemory;
         servoEepromLoad(volatileMemory);
     }
 }
@@ -191,7 +190,7 @@ void restartRunFromEeprom()
 {   
     currentOffset=7;
     
-    clearVolatileMemory(&volatileMemory,true);
+    clearVolatileMemory(volatileMemory,true);
     freeVolatileMemory();
     running = false;
     loadedServos = false;

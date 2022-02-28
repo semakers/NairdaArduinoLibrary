@@ -8,5 +8,4 @@ void nairdaBegin(const char*deviceName);
 void nairdaBegin(long int bauds);
 #endif
 void nairdaLoop();
-
 #endif

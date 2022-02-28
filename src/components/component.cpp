@@ -1,4 +1,5 @@
-#include "load_from_eeprom.h"
+#include "virtual_machine/virtual_machine.h"
+#include "blue_methods/blue_methods.h"
 
 component_t *newComponent(uint16_t *args)
 {

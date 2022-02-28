@@ -1,18 +1,23 @@
+#include "virtual_machine/virtual_machine.h"
 #include <stdint.h>
 #include "value_conversion/value_conversion.h"
 #include <Arduino.h>
-#include "volatile_memory/volatile_memory.h"
+
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "nairda_debug/nairda_debug.h"
 
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
 extern VolatileMemory volatileMemory;
+
+bool running = false;
+bool preInit = false;
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
@@ -43,7 +48,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
             {
                 if (!running)
                 {
-                    nairdaDebug(rxValue[i]);
+                    nairdaDebug(rxValue[i],&volatileMemory);
                 }
                 else
                 {

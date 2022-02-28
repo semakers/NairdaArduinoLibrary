@@ -21,7 +21,7 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
             freeCompList(&(volatileMemory->components[i]), i);
         }
     }
-    volatileMemory->declaratedComponents = false;
+    volatileMemory->declaratedDescriptor = false;
     volatileMemory->currentChannel = 0;
     volatileMemory->executedComponent=NON_COMPONENT;
     memset(volatileMemory->declaratedComponents, false, 8);

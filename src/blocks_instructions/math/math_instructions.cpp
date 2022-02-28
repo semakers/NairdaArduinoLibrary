@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "load_from_eeprom.h"
+#include "virtual_machine/virtual_machine.h"
 #include <Arduino.h>
 #include "math_instructions.h"
 

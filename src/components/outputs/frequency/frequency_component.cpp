@@ -1,5 +1,5 @@
 
-#include "load_from_eeprom.h"
+#include "virtual_machine/virtual_machine.h"
 #include "frequency_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
 #include "extern_libraries/free_tone/timer_free_tone.h"

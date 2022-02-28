@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "load_from_eeprom.h"
+#include "virtual_machine/virtual_machine.h"
 #include "extern_libraries/linked_list/linked_list.h"
 #include "loginc_instructions.h"
 
