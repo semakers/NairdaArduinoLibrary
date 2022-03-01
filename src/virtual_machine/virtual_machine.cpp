@@ -12,7 +12,7 @@
 
 #ifndef __AVR_ATmega168__
 
-extern VolatileMemory* volatileMemory;
+extern VolatileMemory volatileMemory;
 
 uint8_t readByte(uint32_t address);
 extern bool running;
@@ -125,7 +125,7 @@ void loadEepromDescriptor()
 
         ProgrammSize = (readByte(1) * 10000) + (readByte(2) * 100) + readByte(3);
         initdirection = (readByte(4) * 10000) + (readByte(5) * 100) + readByte(6);
-        servoEepromLoad(volatileMemory);
+        servoEepromLoad(&volatileMemory);
     }
 }
 
@@ -159,11 +159,11 @@ int32_t getInputValue(uint8_t firstByte)
     case mapCommand:
         return getMapValue();
     case analogicCommand:
-        return analogicEepromRead(volatileMemory);
+        return analogicEepromRead(&volatileMemory);
     case digitalCommand:
-        return digitalInEepromRead(volatileMemory);
+        return digitalInEepromRead(&volatileMemory);
     case ultrasonicCommand:
-        return ultrasonicEepromRead(volatileMemory);
+        return ultrasonicEepromRead(&volatileMemory);
     case randomCommand:
         return getRandomValue();
     default:
@@ -190,7 +190,7 @@ void restartRunFromEeprom()
 {   
     currentOffset=7;
     
-    clearVolatileMemory(volatileMemory,true);
+    clearVolatileMemory(&volatileMemory,true);
     freeVolatileMemory();
     running = false;
     loadedServos = false;
@@ -294,19 +294,19 @@ void nairdaRunMachineState()
             runSetVarValue(nextByte());
             break;
         case frequencyCommand:
-            frequencyEepromRun(nextByte(),volatileMemory);
+            frequencyEepromRun(nextByte(),&volatileMemory);
             break;
         case neopixelCommand:
-            neoPixelEepromRun(nextByte(),volatileMemory);
+            neoPixelEepromRun(nextByte(),&volatileMemory);
             break;
         case servoCommand:
-            servoEepromRun(nextByte(),volatileMemory);
+            servoEepromRun(nextByte(),&volatileMemory);
             break;
         case motorDcCommand:
-            motorEepromRun(nextByte(),volatileMemory);
+            motorEepromRun(nextByte(),&volatileMemory);
             break;
         case ledCommand:
-            digitalOutEepromRun(nextByte(),volatileMemory);
+            digitalOutEepromRun(nextByte(),&volatileMemory);
             break;
         case ifCommand:
             runIf();

@@ -13,7 +13,7 @@
 #include "extern_libraries/neo_pixel/Adafruit_NeoPixel.h"
 
 struct component_t{
-      int8_t* ledcChannel;
+      int8_t* ledcChannel= (int8_t*)malloc(sizeof(int8_t));
       uint8_t pins[5] = {0, 0, 0, 0, 0};
       uint8_t values[5] = {0, 0, 0, 0, 0};
 
@@ -24,7 +24,6 @@ struct component_t{
 #endif
 };
 
-component_t * newComponent(uint16_t *args);
 void execAct(uint32_t *execArgs, uint8_t type, component_t *component);
 uint8_t getSensVal(uint8_t type, component_t *component);
 void sendSensVal(uint8_t type,component_t * component);

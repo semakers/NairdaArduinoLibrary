@@ -4,7 +4,6 @@
 
 #include <Arduino.h>
 
-
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/new_ping/new_ping.h"
 #endif
@@ -13,9 +12,9 @@ extern bool loadedUltrasonics;
 
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 
-void ultrasonicCreate(uint16_t *args, uint8_t *pins, NewPing *sonar)
+void ultrasonicCreate(uint16_t *args, component_t *component)
 {
-    sonar = new NewPing(args[1], args[2], 100);
+    component->sonar = new NewPing(args[1], args[2], 100);
 }
 
 void ultrasonicSense(uint8_t *pins, uint8_t *tempRead, NewPing *sonar)
@@ -48,10 +47,10 @@ void ultrasonicOff(NewPing *sonar)
 
 #else
 
-void ultrasonicCreate(uint16_t *args, uint8_t *pins)
+void ultrasonicCreate(uint16_t *args, component_t *component)
 {
-    pins[0] = args[1];
-    pins[1] = args[2];
+    component->pins[0] = args[1];
+    component->pins[1] = args[2];
 #if defined(ARDUINO_ARCH_STM32)
 
     pinMode(args[1], OUTPUT);
@@ -109,8 +108,9 @@ void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[0] = ULTRASONIC;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[2]);
-    component_t *tempUltrasonic = newComponent(volatileMemory->descArgsBuffer);
-    volatileMemory->components[ULTRASONIC].add(tempUltrasonic);
+    component_t component;
+    ultrasonicCreate(volatileMemory->descArgsBuffer, &component);
+    volatileMemory->components[ULTRASONIC].add(&component);
 }
 
 void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
@@ -134,10 +134,12 @@ void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[0] = ULTRASONIC;
             volatileMemory->descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
             volatileMemory->descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-            component_t *tempUltrasonic = newComponent(volatileMemory->descArgsBuffer);
-            volatileMemory->components[ULTRASONIC].add(tempUltrasonic);
+            component_t component;
+            ultrasonicCreate(volatileMemory->descArgsBuffer, &component);
+            volatileMemory->components[ULTRASONIC].add(&component);
         }
     }
+    
     variableEepromLoad();
 }
 

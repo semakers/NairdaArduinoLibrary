@@ -10,12 +10,12 @@
 
 extern bool loadedMotors;
 
-void motorCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel)
+void motorCreate(uint16_t *args, component_t *component)
 {
 
-    pins[0] = args[1];
-    pins[1] = args[2];
-    pins[2] = args[3];
+    component->pins[0] = args[1];
+    component->pins[1] = args[2];
+    component->pins[2] = args[3];
 #if defined(ARDUINO_ARCH_STM32)
     pinMode(args[1], OUTPUT);
     pinMode(args[2], OUTPUT);
@@ -28,7 +28,7 @@ void motorCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel)
     {
         ledcSetup(getCurrentChannel(), 50, 16);
         ledcAttachPin(args[3], getCurrentChannel());
-        ledcChannel[0] = getCurrentChannel();
+        component->ledcChannel[0] = getCurrentChannel();
         nextCurrentChannel();
     }
     else
@@ -166,8 +166,9 @@ void motorDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
     volatileMemory->descArgsBuffer[3] = getMapedPin(volatileMemory->declarationBuffer[2]);
 
-    component_t *tempDC = newComponent(volatileMemory->descArgsBuffer);
-    volatileMemory->components[MOTOR].add(tempDC);
+    component_t component;
+    motorCreate(volatileMemory->descArgsBuffer, &component);
+    volatileMemory->components[MOTOR].add(&component);
 }
 
 void motorEepromLoad(VolatileMemory *volatileMemory)
@@ -194,15 +195,17 @@ void motorEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[2] = getMapedPin(dcBytes[1]);
             volatileMemory->descArgsBuffer[3] = getMapedPin(dcBytes[2]);
 
-            component_t *tempDC = newComponent(volatileMemory->descArgsBuffer);
 
-            volatileMemory->components[MOTOR].add(tempDC);
+                component_t component;
+            motorCreate(volatileMemory->descArgsBuffer, &component);
+
+            volatileMemory->components[MOTOR].add(&component);
         }
     }
     digitalOutEepromLoad(volatileMemory);
 }
 
-void motorEepromRun(uint8_t id,VolatileMemory *volatileMemory)
+void motorEepromRun(uint8_t id, VolatileMemory *volatileMemory)
 {
     int32_t vel = getInputValue(nextByte());
     vel = (vel < 0) ? 0 : (vel > 100) ? 100

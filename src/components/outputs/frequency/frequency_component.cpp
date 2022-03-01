@@ -9,9 +9,9 @@
 
 extern bool loadedFrequencies;
 
-void frequencyCreate(uint16_t *args, uint8_t *pins)
+void frequencyCreate(uint16_t *args, component_t * component)
 {
-    pins[0] = args[1];
+    component->pins[0] = args[1];
 }
 
 void frequencyExec(uint32_t *execArgs, uint8_t *pins)
@@ -28,8 +28,9 @@ void frequencyDebugLoad(VolatileMemory *volatileMemory)
 
     volatileMemory->descArgsBuffer[0] = FREQUENCY;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    component_t *tempFrequency = newComponent(volatileMemory->descArgsBuffer);
-    volatileMemory->components[FREQUENCY].add(tempFrequency);
+    component_t component;
+    frequencyCreate(volatileMemory->descArgsBuffer,&component);
+    volatileMemory->components[FREQUENCY].add(&component);
 }
 
 void frequencyEepromLoad(VolatileMemory *volatileMemory)
@@ -46,10 +47,12 @@ void frequencyEepromLoad(VolatileMemory *volatileMemory)
         {
             volatileMemory->descArgsBuffer[0] = FREQUENCY;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t *tempFrequency = newComponent(volatileMemory->descArgsBuffer);
-            volatileMemory->components[FREQUENCY].add(tempFrequency);
+            component_t component;
+            frequencyCreate(volatileMemory->descArgsBuffer,&component);
+            volatileMemory->components[FREQUENCY].add(&component);
         }
     }
+    
     neoPixelEepromLoad(volatileMemory);
 }
 

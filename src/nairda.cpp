@@ -70,7 +70,6 @@ void nairdaLoop()
   if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents == false)
   {
 #endif
-
     loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }

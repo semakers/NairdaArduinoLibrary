@@ -13,9 +13,9 @@
 
 extern bool loadedDigitalOuts;
 
-void digitalOutCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel)
+void digitalOutCreate(uint16_t *args,component_t *component)
 {
-    pins[0] = args[1];
+    component->pins[0]= args[1];
 #if defined(ARDUINO_ARCH_STM32)
     softPwmSTM32Attach(args[1], 0);
 
@@ -24,7 +24,7 @@ void digitalOutCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel)
     {
         ledcSetup(getCurrentChannel(), 50, 16);
         ledcAttachPin(args[1], getCurrentChannel());
-        ledcChannel[0] = getCurrentChannel();
+        component->ledcChannel[0] = getCurrentChannel();
         nextCurrentChannel();
     }
     else
@@ -88,8 +88,9 @@ void digitalOutDebugLoad(VolatileMemory *volatileMemory)
 {
     volatileMemory->descArgsBuffer[0] = DIGITAL_OUT;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    component_t *tempDigitalOut = newComponent(volatileMemory->descArgsBuffer);
-    volatileMemory->components[DIGITAL_OUT].add(tempDigitalOut);
+    component_t component;
+    digitalOutCreate(volatileMemory->descArgsBuffer,&component);
+    volatileMemory->components[DIGITAL_OUT].add(&component);
 }
 
 void digitalOutEepromLoad(VolatileMemory *volatileMemory)
@@ -104,10 +105,13 @@ void digitalOutEepromLoad(VolatileMemory *volatileMemory)
         }
         else
         {
+            
             volatileMemory->descArgsBuffer[0] = DIGITAL_OUT;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t *digitalOut = newComponent(volatileMemory->descArgsBuffer);
-            volatileMemory->components[DIGITAL_OUT].add(digitalOut);
+
+            component_t component;
+            digitalOutCreate(volatileMemory->descArgsBuffer,&component);
+            volatileMemory->components[DIGITAL_OUT].add(&component);
         }
     }
     frequencyEepromLoad(volatileMemory);

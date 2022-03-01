@@ -16,56 +16,59 @@
 
 extern bool loadedServos;
 
-void servoCreate(uint16_t *args, uint8_t *pins, int8_t *ledcChannel,Servo* servo)
+void servoCreate(uint16_t *args, component_t *component)
 {
-    servo= new Servo();
+    component->servo = new Servo();
 
-    pins[0] = args[1];
+    component->pins[0] = args[1];
 #if defined(ARDUINO_ARCH_STM32)
-    servo->attach(args[1], args[2], args[3]);
-    servo->write(args[4]);
+    component->servo->attach(args[1], args[2], args[3]);
+    component->servo->write(args[4]);
 #else
 #if defined(ARDUINO_ARCH_ESP32)
 
     if (getCurrentChannel() < 16)
     {
-        servo->attach(args[1], getCurrentChannel(), 0, 180, args[2], args[3]);
-        servo->write(args[4]);
-        ledcChannel[0] = getCurrentChannel();
+        component->servo->attach(args[1], getCurrentChannel(), 0, 180, args[2], args[3]);
+        component->servo->write(args[4]);
+        component->ledcChannel[0] = getCurrentChannel();
         nextCurrentChannel();
     }
 
 #else
 
-    servo->attach(args[1], args[2], args[3]);
-    servo->write(args[4]);
+    component->servo->attach(args[1], args[2], args[3]);
+    component->servo->write(args[4]);
 
 #endif
 #endif
 }
 
-void servoExec(uint32_t *execArgs,Servo* servo)
+void servoExec(uint32_t *execArgs, Servo *servo)
 {
     servo->write((execArgs[0] < 0) ? 0 : (execArgs[0] > 180) ? 180
-                                                            : execArgs[0]);
+                                                             : execArgs[0]);
 }
 
-void servoOff(Servo* servo)
+void servoOff(Servo *servo)
 {
     servo->detach();
 }
 
-void servoDebugLoad(VolatileMemory* volatileMemory){
-     volatileMemory->descArgsBuffer[0] = SERVO;
-        volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-        volatileMemory->descArgsBuffer[2] = (volatileMemory->declarationBuffer[1] * 100) + volatileMemory->declarationBuffer[2];
-        volatileMemory->descArgsBuffer[3] = (volatileMemory->declarationBuffer[3] * 100) + volatileMemory->declarationBuffer[4];
-        volatileMemory->descArgsBuffer[4] = (volatileMemory->declarationBuffer[5] * 100) + volatileMemory->declarationBuffer[6];
-        component_t *tempServo = newComponent(volatileMemory->descArgsBuffer);
-        volatileMemory->components[SERVO].add(tempServo);
+void servoDebugLoad(VolatileMemory *volatileMemory)
+{
+    volatileMemory->descArgsBuffer[0] = SERVO;
+    volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
+    volatileMemory->descArgsBuffer[2] = (volatileMemory->declarationBuffer[1] * 100) + volatileMemory->declarationBuffer[2];
+    volatileMemory->descArgsBuffer[3] = (volatileMemory->declarationBuffer[3] * 100) + volatileMemory->declarationBuffer[4];
+    volatileMemory->descArgsBuffer[4] = (volatileMemory->declarationBuffer[5] * 100) + volatileMemory->declarationBuffer[6];
+    component_t component;
+    servoCreate(volatileMemory->descArgsBuffer, &component);
+    volatileMemory->components[SERVO].add(&component);
 }
 
-void servoEepromLoad(VolatileMemory* volatileMemory){
+void servoEepromLoad(VolatileMemory *volatileMemory)
+{
     uint8_t currentByte;
     while (!loadedServos)
     {
@@ -87,16 +90,17 @@ void servoEepromLoad(VolatileMemory* volatileMemory){
             volatileMemory->descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
             volatileMemory->descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
             volatileMemory->descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
-            component_t *tempServo = newComponent(volatileMemory->descArgsBuffer);
-            volatileMemory->components[SERVO].add(tempServo);
+            component_t component;
+            servoCreate(volatileMemory->descArgsBuffer, &component);
+            volatileMemory->components[SERVO].add(&component);
         }
     }
-  motorEepromLoad(volatileMemory);
+
+    motorEepromLoad(volatileMemory);
 }
 
-void servoEepromRun(uint8_t id, VolatileMemory* volatileMemory){
+void servoEepromRun(uint8_t id, VolatileMemory *volatileMemory)
+{
     volatileMemory->execBuffer[0] = getInputValue(nextByte());
-    execAct(volatileMemory->execBuffer, SERVO,volatileMemory->components[SERVO].get(id));
+    execAct(volatileMemory->execBuffer, SERVO, volatileMemory->components[SERVO].get(id));
 }
-
-

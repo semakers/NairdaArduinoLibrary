@@ -8,7 +8,6 @@
 #include <Servo.h>
 #endif
 
-void servoCreate(uint16_t *args,uint8_t * pins,int8_t* ledcChannel,Servo* servo);
 void servoExec(uint32_t *execArgs,Servo* servo);
 void servoOff(Servo* servo);
 void servoEepromLoad(VolatileMemory* volatileMemory);

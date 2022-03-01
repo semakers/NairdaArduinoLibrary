@@ -1,43 +1,6 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 
-component_t *newComponent(uint16_t *args)
-{
-    component_t *component;
-    component->ledcChannel[0] = -1;
-    switch (args[0])
-    {
-    case SERVO:
-        servoCreate(args, component->pins, component->ledcChannel, component->servo);
-        break;
-    case MOTOR:
-        motorCreate(args, component->pins, component->ledcChannel);
-        break;
-    case DIGITAL_OUT:
-        digitalOutCreate(args, component->pins, component->ledcChannel);
-        break;
-    case FREQUENCY:
-        frequencyCreate(args, component->pins);
-        break;
-    case NEOPIXEL:
-        neoPixelCreate(args, component->pins, component->neopixel);
-        break;
-    case DIGITAL_IN:
-        digitalInCreate(args, component->pins);
-        break;
-    case ANALOGIC:
-        analogicCreate(args, component->pins);
-        break;
-    case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
-        ultrasonicCreate(args, component->pins, component->sonar);
-#else
-        ultrasonicCreate(args, component->pins);
-#endif
-        break;
-    }
-    return component;
-}
 
 void execAct(uint32_t *execArgs, uint8_t type, component_t *component)
 {

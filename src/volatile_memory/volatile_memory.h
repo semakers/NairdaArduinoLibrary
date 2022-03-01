@@ -36,7 +36,7 @@ struct VolatileMemory
     bool declarationboolean[7];
     uint8_t declarationBuffer[7];
 
-    uint16_t descArgsBuffer[5];
+    uint16_t descArgsBuffer[5]={0,0,0,0,0};
     uint32_t execBuffer[6];
 
     uint8_t currentChannel = 0;

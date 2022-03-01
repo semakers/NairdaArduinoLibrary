@@ -12,11 +12,11 @@ extern "C" void espShow(
 
 extern bool loadedNeoPixels;
 
-void neoPixelCreate(uint16_t *args, uint8_t *pins, Adafruit_NeoPixel *neopixel)
+void neoPixelCreate(uint16_t *args, component_t *component)
 {
-    pins[0] = args[1];
-    neopixel = new Adafruit_NeoPixel(args[2], pins[0], NEO_GRB + NEO_KHZ800);
-    neopixel->begin();
+    component->pins[0] = args[1];
+    component->neopixel = new Adafruit_NeoPixel(args[2], component->pins[0], NEO_GRB + NEO_KHZ800);
+    component->neopixel->begin();
 }
 
 void neoPixelExec(uint32_t *execArgs, Adafruit_NeoPixel *neopixel)
@@ -35,8 +35,10 @@ void neoPixelDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[0] = NEOPIXEL;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
     volatileMemory->descArgsBuffer[2] = volatileMemory->declarationBuffer[1];
-    component_t *tempNeopixel = newComponent(volatileMemory->descArgsBuffer);
-    volatileMemory->components[NEOPIXEL].add(tempNeopixel);
+    component_t component;
+    neoPixelCreate(volatileMemory->descArgsBuffer, &component);
+    volatileMemory->components[NEOPIXEL]
+        .add(&component);
 }
 
 void neoPixelEepromLoad(VolatileMemory *volatileMemory)
@@ -57,14 +59,16 @@ void neoPixelEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
             volatileMemory->descArgsBuffer[2] = nextByte();
 
-            component_t *tempNeopixel = newComponent(volatileMemory->descArgsBuffer);
-            volatileMemory->components[NEOPIXEL].add(tempNeopixel);
+            component_t component;
+            neoPixelCreate(volatileMemory->descArgsBuffer, &component);
+            volatileMemory->components[NEOPIXEL]
+                .add(&component);
         }
     }
     analogicEepromLoad(volatileMemory);
 }
 
-void neoPixelEepromRun(uint8_t id,VolatileMemory *volatileMemory)
+void neoPixelEepromRun(uint8_t id, VolatileMemory *volatileMemory)
 {
     volatileMemory->execBuffer[0] = getInputValue(nextByte());
     volatileMemory->execBuffer[1] = getInputValue(nextByte());
