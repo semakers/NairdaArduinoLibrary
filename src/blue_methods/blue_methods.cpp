@@ -48,6 +48,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
             {
                 if (!running)
                 {
+                   
                     nairdaDebug(rxValue[i],&volatileMemory);
                 }
                 else
@@ -64,6 +65,7 @@ bool bleAvailable()
 {
     if (bleIndex > 0)
     {
+        Serial.print("available");
         return true;
     }
     else

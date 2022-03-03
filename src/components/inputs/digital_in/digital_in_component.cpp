@@ -25,9 +25,9 @@ void digitalInDebugLoad(VolatileMemory *volatileMemory)
 {
     volatileMemory->descArgsBuffer[0] = DIGITAL_IN;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    component_t component;
-    digitalInCreate(volatileMemory->descArgsBuffer, &component);
-    volatileMemory->components[DIGITAL_IN].add(&component);
+    component_t *component = (component_t *)malloc(sizeof(component_t));
+    digitalInCreate(volatileMemory->descArgsBuffer, component);
+    volatileMemory->components[DIGITAL_IN].add(component);
 }
 
 void digitalInEepromLoad(VolatileMemory *volatileMemory)
@@ -44,9 +44,9 @@ void digitalInEepromLoad(VolatileMemory *volatileMemory)
         {
             volatileMemory->descArgsBuffer[0] = DIGITAL_IN;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t component;
-            digitalInCreate(volatileMemory->descArgsBuffer, &component);
-            volatileMemory->components[DIGITAL_IN].add(&component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            digitalInCreate(volatileMemory->descArgsBuffer, component);
+            volatileMemory->components[DIGITAL_IN].add(component);
         }
     }
     ultrasonicEepromLoad(volatileMemory);

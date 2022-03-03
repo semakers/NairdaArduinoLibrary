@@ -166,9 +166,9 @@ void motorDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
     volatileMemory->descArgsBuffer[3] = getMapedPin(volatileMemory->declarationBuffer[2]);
 
-    component_t component;
-    motorCreate(volatileMemory->descArgsBuffer, &component);
-    volatileMemory->components[MOTOR].add(&component);
+     component_t *component = (component_t *)malloc(sizeof(component_t));
+    motorCreate(volatileMemory->descArgsBuffer, component);
+    volatileMemory->components[MOTOR].add(component);
 }
 
 void motorEepromLoad(VolatileMemory *volatileMemory)
@@ -196,10 +196,10 @@ void motorEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[3] = getMapedPin(dcBytes[2]);
 
 
-                component_t component;
-            motorCreate(volatileMemory->descArgsBuffer, &component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            motorCreate(volatileMemory->descArgsBuffer, component);
 
-            volatileMemory->components[MOTOR].add(&component);
+            volatileMemory->components[MOTOR].add(component);
         }
     }
     digitalOutEepromLoad(volatileMemory);

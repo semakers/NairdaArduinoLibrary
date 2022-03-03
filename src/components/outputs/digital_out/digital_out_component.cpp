@@ -13,18 +13,20 @@
 
 extern bool loadedDigitalOuts;
 
-void digitalOutCreate(uint16_t *args,component_t *component)
+void digitalOutCreate(uint16_t *args, component_t *component)
 {
-    component->pins[0]= args[1];
+    component->pins[0] = args[1];
 #if defined(ARDUINO_ARCH_STM32)
     softPwmSTM32Attach(args[1], 0);
 
 #elif defined(ARDUINO_ARCH_ESP32)
+    Serial.println("digital out create");
     if (getCurrentChannel() < 16)
     {
         ledcSetup(getCurrentChannel(), 50, 16);
         ledcAttachPin(args[1], getCurrentChannel());
         component->ledcChannel[0] = getCurrentChannel();
+        Serial.println(component->ledcChannel[0]);
         nextCurrentChannel();
     }
     else
@@ -88,9 +90,10 @@ void digitalOutDebugLoad(VolatileMemory *volatileMemory)
 {
     volatileMemory->descArgsBuffer[0] = DIGITAL_OUT;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    component_t component;
-    digitalOutCreate(volatileMemory->descArgsBuffer,&component);
-    volatileMemory->components[DIGITAL_OUT].add(&component);
+
+    component_t *component = (component_t *)malloc(sizeof(component_t));
+    digitalOutCreate(volatileMemory->descArgsBuffer, component);
+    volatileMemory->components[DIGITAL_OUT].add(component);
 }
 
 void digitalOutEepromLoad(VolatileMemory *volatileMemory)
@@ -105,19 +108,19 @@ void digitalOutEepromLoad(VolatileMemory *volatileMemory)
         }
         else
         {
-            
+
             volatileMemory->descArgsBuffer[0] = DIGITAL_OUT;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
 
-            component_t component;
-            digitalOutCreate(volatileMemory->descArgsBuffer,&component);
-            volatileMemory->components[DIGITAL_OUT].add(&component);
+            component_t *component = (component_t *)malloc(sizeof(component_t));
+            digitalOutCreate(volatileMemory->descArgsBuffer, component);
+            volatileMemory->components[DIGITAL_OUT].add(component);
         }
     }
     frequencyEepromLoad(volatileMemory);
 }
 
-void digitalOutEepromRun(uint8_t id,VolatileMemory *volatileMemory)
+void digitalOutEepromRun(uint8_t id, VolatileMemory *volatileMemory)
 {
     int32_t intensity = getInputValue(nextByte());
     intensity = (intensity < 0) ? 0 : (intensity > 100) ? 100

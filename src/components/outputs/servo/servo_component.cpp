@@ -62,9 +62,9 @@ void servoDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[2] = (volatileMemory->declarationBuffer[1] * 100) + volatileMemory->declarationBuffer[2];
     volatileMemory->descArgsBuffer[3] = (volatileMemory->declarationBuffer[3] * 100) + volatileMemory->declarationBuffer[4];
     volatileMemory->descArgsBuffer[4] = (volatileMemory->declarationBuffer[5] * 100) + volatileMemory->declarationBuffer[6];
-    component_t component;
-    servoCreate(volatileMemory->descArgsBuffer, &component);
-    volatileMemory->components[SERVO].add(&component);
+     component_t *component = (component_t *)malloc(sizeof(component_t));
+    servoCreate(volatileMemory->descArgsBuffer, component);
+    volatileMemory->components[SERVO].add(component);
 }
 
 void servoEepromLoad(VolatileMemory *volatileMemory)
@@ -90,9 +90,9 @@ void servoEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[2] = (servoBytes[1] * 100) + servoBytes[2];
             volatileMemory->descArgsBuffer[3] = (servoBytes[3] * 100) + servoBytes[4];
             volatileMemory->descArgsBuffer[4] = (servoBytes[5] * 100) + servoBytes[6];
-            component_t component;
-            servoCreate(volatileMemory->descArgsBuffer, &component);
-            volatileMemory->components[SERVO].add(&component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            servoCreate(volatileMemory->descArgsBuffer, component);
+            volatileMemory->components[SERVO].add(component);
         }
     }
 

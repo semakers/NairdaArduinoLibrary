@@ -28,9 +28,9 @@ void frequencyDebugLoad(VolatileMemory *volatileMemory)
 
     volatileMemory->descArgsBuffer[0] = FREQUENCY;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    component_t component;
-    frequencyCreate(volatileMemory->descArgsBuffer,&component);
-    volatileMemory->components[FREQUENCY].add(&component);
+     component_t *component = (component_t *)malloc(sizeof(component_t));
+    frequencyCreate(volatileMemory->descArgsBuffer,component);
+    volatileMemory->components[FREQUENCY].add(component);
 }
 
 void frequencyEepromLoad(VolatileMemory *volatileMemory)
@@ -47,9 +47,9 @@ void frequencyEepromLoad(VolatileMemory *volatileMemory)
         {
             volatileMemory->descArgsBuffer[0] = FREQUENCY;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t component;
-            frequencyCreate(volatileMemory->descArgsBuffer,&component);
-            volatileMemory->components[FREQUENCY].add(&component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            frequencyCreate(volatileMemory->descArgsBuffer,component);
+            volatileMemory->components[FREQUENCY].add(component);
         }
     }
     

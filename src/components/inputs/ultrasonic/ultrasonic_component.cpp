@@ -108,9 +108,9 @@ void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[0] = ULTRASONIC;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[2]);
-    component_t component;
-    ultrasonicCreate(volatileMemory->descArgsBuffer, &component);
-    volatileMemory->components[ULTRASONIC].add(&component);
+     component_t *component = (component_t *)malloc(sizeof(component_t));
+    ultrasonicCreate(volatileMemory->descArgsBuffer, component);
+    volatileMemory->components[ULTRASONIC].add(component);
 }
 
 void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
@@ -134,9 +134,9 @@ void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[0] = ULTRASONIC;
             volatileMemory->descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
             volatileMemory->descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-            component_t component;
-            ultrasonicCreate(volatileMemory->descArgsBuffer, &component);
-            volatileMemory->components[ULTRASONIC].add(&component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            ultrasonicCreate(volatileMemory->descArgsBuffer, component);
+            volatileMemory->components[ULTRASONIC].add(component);
         }
     }
     

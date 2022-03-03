@@ -38,6 +38,8 @@ uint8_t getCurrentChannel()
 
 void nextCurrentChannel()
 {
+    Serial.print("next ledc");
+    Serial.print(currentChannel);
     currentChannel++;
 }
 

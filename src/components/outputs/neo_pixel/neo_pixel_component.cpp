@@ -59,10 +59,10 @@ void neoPixelEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
             volatileMemory->descArgsBuffer[2] = nextByte();
 
-            component_t component;
-            neoPixelCreate(volatileMemory->descArgsBuffer, &component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            neoPixelCreate(volatileMemory->descArgsBuffer, component);
             volatileMemory->components[NEOPIXEL]
-                .add(&component);
+                .add(component);
         }
     }
     analogicEepromLoad(volatileMemory);

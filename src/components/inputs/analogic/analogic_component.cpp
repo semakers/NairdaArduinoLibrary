@@ -31,9 +31,9 @@ void analogicDebugLoad(VolatileMemory *volatileMemory)
 {
     volatileMemory->descArgsBuffer[0] = ANALOGIC;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    component_t component;
-    analogicCreate(volatileMemory->descArgsBuffer, &component);
-    volatileMemory->components[ANALOGIC].add(&component);
+     component_t *component = (component_t *)malloc(sizeof(component_t));
+    analogicCreate(volatileMemory->descArgsBuffer, component);
+    volatileMemory->components[ANALOGIC].add(component);
 }
 
 void analogicEepromLoad(VolatileMemory *volatileMemory)
@@ -50,9 +50,9 @@ void analogicEepromLoad(VolatileMemory *volatileMemory)
         {
             volatileMemory->descArgsBuffer[0] = ANALOGIC;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t component;
-            analogicCreate(volatileMemory->descArgsBuffer, &component);
-            volatileMemory->components[ANALOGIC].add(&component);
+             component_t *component = (component_t *)malloc(sizeof(component_t));
+            analogicCreate(volatileMemory->descArgsBuffer, component);
+            volatileMemory->components[ANALOGIC].add(component);
         }
     }
     digitalInEepromLoad(volatileMemory);
