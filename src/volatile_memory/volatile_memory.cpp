@@ -1,6 +1,10 @@
 #include "volatile_memory.h"
 #include <string.h>
 
+#if defined(ARDUINO_ARCH_ESP32)
+extern bool preInit;
+#endif
+
 void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 {
     for (int i = 0; i < list->size(); i++)
@@ -14,6 +18,12 @@ void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
 {
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
+
+#if defined(ARDUINO_ARCH_ESP32)
+    Serial.println("clear volatile memory");
+    //preInit = !preInit;
+#endif
+
     if (offComonents == true)
     {
         for (int i = 0; i < COMPONENTS_SIZE; i++)
@@ -23,7 +33,7 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
     }
     volatileMemory->declaratedDescriptor = false;
     volatileMemory->currentChannel = 0;
-    volatileMemory->executedComponent=NON_COMPONENT;
+    volatileMemory->executedComponent = NON_COMPONENT;
     memset(volatileMemory->declaratedComponents, false, 8);
     memset(volatileMemory->executeActuator, false, 5);
     memset(volatileMemory->executionBoolean, false, 7);

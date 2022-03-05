@@ -3,10 +3,6 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
 #include "esp_spi_flash.h"
 #endif
 
@@ -217,6 +213,9 @@ uint8_t callInterrupt()
         if (bleAvailable())
         {
             it = bleRead();
+            Serial.print("It byte: ");
+            Serial.println(it);
+
         }
 #else
 

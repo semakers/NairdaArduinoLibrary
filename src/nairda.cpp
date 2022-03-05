@@ -16,7 +16,6 @@ uint8_t currentValue;
 int runProgrammTimeOut = 0;
 VolatileMemory volatileMemory;
 #if defined(ARDUINO_ARCH_ESP32)
-extern bool preInit;
 void nairdaBegin(const char *deviceName)
 {
   bleInit(deviceName);
@@ -64,13 +63,13 @@ void nairdaLoop()
 
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-  if ((millis() - runProgrammTimeOut) > 2500 && preInit == false)
+  if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
   {
 #else
-  if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents == false)
+  if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
   {
 #endif
-    //loadEepromDescriptor();
+    loadEepromDescriptor();
     runProgrammTimeOut = millis();
   }
 

@@ -28,8 +28,9 @@ void variableEepromLoad()
                 varBytes[i] = nextByte();
             }
             int32_t positiveValue = (varBytes[1] * 10000) + (varBytes[2] * 100) + varBytes[3];
-            int32_t tempVariable = varBytes[0] == 0 ? positiveValue : (positiveValue * -1);
-            listVariables.add(&tempVariable);
+            int32_t* tempVariable= (int32_t*)malloc(sizeof(int32_t));
+            tempVariable[0] = varBytes[0] == 0 ? positiveValue : (positiveValue * -1);
+            listVariables.add(tempVariable);
         }
     }
     nairdaRunMachineState();

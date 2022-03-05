@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include "value_conversion/value_conversion.h"
 #include <Arduino.h>
+#include "nairda.h"
 
+extern VolatileMemory volatileMemory;
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <BLEDevice.h>
@@ -14,10 +16,9 @@
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
-extern VolatileMemory volatileMemory;
+
 
 bool running = false;
-bool preInit = false;
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
@@ -26,13 +27,10 @@ class MyServerCallbacks : public BLEServerCallbacks
 {
     void onConnect(BLEServer *pServer)
     {
-        preInit = true;
         restartRunFromEeprom();
     };
     void onDisconnect(BLEServer *pServer)
     {
-        preInit = false;
-        clearVolatileMemory(&volatileMemory, true);
         BLEDevice::startAdvertising();
     };
 };
@@ -46,8 +44,11 @@ class MyCallbacks : public BLECharacteristicCallbacks
         {
             for (int i = 0; i < rxValue.length(); i++)
             {
+               
                 if (!running)
                 {
+                     Serial.print("blue byte: ");
+                Serial.println((uint8_t)rxValue[i]);
                    
                     nairdaDebug(rxValue[i],&volatileMemory);
                 }
