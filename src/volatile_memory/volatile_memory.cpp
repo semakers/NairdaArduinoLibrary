@@ -19,11 +19,6 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
 {
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
 
-#if defined(ARDUINO_ARCH_ESP32)
-    Serial.println("clear volatile memory");
-    //preInit = !preInit;
-#endif
-
     if (offComonents == true)
     {
         for (int i = 0; i < COMPONENTS_SIZE; i++)

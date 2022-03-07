@@ -13,8 +13,9 @@ enum
       DIGITAL_OUT,
       FREQUENCY,
       NEOPIXEL,
+        ANALOGIC,
       DIGITAL_IN,
-      ANALOGIC,
+     
       ULTRASONIC
 };
 

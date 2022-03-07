@@ -25,24 +25,17 @@ bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
 
-uint8_t currentChannel = 0;
 
 uint8_t getCurrentChannel()
 {
-    return currentChannel;
+    return volatileMemory.currentChannel;
 }
 
 void nextCurrentChannel()
 {
-    Serial.print("next ledc");
-    Serial.print(currentChannel);
-    currentChannel++;
+    volatileMemory.currentChannel++;
 }
 
-void clearCurrentChannel()
-{
-    currentChannel = 0;
-}
 
 void writeByte(uint32_t address, uint8_t byte)
 {
@@ -213,8 +206,6 @@ uint8_t callInterrupt()
         if (bleAvailable())
         {
             it = bleRead();
-            Serial.print("It byte: ");
-            Serial.println(it);
 
         }
 #else

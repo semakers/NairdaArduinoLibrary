@@ -5,6 +5,7 @@
 #include "nairda.h"
 
 extern VolatileMemory volatileMemory;
+bool running = false;
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <BLEDevice.h>
@@ -18,7 +19,7 @@ uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
 
 
-bool running = false;
+
 
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
@@ -47,8 +48,6 @@ class MyCallbacks : public BLECharacteristicCallbacks
                
                 if (!running)
                 {
-                     Serial.print("blue byte: ");
-                Serial.println((uint8_t)rxValue[i]);
                    
                     nairdaDebug(rxValue[i],&volatileMemory);
                 }
@@ -66,7 +65,6 @@ bool bleAvailable()
 {
     if (bleIndex > 0)
     {
-        Serial.print("available");
         return true;
     }
     else

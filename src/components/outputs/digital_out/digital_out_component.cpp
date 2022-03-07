@@ -20,13 +20,11 @@ void digitalOutCreate(uint16_t *args, component_t *component)
     softPwmSTM32Attach(args[1], 0);
 
 #elif defined(ARDUINO_ARCH_ESP32)
-    Serial.println("digital out create");
     if (getCurrentChannel() < 16)
     {
         ledcSetup(getCurrentChannel(), 50, 16);
         ledcAttachPin(args[1], getCurrentChannel());
         component->ledcChannel[0] = getCurrentChannel();
-        Serial.println(component->ledcChannel[0]);
         nextCurrentChannel();
     }
     else

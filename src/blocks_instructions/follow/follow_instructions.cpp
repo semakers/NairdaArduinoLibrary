@@ -42,7 +42,6 @@ void runDelay()
         {
             if (callInterrupt() == 1)
             {
-                Serial.println("Interrupt called");
                 break;
             }
         }

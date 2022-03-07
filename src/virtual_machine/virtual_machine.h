@@ -62,7 +62,6 @@
 
 uint8_t getCurrentChannel();
 void nextCurrentChannel();
-void clearCurrentChannel();
 void nairdaRunMachineState();
 uint8_t callInterrupt();
 uint8_t nextByte();
