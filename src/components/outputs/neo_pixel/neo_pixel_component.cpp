@@ -35,10 +35,10 @@ void neoPixelDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[0] = NEOPIXEL;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
     volatileMemory->descArgsBuffer[2] = volatileMemory->declarationBuffer[1];
-    component_t component;
-    neoPixelCreate(volatileMemory->descArgsBuffer, &component);
+    component_t *component = (component_t *)malloc(sizeof(component_t));
+    neoPixelCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[NEOPIXEL]
-        .add(&component);
+        .add(component);
 }
 
 void neoPixelEepromLoad(VolatileMemory *volatileMemory)
