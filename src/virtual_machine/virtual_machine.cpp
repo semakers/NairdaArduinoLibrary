@@ -11,6 +11,7 @@
 extern VolatileMemory volatileMemory;
 
 uint8_t readByte(uint32_t address);
+extern int runProgrammTimeOut;
 extern bool running;
 uint32_t currentOffset = 7;
 uint32_t ProgrammSize = 0;
@@ -179,15 +180,18 @@ void freeVolatileMemory()
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
 void restartRunFromEeprom()
 {   
-    currentOffset=7;
+    
     
     clearVolatileMemory(&volatileMemory,true);
     freeVolatileMemory();
+
+    currentOffset=7;
     running = false;
     loadedServos = false;
     loadedMotors = false;
     loadedDigitalOuts = false;
     loadedFrequencies = false;
+    loadedNeoPixels = false;
     loadedDigitalIns = false;
     loadedAnalogics = false;
     loadedUltrasonics = false;
