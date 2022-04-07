@@ -4,6 +4,7 @@
 #include "value_conversion/value_conversion.h"
 #include "blue_methods/blue_methods.h"
 #include "nairda_debug/nairda_debug.h"
+#include "kits/v1.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "esp_spi_flash.h"
@@ -18,6 +19,9 @@ VolatileMemory volatileMemory;
 #if defined(ARDUINO_ARCH_ESP32)
 void nairdaBegin(const char *deviceName)
 {
+#if defined(KIT_V1_ENABLED)
+  initKitDisplay();
+#endif
   bleInit(deviceName);
 
 #else
@@ -44,12 +48,14 @@ void nairdaBegin(long int bauds)
 
 void nairdaLoop()
 {
-
+#if defined(KIT_V1_ENABLED)
+  writeKitDisplay();
+#endif
   /**/
 #ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
 
-  if (asmOperations > 250000 && volatileMemory.declaratedComponents == false) 
+  if (asmOperations > 250000 && volatileMemory.declaratedComponents == false)
   {
     loadEepromDescriptor();
   }
@@ -78,8 +84,6 @@ void nairdaLoop()
 
   if (nextBlueByte(&currentValue) == true)
   {
-    nairdaDebug(currentValue,&volatileMemory);
+    nairdaDebug(currentValue, &volatileMemory);
   }
 }
-
-

@@ -2,6 +2,7 @@
 #include "extern_libraries/linked_list/linked_list.h"
 #include "follow_instructions.h"
 #include <Arduino.h>
+#include "kits/v1.h"
 
 class repeatBegin
 {
@@ -22,7 +23,6 @@ public:
 LinkedList<repeatBegin *> listRepeatBegins = LinkedList<repeatBegin *>();
 extern uint32_t currentOffset;
 
-
 void freeRepeatBegins()
 {
     for (int i = 0; i < listRepeatBegins.size(); i++)
@@ -36,16 +36,36 @@ void runDelay()
 {
     uint32_t delayTime = getInputValue(nextByte());
 #if defined(ARDUINO_ARCH_ESP32)
-    for (uint64_t i = 0; i < delayTime * 2500; i++)
+
+#if defined(KIT_V1_ENABLED)
+      for (uint64_t i = 0; i < delayTime * 30; i++)
     {
-        if (i % 2500 == 0)
+          writeKitDisplay();
+        if (i % 30 == 0)
         {
+            
             if (callInterrupt() == 1)
             {
                 break;
             }
         }
     }
+#else
+for (uint64_t i = 0; i < delayTime * 2500; i++)
+    {
+        if (i % 2500 == 0)
+        {
+            writeKitDisplay();
+            if (callInterrupt() == 1)
+            {
+                break;
+            }
+        }
+    }
+
+#endif
+
+    
 #else
     uint32_t currentTime = millis();
     while ((millis() - currentTime) < delayTime && callInterrupt() == 0)

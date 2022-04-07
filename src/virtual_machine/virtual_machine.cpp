@@ -1,5 +1,6 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
+#include "kits/v1.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 
@@ -26,7 +27,6 @@ bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
 
-
 uint8_t getCurrentChannel()
 {
     return volatileMemory.currentChannel;
@@ -36,7 +36,6 @@ void nextCurrentChannel()
 {
     volatileMemory.currentChannel++;
 }
-
 
 void writeByte(uint32_t address, uint8_t byte)
 {
@@ -59,7 +58,7 @@ void writeByte(uint32_t address, uint8_t byte)
     // eeprom_write_byte(address, byte);
     EEPROM.update(address, byte);
     // HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, (address + DATA_EEPROM_BASE), (uint32_t)byte);
-    
+
     // delay(30);
 #endif
 #endif
@@ -95,6 +94,9 @@ uint8_t nextByte()
     {
         while (callInterrupt() == 0)
         {
+#if defined(KIT_V1_ENABLED)
+            writeKitDisplay();
+#endif
         };
     }
     if (running)
@@ -179,13 +181,12 @@ void freeVolatileMemory()
 
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
 void restartRunFromEeprom()
-{   
-    
-    
-    clearVolatileMemory(&volatileMemory,true);
+{
+
+    clearVolatileMemory(&volatileMemory, true);
     freeVolatileMemory();
 
-    currentOffset=7;
+    currentOffset = 7;
     running = false;
     loadedServos = false;
     loadedMotors = false;
@@ -210,7 +211,6 @@ uint8_t callInterrupt()
         if (bleAvailable())
         {
             it = bleRead();
-
         }
 #else
 
@@ -277,7 +277,8 @@ void nairdaRunMachineState()
     currentOffset = initdirection;
     while (callInterrupt() == 0)
     {
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(KIT_V1_ENABLED)
+        writeKitDisplay();
 #endif
         uint8_t auxByte = nextByte();
 
@@ -290,19 +291,19 @@ void nairdaRunMachineState()
             runSetVarValue(nextByte());
             break;
         case frequencyCommand:
-            frequencyEepromRun(nextByte(),&volatileMemory);
+            frequencyEepromRun(nextByte(), &volatileMemory);
             break;
         case neopixelCommand:
-            neoPixelEepromRun(nextByte(),&volatileMemory);
+            neoPixelEepromRun(nextByte(), &volatileMemory);
             break;
         case servoCommand:
-            servoEepromRun(nextByte(),&volatileMemory);
+            servoEepromRun(nextByte(), &volatileMemory);
             break;
         case motorDcCommand:
-            motorEepromRun(nextByte(),&volatileMemory);
+            motorEepromRun(nextByte(), &volatileMemory);
             break;
         case ledCommand:
-            digitalOutEepromRun(nextByte(),&volatileMemory);
+            digitalOutEepromRun(nextByte(), &volatileMemory);
             break;
         case ifCommand:
             runIf();
