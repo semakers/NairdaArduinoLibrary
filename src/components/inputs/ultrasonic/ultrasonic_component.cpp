@@ -51,33 +51,18 @@ void ultrasonicCreate(uint16_t *args, component_t *component)
 {
     component->pins[0] = args[1];
     component->pins[1] = args[2];
-#if defined(ARDUINO_ARCH_STM32)
-
     pinMode(args[1], OUTPUT);
     pinMode(args[2], INPUT);
-#elif defined(ARDUINO_ARCH_ESP32)
-    pinMode(args[1], OUTPUT);
-    pinMode(args[2], INPUT);
-#endif
 }
 
 void ultrasonicSense(uint8_t *pins, uint8_t *tempRead)
 {
-#if defined(ARDUINO_ARCH_STM32)
     digitalWrite(pins[0], LOW);
     delayMicroseconds(2);
     digitalWrite(pins[0], HIGH);
     delayMicroseconds(10);
     digitalWrite(pins[0], LOW);
-    tempRead[0] = pulseIn(pins[1], HIGH) / 27.6233 / 2;
-#elif defined(ARDUINO_ARCH_ESP32)
-    digitalWrite(pins[0], LOW);
-    delayMicroseconds(2);
-    digitalWrite(pins[0], HIGH);
-    delayMicroseconds(10);
-    digitalWrite(pins[0], LOW);
-    tempRead[0] = pulseIn(pins[1], HIGH) / 27.6233 / 2;
-#endif
+    tempRead[0] = pulseIn(pins[1], HIGH,10000) / 27.6233 / 2;
     static int lastValue;
     static int zeroCounter = 0;
 
@@ -107,7 +92,7 @@ void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
 {
     volatileMemory->descArgsBuffer[0] = ULTRASONIC;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-    volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[2]);
+    volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
      component_t *component = (component_t *)malloc(sizeof(component_t));
     ultrasonicCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[ULTRASONIC].add(component);
