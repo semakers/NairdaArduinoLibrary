@@ -161,11 +161,15 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                         Serial.print(volatileMemory->components[i].get(componentId)->pins[0]);
                         Serial.print(" ledc ");
                         Serial.println(volatileMemory->components[i].get(componentId)->ledcChannel[0]);*/
+                        if(i==SERVO){
+                            volatileMemory->executionBuffer[0]=map(volatileMemory->executionBuffer[0],0,99,0,180);
+                        }
                         execAct(volatileMemory->executionBuffer, i, volatileMemory->components[i].get(componentId));
+                        
                         memset(volatileMemory->executionBoolean, false, 7);
                         volatileMemory->executedComponent = NON_COMPONENT;
                     }
-                    return 0;
+                    return 0; 
                 }
             }
 
