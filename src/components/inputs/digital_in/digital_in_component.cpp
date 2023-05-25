@@ -35,7 +35,7 @@ void digitalInCreate(uint16_t *args, component_t *component)
 void digitalInSense(uint8_t *pins, uint8_t *tempRead)
 {
 #if defined(ARDUINO_ARCH_ESP32)
-    if (currentKit == ROBUS_KIDSY_KIT)
+    if (currentKit == ROBBUS_KIDSY_KIT)
     {
         if (isKidsyArrowPin(pins[0]) == 1)
         {

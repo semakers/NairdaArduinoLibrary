@@ -34,7 +34,7 @@ void nairdaBegin(const char *deviceName)
 {
   disableCore0WDT();
   randomSeed(1500);
-  if (currentKit == ROBUS_KIDSY_KIT)
+  if (currentKit == ROBBUS_KIDSY_KIT)
   {
     RGBWSensor.nairdaBegin();
   }

@@ -45,7 +45,7 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
     memset(volatileMemory->execBuffer, 0, 6);
 
 #if defined(ARDUINO_ARCH_ESP32)
-    if (currentKit == ROBUS_KIDSY_KIT)
+    if (currentKit == ROBBUS_KIDSY_KIT)
     {
         RGBWSensor.nairdaEnd();
     }

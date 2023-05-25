@@ -2,8 +2,8 @@
 
 void setup()
 {
-    setKit(ROBUS_KIDSY_KIT);
-    nairdaBegin("Robus Kidsy BT");
+    setKit(ROBBUS_KIDSY_KIT);
+    nairdaBegin("Robbus Kidsy BT");
 }
 
 void loop()

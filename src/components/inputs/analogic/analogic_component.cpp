@@ -19,7 +19,7 @@ void analogicCreate(uint16_t *args, component_t *component)
 
     component->pins[0] = args[1];
 #if defined(ARDUINO_ARCH_ESP32)
-    if (currentKit == ROBUS_KIDSY_KIT && (args[1] == 37 || args[1] == 38 || args[1] == 39))
+    if (currentKit == ROBBUS_KIDSY_KIT && (args[1] == 37 || args[1] == 38 || args[1] == 39))
     {
         RGBWSensor.nairdaBegin();
     }
@@ -31,7 +31,7 @@ void analogicSense(uint8_t *pins, uint8_t *tempRead)
 #if defined(ARDUINO_ARCH_STM32)
     tempRead[0] = map(analogRead(pins[0]), 0, 1023, 0, 100);
 #elif defined(ARDUINO_ARCH_ESP32)
-    if (currentKit == ROBUS_KIDSY_KIT)
+    if (currentKit == ROBBUS_KIDSY_KIT)
     {
         if (pins[0] == 37 || pins[0] == 38 || pins[0] == 39)
         {
