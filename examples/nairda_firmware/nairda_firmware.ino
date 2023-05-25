@@ -1,6 +1,7 @@
 #include <nairda.h>
 
-void setup() {
+void setup()
+{
 #if defined(ARDUINO_ARCH_ESP32)
     nairdaBegin("NairdaESP32");
 #else
@@ -8,6 +9,7 @@ void setup() {
 #endif
 }
 
-void loop() {
+void loop()
+{
     nairdaLoop();
 }

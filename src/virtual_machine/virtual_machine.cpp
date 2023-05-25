@@ -26,6 +26,7 @@ bool loadedDigitalIns = false;
 bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
+extern portMUX_TYPE mux;
 
 uint8_t getCurrentChannel()
 {
@@ -275,8 +276,15 @@ uint8_t callInterrupt()
 void nairdaRunMachineState()
 {
     currentOffset = initdirection;
+
     while (callInterrupt() == 0)
     {
+
+#if defined(ARDUINO_ARCH_ESP32)
+        random(0, 1) == 0 ? runDelay(false, 11) : runDelay(false, 11);
+
+#endif
+
 #if defined(KIT_V1_ENABLED)
         writeKitDisplay();
 #endif
@@ -285,7 +293,7 @@ void nairdaRunMachineState()
         switch (auxByte)
         {
         case delayCommand:
-            runDelay();
+            runDelay(true, 0);
             break;
         case setVarValueCommand:
             runSetVarValue(nextByte());

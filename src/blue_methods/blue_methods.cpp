@@ -5,7 +5,8 @@
 #include "nairda.h"
 
 extern VolatileMemory volatileMemory;
-bool running = false;
+extern bool running;
+extern uint8_t currentKit;
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <BLEDevice.h>
@@ -18,9 +19,6 @@ BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
 
-
-
-
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
@@ -28,6 +26,7 @@ class MyServerCallbacks : public BLEServerCallbacks
 {
     void onConnect(BLEServer *pServer)
     {
+
         restartRunFromEeprom();
     };
     void onDisconnect(BLEServer *pServer)
@@ -45,14 +44,15 @@ class MyCallbacks : public BLECharacteristicCallbacks
         {
             for (int i = 0; i < rxValue.length(); i++)
             {
-               
+
                 if (!running)
                 {
-                   
-                    nairdaDebug(rxValue[i],&volatileMemory);
+
+                    nairdaDebug(rxValue[i], &volatileMemory);
                 }
                 else
                 {
+
                     bleBuffer[bleIndex] = (uint8_t)rxValue[(rxValue.length() - 1) - i];
                     bleIndex++;
                 }

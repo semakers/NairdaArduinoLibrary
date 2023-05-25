@@ -1,6 +1,7 @@
 #include "nairda.h"
 #include "virtual_machine/virtual_machine.h"
 #include "extern_libraries/linked_list/linked_list.h"
+
 #include "value_conversion/value_conversion.h"
 #include "blue_methods/blue_methods.h"
 #include "nairda_debug/nairda_debug.h"
@@ -8,6 +9,7 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "esp_spi_flash.h"
+#include <esp32-hal.h>
 #endif
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
@@ -16,9 +18,28 @@
 uint8_t currentValue;
 int runProgrammTimeOut = 0;
 VolatileMemory volatileMemory;
+uint8_t currentKit = NO_KIT;
+bool running = false;
+
+void setKit(uint8_t kitCode)
+{
+  currentKit = kitCode;
+}
+
 #if defined(ARDUINO_ARCH_ESP32)
+#include "extern_libraries/veml6040/VEML6040.h"
+VEML6040 RGBWSensor;
+
 void nairdaBegin(const char *deviceName)
 {
+  disableCore0WDT();
+  randomSeed(1500);
+  if (currentKit == ROBUS_KIDSY_KIT)
+  {
+    RGBWSensor.nairdaBegin();
+    Serial.begin(115200);
+  }
+
 #if defined(KIT_V1_ENABLED)
   initKitDisplay();
 #endif

@@ -22,30 +22,30 @@ uint8_t argsSizeByComponent[] = {7, 3, 1, 1, 2, 1, 1, 2};
 
 uint8_t execArgsSizeByComponent[] = {1, 2, 1, 6, 4};
 
-
 uint8_t indexArray[COMPONENTS_SIZE];
 uint8_t componentId = 0;
 
-void fillIndexArray(VolatileMemory *volatileMemory){
-     for (int8_t i = 0; i < COMPONENTS_SIZE; i++)
+void fillIndexArray(VolatileMemory *volatileMemory)
+{
+    for (int8_t i = 0; i < COMPONENTS_SIZE; i++)
+    {
+        if (i == 0)
         {
-            if (i == 0)
-            {
-                indexArray[i] = volatileMemory->components[i].size();
-            }
-            else
-            {
-               /* Serial.print("current size ");
-                Serial.print(volatileMemory->components[i].size());
-                Serial.print(" before size ");
-                Serial.println(indexArray[i - 1]);*/
-                indexArray[i] = volatileMemory->components[i].size() + indexArray[i - 1];
-            }
-           /*Serial.print("index array: ");
-            Serial.print(i);
-            Serial.print(" ");
-            Serial.println(indexArray[i]);*/
+            indexArray[i] = volatileMemory->components[i].size();
         }
+        else
+        {
+            /* Serial.print("current size ");
+             Serial.print(volatileMemory->components[i].size());
+             Serial.print(" before size ");
+             Serial.println(indexArray[i - 1]);*/
+            indexArray[i] = volatileMemory->components[i].size() + indexArray[i - 1];
+        }
+        /*Serial.print("index array: ");
+         Serial.print(i);
+         Serial.print(" ");
+         Serial.println(indexArray[i]);*/
+    }
 }
 
 #ifndef __AVR_ATmega168__
@@ -60,7 +60,7 @@ void cleanSavingBoolean(bool *savingBoolean)
 
 int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
 {
-     // Serial.println(currentValue[0]);
+    // Serial.println(currentValue[0]);
     for (int i = 0; i < COMPONENTS_SIZE; i++)
     {
         if (currentValue[0] == declaratedCommands[i])
@@ -68,7 +68,7 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
             volatileMemory->declaratedComponents[i] = true;
             if (i == COMPONENTS_SIZE - 1)
             {
-              //  Serial.println("loaded descriptor");
+                //  Serial.println("loaded descriptor");
                 volatileMemory->declaratedDescriptor = true;
                 fillIndexArray(volatileMemory);
             }
@@ -85,8 +85,8 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
                     if (j == argsSizeByComponent[i] - 1)
                     {
                         debugLoad[i](volatileMemory);
-                        
-                        memset(volatileMemory->declarationboolean,0,7);
+
+                        memset(volatileMemory->declarationboolean, 0, 7);
                     }
                     return 0;
                 }
@@ -95,30 +95,27 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
     }
 }
 
-
-
 int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
 {
-   /* Serial.print("byte: ");
-    Serial.println(currentValue[0]);*/
+    /* Serial.print("byte: ");
+     Serial.println(currentValue[0]);*/
 
     if (volatileMemory->executedComponent == NON_COMPONENT)
     {
-       
 
         for (int8_t i = 0; i < COMPONENTS_SIZE; i++)
         {
-           /* Serial.print(currentValue[0]);
-            Serial.print(">=");
-            Serial.print(( i == 0 ? 0 : indexArray[i - 1]));
-            Serial.print("&&");
-            Serial.print(currentValue[0]);
-            Serial.print("<");
-            Serial.print(indexArray[i]);
-            Serial.print("&&");
-            Serial.print(volatileMemory->components[i].size());
-            Serial.println(">0");*/
-            if (currentValue[0] >= ( i == 0 ? 0 : indexArray[i - 1]) && currentValue[0] < indexArray[i] && volatileMemory->components[i].size() > 0)
+            /* Serial.print(currentValue[0]);
+             Serial.print(">=");
+             Serial.print(( i == 0 ? 0 : indexArray[i - 1]));
+             Serial.print("&&");
+             Serial.print(currentValue[0]);
+             Serial.print("<");
+             Serial.print(indexArray[i]);
+             Serial.print("&&");
+             Serial.print(volatileMemory->components[i].size());
+             Serial.println(">0");*/
+            if (currentValue[0] >= (i == 0 ? 0 : indexArray[i - 1]) && currentValue[0] < indexArray[i] && volatileMemory->components[i].size() > 0)
             {
                 componentId = currentValue[0] - ((i == 0) ? 0 : indexArray[i - 1]);
                 if (i < ACTUATORS_SIZE)
@@ -134,8 +131,8 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                 }
             }
         }
-       /* Serial.print("executed component: ");
-        Serial.println(volatileMemory->executedComponent);*/
+        /* Serial.print("executed component: ");
+         Serial.println(volatileMemory->executedComponent);*/
         return 0;
     }
     /*Serial.print("component: ");
@@ -161,15 +158,16 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                         Serial.print(volatileMemory->components[i].get(componentId)->pins[0]);
                         Serial.print(" ledc ");
                         Serial.println(volatileMemory->components[i].get(componentId)->ledcChannel[0]);*/
-                        if(i==SERVO){
-                            volatileMemory->executionBuffer[0]=map(volatileMemory->executionBuffer[0],0,99,0,180);
+                        if (i == SERVO)
+                        {
+                            volatileMemory->executionBuffer[0] = map(volatileMemory->executionBuffer[0], 0, 99, 0, 180);
                         }
                         execAct(volatileMemory->executionBuffer, i, volatileMemory->components[i].get(componentId));
-                        
+
                         memset(volatileMemory->executionBoolean, false, 7);
                         volatileMemory->executedComponent = NON_COMPONENT;
                     }
-                    return 0; 
+                    return 0;
                 }
             }
 

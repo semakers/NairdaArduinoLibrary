@@ -32,18 +32,29 @@ void freeRepeatBegins()
     listRepeatBegins.clear();
 }
 
-void runDelay()
+void runDelay(bool useMemory, uint32_t artificialDelay)
 {
-    uint32_t delayTime = getInputValue(nextByte());
+
+    uint32_t delayTime;
+
+    if (useMemory)
+    {
+
+        delayTime = getInputValue(nextByte());
+    }
+    else
+    {
+        delayTime = artificialDelay;
+    }
 #if defined(ARDUINO_ARCH_ESP32)
 
 #if defined(KIT_V1_ENABLED)
-      for (uint64_t i = 0; i < delayTime * 30; i++)
+    for (uint64_t i = 0; i < delayTime * 30; i++)
     {
-          writeKitDisplay();
+        writeKitDisplay();
         if (i % 30 == 0)
         {
-            
+
             if (callInterrupt() == 1)
             {
                 break;
@@ -51,11 +62,10 @@ void runDelay()
         }
     }
 #else
-for (uint64_t i = 0; i < delayTime * 2500; i++)
+    for (uint64_t i = 0; i < delayTime * 2500; i++)
     {
         if (i % 2500 == 0)
         {
-            writeKitDisplay();
             if (callInterrupt() == 1)
             {
                 break;
@@ -65,7 +75,6 @@ for (uint64_t i = 0; i < delayTime * 2500; i++)
 
 #endif
 
-    
 #else
     uint32_t currentTime = millis();
     while ((millis() - currentTime) < delayTime && callInterrupt() == 0)

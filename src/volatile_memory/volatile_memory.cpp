@@ -1,9 +1,15 @@
 #include "volatile_memory.h"
 #include <string.h>
 
+#include "nairda.h"
+
 #if defined(ARDUINO_ARCH_ESP32)
+#include "extern_libraries/veml6040/VEML6040.h"
 extern int runProgrammTimeOut;
+extern VEML6040 RGBWSensor;
 #endif
+
+extern uint8_t currentKit;
 
 void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 {
@@ -27,7 +33,7 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
         }
     }
     volatileMemory->declaratedDescriptor = false;
-    volatileMemory->currentChannel = 0;
+    volatileMemory->currentChannel = 1;
     volatileMemory->executedComponent = NON_COMPONENT;
     memset(volatileMemory->declaratedComponents, false, 8);
     memset(volatileMemory->executeActuator, false, 5);
@@ -37,7 +43,14 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
     memset(volatileMemory->declarationBuffer, 0, 7);
     memset(volatileMemory->descArgsBuffer, 0, 5);
     memset(volatileMemory->execBuffer, 0, 6);
-    
+
+#if defined(ARDUINO_ARCH_ESP32)
+    if (currentKit == ROBUS_KIDSY_KIT)
+    {
+        RGBWSensor.nairdaEnd();
+    }
+#endif
+
 #else
     freeCompList(&(volatileMemory->components[MOTOR]), MOTOR);
     freeCompList(&(volatileMemory->components[DIGITAL_OUT]), DIGITAL_OUT);

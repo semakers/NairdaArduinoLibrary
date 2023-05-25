@@ -5,6 +5,26 @@
 #include <Arduino.h>
 
 extern bool loadedDigitalIns;
+extern VolatileMemory volatileMemory;
+extern uint8_t currentKit;
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+uint8_t isKidsyArrowPin(uint8_t pin)
+{
+    uint8_t kidsyArrowsPins[4] = {12, 13, 15, 14};
+
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        if (pin == kidsyArrowsPins[i])
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+#endif
 
 void digitalInCreate(uint16_t *args, component_t *component)
 {
@@ -14,7 +34,25 @@ void digitalInCreate(uint16_t *args, component_t *component)
 
 void digitalInSense(uint8_t *pins, uint8_t *tempRead)
 {
+#if defined(ARDUINO_ARCH_ESP32)
+    if (currentKit == ROBUS_KIDSY_KIT)
+    {
+        if (isKidsyArrowPin(pins[0]) == 1)
+        {
+            tempRead[0] = touchRead(pins[0]) > 15 ? 0 : 1;
+        }
+        else
+        {
+            tempRead[0] = digitalRead(pins[0]);
+        }
+    }
+    else
+    {
+        tempRead[0] = digitalRead(pins[0]);
+    }
+#else
     tempRead[0] = digitalRead(pins[0]);
+#endif
 }
 
 void digitalInOff()
@@ -44,7 +82,7 @@ void digitalInEepromLoad(VolatileMemory *volatileMemory)
         {
             volatileMemory->descArgsBuffer[0] = DIGITAL_IN;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-             component_t *component = (component_t *)malloc(sizeof(component_t));
+            component_t *component = (component_t *)malloc(sizeof(component_t));
             digitalInCreate(volatileMemory->descArgsBuffer, component);
             volatileMemory->components[DIGITAL_IN].add(component);
         }

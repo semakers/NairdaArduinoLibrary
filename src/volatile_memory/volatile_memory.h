@@ -8,41 +8,40 @@
 
 enum
 {
-      SERVO = 0,
-      MOTOR,
-      DIGITAL_OUT,
-      FREQUENCY,
-      NEOPIXEL,
-        ANALOGIC,
-      DIGITAL_IN,
-     
-      ULTRASONIC
+  SERVO = 0,
+  MOTOR,
+  DIGITAL_OUT,
+  FREQUENCY,
+  NEOPIXEL,
+  ANALOGIC,
+  DIGITAL_IN,
+
+  ULTRASONIC
 };
 
 struct VolatileMemory
 {
-    LinkedList<component_t *> components[COMPONENTS_SIZE];
-    
+  LinkedList<component_t *> components[COMPONENTS_SIZE];
 
-    bool declaratedDescriptor = false;
+  bool declaratedDescriptor = false;
 
-    bool declaratedComponents[8];
-    int8_t executedComponent=NON_COMPONENT;
+  bool declaratedComponents[8];
+  int8_t executedComponent = NON_COMPONENT;
 
-    bool executeActuator[5];
+  bool executeActuator[5];
 
-    bool executionBoolean[7];
-    uint32_t executionBuffer[7];
+  bool executionBoolean[7];
+  uint32_t executionBuffer[7];
 
-    bool declarationboolean[7];
-    uint8_t declarationBuffer[7];
+  bool declarationboolean[7];
+  uint8_t declarationBuffer[7];
 
-    uint16_t descArgsBuffer[5]={0,0,0,0,0};
-    uint32_t execBuffer[6];
+  uint16_t descArgsBuffer[5] = {0, 0, 0, 0, 0};
+  uint32_t execBuffer[6];
 
-    uint8_t currentChannel = 0;
+  uint8_t currentChannel = 1;
 };
 
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents);
 
-void initVolatileMemory(VolatileMemory* volatileMemory);
+void initVolatileMemory(VolatileMemory *volatileMemory);
