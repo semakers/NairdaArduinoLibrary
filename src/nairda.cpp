@@ -37,7 +37,6 @@ void nairdaBegin(const char *deviceName)
   if (currentKit == ROBUS_KIDSY_KIT)
   {
     RGBWSensor.nairdaBegin();
-    Serial.begin(115200);
   }
 
 #if defined(KIT_V1_ENABLED)
