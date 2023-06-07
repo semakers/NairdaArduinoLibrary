@@ -26,7 +26,6 @@ bool loadedDigitalIns = false;
 bool loadedAnalogics = false;
 bool loadedUltrasonics = false;
 bool loadedVariables = false;
-extern portMUX_TYPE mux;
 
 uint8_t getCurrentChannel()
 {
