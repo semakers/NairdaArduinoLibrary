@@ -12,6 +12,7 @@
 #endif
 
 extern bool loadedDigitalOuts;
+extern uint8_t currentKit;
 
 void digitalOutCreate(uint16_t *args, component_t *component)
 {
@@ -22,10 +23,18 @@ void digitalOutCreate(uint16_t *args, component_t *component)
 #elif defined(ARDUINO_ARCH_ESP32)
     if (getCurrentChannel() < 16)
     {
-        ledcSetup(getCurrentChannel(), 50, 16);
-        ledcAttachPin(args[1], getCurrentChannel());
-        component->ledcChannel[0] = getCurrentChannel();
-        nextCurrentChannel();
+        if (currentKit == LK32_KIT && args[1] == 25)
+        {
+            pinMode(args[1], OUTPUT);
+        }
+        else
+        {
+
+            ledcSetup(getCurrentChannel(), 50, 16);
+            ledcAttachPin(args[1], getCurrentChannel());
+            component->ledcChannel[0] = getCurrentChannel();
+            nextCurrentChannel();
+        }
     }
     else
     {
@@ -44,13 +53,11 @@ void digitalOutExec(uint32_t *execArgs, uint8_t *pins, uint8_t *values, int8_t *
     softPwmSTM32Set(pins[0], (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
                                                                          : execArgs[0]);
 #elif defined(ARDUINO_ARCH_ESP32)
+
     values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
                                                             : execArgs[0];
-    if (ledcChannel[0] != -1)
-    {
-        ledcWrite(ledcChannel[0], map(values[0], 0, 100, 0, 65535));
-    }
-    else
+
+    if (currentKit == LK32_KIT && pins[0] == 25)
     {
         if (values[0] >= 0 && values[0] <= 50)
         {
@@ -59,6 +66,24 @@ void digitalOutExec(uint32_t *execArgs, uint8_t *pins, uint8_t *values, int8_t *
         else if (values[0] > 50 && values[0] <= 100)
         {
             digitalWrite(pins[0], HIGH);
+        }
+    }
+    else
+    {
+        if (ledcChannel[0] != -1)
+        {
+            ledcWrite(ledcChannel[0], map(values[0], 0, 100, 0, 65535));
+        }
+        else
+        {
+            if (values[0] >= 0 && values[0] <= 50)
+            {
+                digitalWrite(pins[0], LOW);
+            }
+            else if (values[0] > 50 && values[0] <= 100)
+            {
+                digitalWrite(pins[0], HIGH);
+            }
         }
     }
 

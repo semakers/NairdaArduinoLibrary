@@ -4,6 +4,7 @@
 
 #define NO_KIT 0
 #define ROBBUS_KIDSY_KIT 1
+#define LK32_KIT 2
 
 #if defined(ARDUINO_ARCH_ESP32)
 void nairdaBegin(const char *deviceName);

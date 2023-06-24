@@ -25,6 +25,8 @@ SOFTWARE.
 */
 #if defined(ARDUINO_ARCH_ESP32)
 
+#include <stdint.h>
+
 #ifndef VEML6040_H
 #define VEML6040_H
 
@@ -91,6 +93,8 @@ private:
   double fixedBlue;
   double fixedWhite;
   bool working;
+  uint16_t minValues[4];
+  uint16_t maxValues[4];
 
 public:
   VEML6040(void);
@@ -98,6 +102,7 @@ public:
   void setConfiguration(uint8_t);
   void nairdaBegin();
   void nairdaEnd();
+  void readCalibration();
   uint16_t getRed(void);
   uint16_t getGreen(void);
   uint16_t getBlue(void);

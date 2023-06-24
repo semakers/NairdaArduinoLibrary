@@ -95,9 +95,7 @@ void bleWrite(uint8_t byte)
 
 void bleInit(const char *deviceName)
 {
-
     BLEDevice::init(deviceName); // Give it a name
-
     // Create the BLE Server
     BLEServer *pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
@@ -114,7 +112,6 @@ void bleInit(const char *deviceName)
     pCharacteristic->addDescriptor(new BLE2902());
 
     pCharacteristic->setCallbacks(new MyCallbacks());
-
     // Start the service
     pService->start();
 
@@ -131,7 +128,11 @@ void bleInit(const char *deviceName)
 void sendMemorySize(uint32_t memorySize)
 {
 #if defined(ARDUINO_ARCH_ESP32)
+
+        uint8_t buffer[16];
+    spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
     spi_flash_erase_range(0x200000, 4096 * 128);
+    spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
     char cleanBuffer[22];
     memset(cleanBuffer, 0, 22);
     pCharacteristic->setValue(cleanBuffer);

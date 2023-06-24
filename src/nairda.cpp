@@ -10,6 +10,7 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include "esp_spi_flash.h"
 #include <esp32-hal.h>
+#include "kits/kidsy.h"
 #endif
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
@@ -28,15 +29,39 @@ void setKit(uint8_t kitCode)
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/veml6040/VEML6040.h"
+#include "extern_libraries/ssd1306/Adafruit_SSD1306.h"
+#include "extern_libraries/dht11/DHT.h"
+
+#include <SPI.h>
+#include <Wire.h>
+
 VEML6040 RGBWSensor;
+DHT dht(16, DHT11);
+int hum;
+int temp;
 
 void nairdaBegin(const char *deviceName)
 {
-  disableCore0WDT();
-  randomSeed(1500);
   if (currentKit == ROBBUS_KIDSY_KIT)
   {
-    RGBWSensor.nairdaBegin();
+    calibrateKidsyColorSensor(RGBWSensor);
+  }
+
+  if (currentKit == LK32_KIT)
+  {
+    dht.begin();
+    temp = int(round(dht.readTemperature()));
+    hum = int(round(dht.readHumidity()));
+    Adafruit_SSD1306 display(128, 64, &Wire, -1);
+    if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+    {
+      display.clearDisplay();
+      display.setTextSize(2);
+      display.setTextColor(1);
+      display.setCursor(1, 1);
+      display.print(deviceName);
+      display.display();
+    }
   }
 
 #if defined(KIT_V1_ENABLED)
@@ -71,7 +96,7 @@ void nairdaLoop()
 #if defined(KIT_V1_ENABLED)
   writeKitDisplay();
 #endif
-  /**/
+
 #ifndef __AVR_ATmega168__
 #ifdef __AVR_ATmega32U4__
 

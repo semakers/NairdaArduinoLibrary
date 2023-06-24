@@ -45,12 +45,20 @@ void VEML6040::nairdaBegin(void)
     ledcSetup(0, 50, 8);
     ledcAttachPin(16, 0);
     ledcWrite(0, 255);
-    /* for (int i = 0; i < 1000; i++)
-     {
-       readFixedColors();
-     }*/
+    readCalibration();
 
     working = true;
+  }
+}
+
+void VEML6040::readCalibration(void)
+{
+  uint8_t buffer[16];
+  spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
+  for (int i = 0; i < 4; i++)
+  {
+    minValues[i] = (uint16_t)buffer[i * 2] | ((uint16_t)buffer[i * 2 + 1] << 8);
+    maxValues[i] = (uint16_t)buffer[i * 2 + 8] | ((uint16_t)buffer[i * 2 + 9] << 8);
   }
 }
 
@@ -121,10 +129,10 @@ uint16_t VEML6040::getWhite(void)
 void VEML6040::readFixedColors(void)
 {
 
-  fixedRed = map(getRed(), MIN_RED, MAX_RED, 0, 255);
-  fixedGreen = map(getGreen(), MIN_GREEN, MAX_GREEN, 0, 255);
-  fixedBlue = map(getBlue(), MIN_BLUE, MAX_BLUE, 0, 255);
-  fixedWhite = map(getWhite(), MIN_WHITE, MAX_WHITE, 0, 100);
+  fixedRed = map(getRed(), minValues[0], maxValues[0], 0, 255);
+  fixedGreen = map(getGreen(), minValues[1], maxValues[1], 0, 255);
+  fixedBlue = map(getBlue(), minValues[2], maxValues[2], 0, 255);
+  fixedWhite = map(getWhite(), minValues[3], maxValues[3], 0, 100);
 
   double colorsTogether = ((double)fixedRed + fixedGreen + fixedBlue);
   int min;
@@ -166,16 +174,6 @@ void VEML6040::readFixedColors(void)
     fixedGreen = 0;
     fixedBlue = 0;
   }
-
-  /* Serial.print(" ");
-   Serial.print((int)fixedRed);
-   Serial.print(" ");
-   Serial.print((int)fixedGreen);
-   Serial.print(" ");
-   Serial.print((int)fixedBlue);
-   Serial.print(" ");
-   Serial.print((int)fixedWhite);
-   Serial.println("");*/
 }
 
 uint8_t VEML6040::getFixedRed(void)
