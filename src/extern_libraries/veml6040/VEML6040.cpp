@@ -161,19 +161,6 @@ void VEML6040::readFixedColors(void)
     fixedGreen = fixedGreen * factor;
     fixedBlue = fixedBlue * factor;
   }
-
-  if (fixedWhite > 90 && fixedRed < 10 && fixedGreen < 10 && fixedBlue < 10)
-  {
-    fixedRed = 100;
-    fixedGreen = 100;
-    fixedBlue = 100;
-  }
-  else if (fixedWhite < 5)
-  {
-    fixedRed = 0;
-    fixedGreen = 0;
-    fixedBlue = 0;
-  }
 }
 
 uint8_t VEML6040::getFixedRed(void)

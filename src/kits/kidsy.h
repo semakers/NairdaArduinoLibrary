@@ -1,3 +1,4 @@
+#if defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/veml6040/VEML6040.h"
 
 #define BUTTON_A 34
@@ -5,3 +6,4 @@
 #define BUTTON_C 36
 
 void calibrateKidsyColorSensor(VEML6040 RGBWSensor);
+#endif
