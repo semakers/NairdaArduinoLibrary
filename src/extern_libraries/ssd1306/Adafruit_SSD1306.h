@@ -116,7 +116,7 @@ class Adafruit_SSD1306 : public Adafruit_GFX
 {
 public:
   // NEW CONSTRUCTORS -- recommended for new projects
-  Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi = &Wire, int8_t rst_pin = -1,
+  Adafruit_SSD1306(uint8_t w, uint8_t h, bool _featherPins, TwoWire *twi = &Wire, int8_t rst_pin = -1,
                    uint32_t clkDuring = 400000UL, uint32_t clkAfter = 100000UL);
   Adafruit_SSD1306(uint8_t w, uint8_t h, int8_t mosi_pin, int8_t sclk_pin,
                    int8_t dc_pin, int8_t rst_pin, int8_t cs_pin);
@@ -164,6 +164,7 @@ private:
   uint8_t *buffer;
   int8_t i2caddr, vccstate, page_end;
   int8_t mosiPin, clkPin, dcPin, csPin, rstPin;
+  bool featherPins;
 #ifdef HAVE_PORTREG
   PortReg *mosiPort, *clkPort, *dcPort, *csPort;
   PortMask mosiPinMask, clkPinMask, dcPinMask, csPinMask;

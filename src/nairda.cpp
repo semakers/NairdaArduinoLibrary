@@ -42,6 +42,7 @@ int temp;
 
 void nairdaBegin(const char *deviceName)
 {
+
   if (currentKit == ROBBUS_KIDSY_KIT)
   {
     calibrateKidsyColorSensor(RGBWSensor);
@@ -52,7 +53,21 @@ void nairdaBegin(const char *deviceName)
     dht.begin();
     temp = int(round(dht.readTemperature()));
     hum = int(round(dht.readHumidity()));
-    Adafruit_SSD1306 display(128, 64, &Wire, -1);
+    Adafruit_SSD1306 display(128, 64, false, &Wire, -1);
+    if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+    {
+      display.clearDisplay();
+      display.setTextSize(2);
+      display.setTextColor(1);
+      display.setCursor(1, 1);
+      display.print(deviceName);
+      display.display();
+    }
+  }
+
+  if (currentKit == ROBBUS_ZEEGO_KIT)
+  {
+    Adafruit_SSD1306 display(128, 64, true, &Wire, -1);
     if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
     {
       display.clearDisplay();
