@@ -9,7 +9,7 @@
 
 extern bool loadedFrequencies;
 
-void frequencyCreate(uint16_t *args, component_t * component)
+void frequencyCreate(uint16_t *args, component_t *component)
 {
     component->pins[0] = args[1];
 }
@@ -28,13 +28,14 @@ void frequencyDebugLoad(VolatileMemory *volatileMemory)
 
     volatileMemory->descArgsBuffer[0] = FREQUENCY;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
-     component_t *component = (component_t *)malloc(sizeof(component_t));
-    frequencyCreate(volatileMemory->descArgsBuffer,component);
+    component_t *component = (component_t *)malloc(sizeof(component_t));
+    frequencyCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[FREQUENCY].add(component);
 }
 
 void frequencyEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
     while (!loadedFrequencies)
     {
@@ -47,16 +48,17 @@ void frequencyEepromLoad(VolatileMemory *volatileMemory)
         {
             volatileMemory->descArgsBuffer[0] = FREQUENCY;
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-             component_t *component = (component_t *)malloc(sizeof(component_t));
-            frequencyCreate(volatileMemory->descArgsBuffer,component);
+            component_t *component = (component_t *)malloc(sizeof(component_t));
+            frequencyCreate(volatileMemory->descArgsBuffer, component);
             volatileMemory->components[FREQUENCY].add(component);
         }
     }
-    
+
     neoPixelEepromLoad(volatileMemory);
+#endif
 }
 
-void frequencyEepromRun(uint8_t id,VolatileMemory *volatileMemory)
+void frequencyEepromRun(uint8_t id, VolatileMemory *volatileMemory)
 {
     volatileMemory->execBuffer[0] = getInputValue(nextByte());
     volatileMemory->execBuffer[1] = getInputValue(nextByte());

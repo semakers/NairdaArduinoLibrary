@@ -12,6 +12,7 @@ extern int hum;
 #if defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/veml6040/VEML6040.h"
 #include "extern_libraries/dht11/DHT.h"
+#include "kits/zeego.h"
 extern VEML6040 RGBWSensor;
 extern DHT dht;
 unsigned long previousMillis = 0;
@@ -88,6 +89,17 @@ void analogicSense(uint8_t *pins, uint8_t *tempRead)
             tempRead[0] = map(analogRead(pins[0]), 0, 4095, 0, 100);
         }
     }
+    else if (currentKit == ROBBUS_ZEEGO_KIT)
+    {
+        if (pins[0] == 37)
+        {
+            tempRead[0] = readFloorValue();
+                }
+        else
+        {
+            tempRead[0] = map(analogRead(pins[0]), 0, 4095, 0, 100);
+        }
+    }
     else
     {
         tempRead[0] = map(analogRead(pins[0]), 0, 4095, 0, 100);
@@ -112,6 +124,7 @@ void analogicDebugLoad(VolatileMemory *volatileMemory)
 
 void analogicEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
     while (!loadedAnalogics)
     {
@@ -130,6 +143,7 @@ void analogicEepromLoad(VolatileMemory *volatileMemory)
         }
     }
     digitalInEepromLoad(volatileMemory);
+#endif
 }
 
 int32_t analogicEepromRead(VolatileMemory *volatileMemory)

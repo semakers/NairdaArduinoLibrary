@@ -121,6 +121,7 @@ void digitalOutDebugLoad(VolatileMemory *volatileMemory)
 
 void digitalOutEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
     while (!loadedDigitalOuts)
     {
@@ -141,6 +142,7 @@ void digitalOutEepromLoad(VolatileMemory *volatileMemory)
         }
     }
     frequencyEepromLoad(volatileMemory);
+#endif
 }
 
 void digitalOutEepromRun(uint8_t id, VolatileMemory *volatileMemory)

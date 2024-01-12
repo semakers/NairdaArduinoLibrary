@@ -43,6 +43,7 @@ void neoPixelDebugLoad(VolatileMemory *volatileMemory)
 
 void neoPixelEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
 
     while (!loadedNeoPixels)
@@ -59,13 +60,14 @@ void neoPixelEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
             volatileMemory->descArgsBuffer[2] = nextByte();
 
-             component_t *component = (component_t *)malloc(sizeof(component_t));
+            component_t *component = (component_t *)malloc(sizeof(component_t));
             neoPixelCreate(volatileMemory->descArgsBuffer, component);
             volatileMemory->components[NEOPIXEL]
                 .add(component);
         }
     }
     analogicEepromLoad(volatileMemory);
+#endif
 }
 
 void neoPixelEepromRun(uint8_t id, VolatileMemory *volatileMemory)

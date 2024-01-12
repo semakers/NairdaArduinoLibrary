@@ -11,6 +11,7 @@
 #include "esp_spi_flash.h"
 #include <esp32-hal.h>
 #include "kits/kidsy.h"
+#include "kits/zeego.h"
 #endif
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
@@ -68,6 +69,8 @@ void nairdaBegin(const char *deviceName)
   if (currentKit == ROBBUS_ZEEGO_KIT)
   {
     Adafruit_SSD1306 display(128, 64, true, &Wire, -1);
+    calibrateZeegoFloorSensor(display);
+    readFloorCalibration();
     if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
     {
       display.clearDisplay();

@@ -70,6 +70,7 @@ void digitalInDebugLoad(VolatileMemory *volatileMemory)
 
 void digitalInEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
     while (!loadedDigitalIns)
     {
@@ -88,6 +89,7 @@ void digitalInEepromLoad(VolatileMemory *volatileMemory)
         }
     }
     ultrasonicEepromLoad(volatileMemory);
+#endif
 }
 
 int32_t digitalInEepromRead(VolatileMemory *volatileMemory)

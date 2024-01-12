@@ -166,13 +166,14 @@ void motorDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
     volatileMemory->descArgsBuffer[3] = getMapedPin(volatileMemory->declarationBuffer[2]);
 
-     component_t *component = (component_t *)malloc(sizeof(component_t));
+    component_t *component = (component_t *)malloc(sizeof(component_t));
     motorCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[MOTOR].add(component);
 }
 
 void motorEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
     while (!loadedMotors)
     {
@@ -195,14 +196,14 @@ void motorEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[2] = getMapedPin(dcBytes[1]);
             volatileMemory->descArgsBuffer[3] = getMapedPin(dcBytes[2]);
 
-
-             component_t *component = (component_t *)malloc(sizeof(component_t));
+            component_t *component = (component_t *)malloc(sizeof(component_t));
             motorCreate(volatileMemory->descArgsBuffer, component);
 
             volatileMemory->components[MOTOR].add(component);
         }
     }
     digitalOutEepromLoad(volatileMemory);
+#endif
 }
 
 void motorEepromRun(uint8_t id, VolatileMemory *volatileMemory)

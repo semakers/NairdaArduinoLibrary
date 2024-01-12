@@ -62,7 +62,7 @@ void ultrasonicSense(uint8_t *pins, uint8_t *tempRead)
     digitalWrite(pins[0], HIGH);
     delayMicroseconds(10);
     digitalWrite(pins[0], LOW);
-    tempRead[0] = pulseIn(pins[1], HIGH,10000) / 27.6233 / 2;
+    tempRead[0] = pulseIn(pins[1], HIGH, 10000) / 27.6233 / 2;
     static int lastValue;
     static int zeroCounter = 0;
 
@@ -93,13 +93,14 @@ void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->descArgsBuffer[0] = ULTRASONIC;
     volatileMemory->descArgsBuffer[1] = getMapedPin(volatileMemory->declarationBuffer[0]);
     volatileMemory->descArgsBuffer[2] = getMapedPin(volatileMemory->declarationBuffer[1]);
-     component_t *component = (component_t *)malloc(sizeof(component_t));
+    component_t *component = (component_t *)malloc(sizeof(component_t));
     ultrasonicCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[ULTRASONIC].add(component);
 }
 
 void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
 {
+#ifndef __AVR_ATmega168__
     uint8_t currentByte;
     while (!loadedUltrasonics)
     {
@@ -119,13 +120,14 @@ void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
             volatileMemory->descArgsBuffer[0] = ULTRASONIC;
             volatileMemory->descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
             volatileMemory->descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-             component_t *component = (component_t *)malloc(sizeof(component_t));
+            component_t *component = (component_t *)malloc(sizeof(component_t));
             ultrasonicCreate(volatileMemory->descArgsBuffer, component);
             volatileMemory->components[ULTRASONIC].add(component);
         }
     }
-    
+
     variableEepromLoad();
+#endif
 }
 
 int32_t ultrasonicEepromRead(VolatileMemory *volatileMemory)
