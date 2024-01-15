@@ -11,6 +11,7 @@
 #define FLOOR_5 36
 
 uint8_t readFloorValue();
+uint8_t readFloorNumValue();
 void readFloorCalibration();
 void calibrateZeegoFloorSensor(Adafruit_SSD1306 display);
 

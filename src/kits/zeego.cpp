@@ -5,6 +5,7 @@
 #include <Arduino.h>
 
 uint16_t offsetValues[5] = {4095, 4095, 4095, 4095, 4095};
+uint8_t lastPosition;
 
 void readFloorCalibration()
 {
@@ -27,6 +28,93 @@ uint8_t readFloorValue()
         result |= (rawValue <= offsetValues[i] ? 1 : 0) << i;
     }
     return result;
+}
+
+uint8_t readFloorNumValue()
+{
+    uint8_t floorPins[5] = {FLOOR_5, FLOOR_4, FLOOR_3, FLOOR_2, FLOOR_1};
+    bool readedValues[5];
+    int counter = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        int rawValue = analogRead(floorPins[i]);
+        readedValues[i] = rawValue <= offsetValues[i];
+        if (readedValues[i])
+        {
+            counter++;
+        }
+    }
+    switch (counter)
+    {
+    case 1:
+
+        if (readedValues[0])
+        {
+            lastPosition = 1;
+        }
+        if (readedValues[1])
+        {
+            lastPosition = 3;
+        }
+        if (readedValues[2])
+        {
+            lastPosition = 5;
+        }
+        if (readedValues[3])
+        {
+            lastPosition = 7;
+        }
+        if (readedValues[4])
+        {
+            lastPosition = 9;
+        }
+        break;
+    case 2:
+        if (readedValues[0] && readedValues[1])
+        {
+            lastPosition = 2;
+        }
+        if (readedValues[1] && readedValues[2])
+        {
+            lastPosition = 4;
+        }
+
+        if (readedValues[2] && readedValues[3])
+        {
+            lastPosition = 6;
+        }
+        if (readedValues[3] && readedValues[4])
+        {
+            lastPosition = 8;
+        }
+        break;
+    case 3:
+        if (readedValues[0] && readedValues[1] && readedValues[2])
+        {
+            lastPosition = 3;
+        }
+        if (readedValues[1] && readedValues[2] && readedValues[3])
+        {
+            lastPosition = 5;
+        }
+        if (readedValues[2] && readedValues[3] && readedValues[4])
+        {
+            lastPosition = 7;
+        }
+        break;
+    case 4:
+        if (readedValues[0] && readedValues[1] && readedValues[2] && readedValues[3])
+        {
+            lastPosition = 1;
+        }
+        if (readedValues[1] && readedValues[2] && readedValues[3] && readedValues[4])
+        {
+            lastPosition = 9;
+        }
+        break;
+    }
+
+    return lastPosition;
 }
 
 void calibrateZeegoFloorSensor(Adafruit_SSD1306 display)
@@ -61,7 +149,7 @@ void calibrateZeegoFloorSensor(Adafruit_SSD1306 display)
         for (uint8_t i = 0; i < 5; i++)
         {
 
-            offsetValues[i] = offsetValues[i] + 20;
+            offsetValues[i] = offsetValues[i] + 150;
         }
         spi_flash_erase_range(0x200000 + (4096 * 127), 4096);
         delay(150);

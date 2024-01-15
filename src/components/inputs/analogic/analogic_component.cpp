@@ -91,10 +91,18 @@ void analogicSense(uint8_t *pins, uint8_t *tempRead)
     }
     else if (currentKit == ROBBUS_ZEEGO_KIT)
     {
-        if (pins[0] == 37)
+        if (pins[0] == 37 || pins[0] == 38)
         {
-            tempRead[0] = readFloorValue();
-                }
+            switch (pins[0])
+            {
+            case 37:
+                tempRead[0] = readFloorValue();
+                break;
+            case 38:
+                tempRead[0] = readFloorNumValue();
+                break;
+            }
+        }
         else
         {
             tempRead[0] = map(analogRead(pins[0]), 0, 4095, 0, 100);
