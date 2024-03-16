@@ -1,7 +1,7 @@
 /*!
  * @file Adafruit_NeoPixel.cpp
  *
- * @mainpage Arduino Library for driving Adafruit NeoPixel addressable DIGITAL_OUTs,
+ * @mainpage Arduino Library for driving Adafruit NeoPixel addressable LEDs,
  * FLORA RGB Smart Pixels and compatible devicess -- WS2811, WS2812, WS2812B,
  * SK6812, etc.
  *
@@ -82,6 +82,16 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t p, neoPixelType t)
   updateType(t);
   updateLength(n);
   setPin(p);
+#if defined(ARDUINO_ARCH_RP2040)
+  // Find a free SM on one of the PIO's
+  sm = pio_claim_unused_sm(pio, false); // don't panic
+  // Try pio1 if SM not found
+  if (sm < 0) {
+    pio = pio1;
+    sm = pio_claim_unused_sm(pio, true); // panic if no SM is free
+  }
+  init = true;
+#endif
 }
 
 /*!
@@ -99,7 +109,7 @@ Adafruit_NeoPixel::Adafruit_NeoPixel()
 #if defined(NEO_KHZ400)
       is800KHz(true),
 #endif
-      begun(false), numDIGITAL_OUTs(0), numBytes(0), pin(-1), brightness(0),
+      begun(false), numLEDs(0), numBytes(0), pin(-1), brightness(0),
       pixels(NULL), rOffset(1), gOffset(0), bOffset(2), wOffset(1), endTime(0) {
 }
 
@@ -140,9 +150,9 @@ void Adafruit_NeoPixel::updateLength(uint16_t n) {
   numBytes = n * ((wOffset == rOffset) ? 3 : 4);
   if ((pixels = (uint8_t *)malloc(numBytes))) {
     memset(pixels, 0, numBytes);
-    numDIGITAL_OUTs = n;
+    numLEDs = n;
   } else {
-    numDIGITAL_OUTs = numBytes = 0;
+    numLEDs = numBytes = 0;
   }
 }
 
@@ -179,13 +189,42 @@ void Adafruit_NeoPixel::updateType(neoPixelType t) {
   if (pixels) {
     bool newThreeBytesPerPixel = (wOffset == rOffset);
     if (newThreeBytesPerPixel != oldThreeBytesPerPixel)
-      updateLength(numDIGITAL_OUTs);
+      updateLength(numLEDs);
   }
 }
 
+// RP2040 specific driver
 #if defined(ARDUINO_ARCH_RP2040)
-extern "C" void rp2040Show(uint16_t pin, uint8_t *pixels, uint32_t numBytes,
-                           uint8_t type);
+void Adafruit_NeoPixel::rp2040Init(uint8_t pin, bool is800KHz)
+{
+  uint offset = pio_add_program(pio, &ws2812_program);
+
+  if (is800KHz)
+  {
+    // 800kHz, 8 bit transfers
+    ws2812_program_init(pio, sm, offset, pin, 800000, 8);
+  }
+  else
+  {
+    // 400kHz, 8 bit transfers
+    ws2812_program_init(pio, sm, offset, pin, 400000, 8);
+  }
+}
+// Not a user API
+void  Adafruit_NeoPixel::rp2040Show(uint8_t pin, uint8_t *pixels, uint32_t numBytes, bool is800KHz)
+{
+  if (this->init)
+  {
+    // On first pass through initialise the PIO
+    rp2040Init(pin, is800KHz);
+    this->init = false;
+  }
+
+  while(numBytes--)
+    // Bits for transmission must be shifted to top 8 bits
+    pio_sm_put_blocking(pio, sm, ((uint32_t)*pixels++)<< 24);
+}
+
 #endif
 
 #if defined(ESP8266)
@@ -238,13 +277,14 @@ void Adafruit_NeoPixel::show(void) {
     // OUT or ST instructions. It relies on two facts: that peripheral
     // functions (such as PWM) take precedence on output pins, so our PORT-
     // wide writes won't interfere, and that interrupts are globally disabled
-    // while data is being issued to the DIGITAL_OUTs, so no other code will be
+    // while data is being issued to the LEDs, so no other code will be
     // accessing the PORT. The code takes an initial 'snapshot' of the PORT
     // state, computes 'pin high' and 'pin low' values, and writes these back
     // to the PORT register as needed.
 
     // NRF52 may use PWM + DMA (if available), may not need to disable interrupt
-#if !(defined(NRF52) || defined(NRF52_SERIES))
+    // ESP32 may not disable interrupts because espShow() uses RMT which tries to acquire locks
+#if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
   noInterrupts(); // Need 100% focus on instruction timing
 #endif
 
@@ -257,10 +297,10 @@ void Adafruit_NeoPixel::show(void) {
       hi,                         // PORT w/output bit set high
       lo;                         // PORT w/output bit set low
 
-  // Hand-tuned assembly code issues data to the DIGITAL_OUT drivers at a specific
+  // Hand-tuned assembly code issues data to the LED drivers at a specific
   // rate. There's separate code for different CPU speeds (8, 12, 16 MHz)
   // for both the WS2811 (400 KHz) and WS2812 (800 KHz) drivers. The
-  // datastream timing for the DIGITAL_OUT drivers allows a little wiggle room each
+  // datastream timing for the LED drivers allows a little wiggle room each
   // way (listed in the datasheets), so the conditions for compiling each
   // case are set up for a range of frequencies rather than just the exact
   // 8, 12 or 16 MHz values, permitting use with some close-but-not-spot-on
@@ -2140,7 +2180,7 @@ void Adafruit_NeoPixel::show(void) {
     // the interrupts. Disabling the interrupts even for short periods of time
     // causes the SoftDevice to stop working.
     // Disable the interrupts only in cases where you need high performance for
-    // the DIGITAL_OUTs and if you are not using the EasyDMA feature.
+    // the LEDs and if you are not using the EasyDMA feature.
     __disable_irq();
 #endif
 
@@ -2214,10 +2254,11 @@ void Adafruit_NeoPixel::show(void) {
   }
   // END of NRF52 implementation
 
-#elif defined(__SAMD21E17A__) || defined(__SAMD21G18A__) ||                    \
-    defined(__SAMD21E18A__) ||                                                 \
-    defined(__SAMD21J18A__) // Arduino Zero, Gemma/Trinket M0, SODAQ Autonomo
-                            // and others
+#elif defined(__SAMD21E17A__) || defined(__SAMD21G18A__) || \
+      defined(__SAMD21E18A__) || defined(__SAMD21J18A__) || \
+      defined (__SAMD11C14A__)
+  // Arduino Zero, Gemma/Trinket M0, SODAQ Autonomo
+  // and others
   // Tried this with a timer/counter, couldn't quite get adequate
   // resolution. So yay, you get a load of goofball NOPs...
 
@@ -2991,7 +3032,7 @@ if(is800KHz) {
 
   // END ARCHITECTURE SELECT ------------------------------------------------
 
-#if !(defined(NRF52) || defined(NRF52_SERIES))
+#if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
   interrupts();
 #endif
 
@@ -3032,7 +3073,7 @@ void Adafruit_NeoPixel::setPin(int16_t p) {
 void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
                                       uint8_t b) {
 
-  if (n < numDIGITAL_OUTs) {
+  if (n < numLEDs) {
     if (brightness) { // See notes in setBrightness()
       r = (r * brightness) >> 8;
       g = (g * brightness) >> 8;
@@ -3064,7 +3105,7 @@ void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
 void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
                                       uint8_t b, uint8_t w) {
 
-  if (n < numDIGITAL_OUTs) {
+  if (n < numLEDs) {
     if (brightness) { // See notes in setBrightness()
       r = (r * brightness) >> 8;
       g = (g * brightness) >> 8;
@@ -3092,7 +3133,7 @@ void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g,
               and least significant byte is blue.
 */
 void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint32_t c) {
-  if (n < numDIGITAL_OUTs) {
+  if (n < numLEDs) {
     uint8_t *p, r = (uint8_t)(c >> 16), g = (uint8_t)(c >> 8), b = (uint8_t)c;
     if (brightness) { // See notes in setBrightness()
       r = (r * brightness) >> 8;
@@ -3126,19 +3167,19 @@ void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint32_t c) {
 void Adafruit_NeoPixel::fill(uint32_t c, uint16_t first, uint16_t count) {
   uint16_t i, end;
 
-  if (first >= numDIGITAL_OUTs) {
-    return; // If first DIGITAL_OUT is past end of strip, nothing to do
+  if (first >= numLEDs) {
+    return; // If first LED is past end of strip, nothing to do
   }
 
   // Calculate the index ONE AFTER the last pixel to fill
   if (count == 0) {
     // Fill to end of strip
-    end = numDIGITAL_OUTs;
+    end = numLEDs;
   } else {
     // Ensure that the loop won't go past the last pixel
     end = first + count;
-    if (end > numDIGITAL_OUTs)
-      end = numDIGITAL_OUTs;
+    if (end > numLEDs)
+      end = numLEDs;
   }
 
   for (i = first; i < end; i++) {
@@ -3166,7 +3207,7 @@ void Adafruit_NeoPixel::fill(uint32_t c, uint16_t first, uint16_t count) {
            operation) else colors may appear washed out. This is not done
            automatically by this function because coders may desire a more
            refined gamma-correction function than the simplified
-           one-size-fits-all operation of gamma32(). Diffusing the DIGITAL_OUTs also
+           one-size-fits-all operation of gamma32(). Diffusing the LEDs also
            really seems to help when using low-saturation colors.
 */
 uint32_t Adafruit_NeoPixel::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) {
@@ -3257,7 +3298,7 @@ uint32_t Adafruit_NeoPixel::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) {
            This gets more pronounced at lower brightness levels.
 */
 uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) const {
-  if (n >= numDIGITAL_OUTs)
+  if (n >= numLEDs)
     return 0; // Out of bounds, return no color.
 
   uint8_t *p;
@@ -3294,12 +3335,12 @@ uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) const {
 
 /*!
   @brief   Adjust output brightness. Does not immediately affect what's
-           currently displayed on the DIGITAL_OUTs. The next call to show() will
-           refresh the DIGITAL_OUTs at this level.
+           currently displayed on the LEDs. The next call to show() will
+           refresh the LEDs at this level.
   @param   b  Brightness setting, 0=minimum (off), 255=brightest.
   @note    This was intended for one-time use in one's setup() function,
            not as an animation effect in itself. Because of the way this
-           library "pre-multiplies" DIGITAL_OUT colors in RAM, changing the
+           library "pre-multiplies" LED colors in RAM, changing the
            brightness is often a "lossy" operation -- what you write to
            pixels isn't necessary the same as what you'll read back.
            Repeated brightness changes using this function exacerbate the
@@ -3370,3 +3411,64 @@ uint32_t Adafruit_NeoPixel::gamma32(uint32_t x) {
     y[i] = gamma8(y[i]);
   return x; // Packed 32-bit return
 }
+
+/*!
+  @brief   Fill NeoPixel strip with one or more cycles of hues.
+           Everyone loves the rainbow swirl so much, now it's canon!
+  @param   first_hue   Hue of first pixel, 0-65535, representing one full
+                       cycle of the color wheel. Each subsequent pixel will
+                       be offset to complete one or more cycles over the
+                       length of the strip.
+  @param   reps        Number of cycles of the color wheel over the length
+                       of the strip. Default is 1. Negative values can be
+                       used to reverse the hue order.
+  @param   saturation  Saturation (optional), 0-255 = gray to pure hue,
+                       default = 255.
+  @param   brightness  Brightness/value (optional), 0-255 = off to max,
+                       default = 255. This is distinct and in combination
+                       with any configured global strip brightness.
+  @param   gammify     If true (default), apply gamma correction to colors
+                       for better appearance.
+*/
+void Adafruit_NeoPixel::rainbow(uint16_t first_hue, int8_t reps,
+  uint8_t saturation, uint8_t brightness, bool gammify) {
+  for (uint16_t i=0; i<numLEDs; i++) {
+    uint16_t hue = first_hue + (i * reps * 65536) / numLEDs;
+    uint32_t color = ColorHSV(hue, saturation, brightness);
+    if (gammify) color = gamma32(color);
+    setPixelColor(i, color);
+  }
+}
+
+/*!
+  @brief  Convert pixel color order from string (e.g. "BGR") to NeoPixel
+          color order constant (e.g. NEO_BGR). This may be helpful for code
+          that initializes from text configuration rather than compile-time
+          constants.
+  @param   v  Input string. Should be reasonably sanitized (a 3- or 4-
+              character NUL-terminated string) or undefined behavior may
+              result (output is still a valid NeoPixel order constant, but
+              might not present as expected). Garbage in, garbage out.
+  @return  One of the NeoPixel color order constants (e.g. NEO_BGR).
+           NEO_KHZ400 or NEO_KHZ800 bits are not included, nor needed (all
+           NeoPixels actually support 800 KHz it's been found, and this is
+           the default state if no KHZ bits set).
+  @note    This function is declared static in the class so it can be called
+           without a NeoPixel object (since it's not likely been declared
+           in the code yet). Use Adafruit_NeoPixel::str2order().
+*/
+neoPixelType Adafruit_NeoPixel::str2order(const char *v) {
+  int8_t r = 0, g = 0, b = 0, w = -1;
+  if (v) {
+    char c;
+    for (uint8_t i=0; ((c = tolower(v[i]))); i++) {
+      if (c == 'r') r = i;
+      else if (c == 'g') g = i;
+      else if (c == 'b') b = i;
+      else if (c == 'w') w = i;
+    }
+    r &= 3;
+  }
+  if (w < 0) w = r; // If 'w' not specified, duplicate r bits
+  return (w << 6) | (r << 4) | ((g & 3) << 2) | (b & 3);
+} 
