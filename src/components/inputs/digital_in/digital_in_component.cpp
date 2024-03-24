@@ -37,6 +37,9 @@ void digitalInSense(uint8_t *pins, uint8_t *tempRead)
 #if defined(ARDUINO_ARCH_ESP32)
     if (currentKit == ROBBUS_KIDSY_KIT)
     {
+#ifndef ESP32C3
+
+#else
         if (isKidsyArrowPin(pins[0]) == 1)
         {
             tempRead[0] = touchRead(pins[0]) > 15 ? 0 : 1;
@@ -45,6 +48,7 @@ void digitalInSense(uint8_t *pins, uint8_t *tempRead)
         {
             tempRead[0] = digitalRead(pins[0]);
         }
+#endif
     }
     else
     {
