@@ -190,7 +190,7 @@ void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
         clearVolatileMemory(volatileMemory, true);
 #else
-        clearVolatileMemory(volatileMemory, true);
+        // clearVolatileMemory(volatileMemory, true);
         asm volatile("jmp 0");
 #endif
         // Serial.println("Se limpriaron las listas");
