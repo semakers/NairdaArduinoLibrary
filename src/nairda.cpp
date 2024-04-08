@@ -114,36 +114,38 @@ void nairdaLoop()
 #if defined(KIT_V1_ENABLED)
   writeKitDisplay();
 #endif
+  /*
+  #ifndef __AVR_ATmega168__
+  #ifdef __AVR_ATmega32U4__
 
-#ifndef __AVR_ATmega168__
-#ifdef __AVR_ATmega32U4__
-
-  if (asmOperations > 250000 && volatileMemory.declaratedComponents == false)
-  {
-    loadEepromDescriptor();
-  }
-  else
-  {
-    if (asmOperations <= 200000)
+    if (asmOperations > 250000 && volatileMemory.declaratedComponents == false)
     {
-      asmOperations++;
+      loadEepromDescriptor();
     }
-  }
+    else
+    {
+      if (asmOperations <= 200000)
+      {
+        asmOperations++;
+      }
+    }
 
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-  if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
-  {
-#else
-  if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
-  {
-#endif
-    loadEepromDescriptor();
-    runProgrammTimeOut = millis();
-  }
+  #else
+  #if defined(ARDUINO_ARCH_ESP32)
+    if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
+    {
+  #else
+    if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
+    {
+  #endif
+      loadEepromDescriptor();
+      runProgrammTimeOut = millis();
+    }
 
-#endif
-#endif
+
+  #endif
+  #endif
+  */
 
   if (nextBlueByte(&currentValue) == true)
   {
