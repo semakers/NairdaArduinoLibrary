@@ -191,6 +191,11 @@ void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
         clearVolatileMemory(volatileMemory, true);
 #else
         // clearVolatileMemory(volatileMemory, true);
+        for (int i = 2; i < 20; i++)
+        {
+            pinMode(i, INPUT);
+        }
+        delay(500);
         asm volatile("jmp 0");
 #endif
         // Serial.println("Se limpriaron las listas");
