@@ -41,8 +41,10 @@ DHT dht(16, DHT11);
 int hum;
 int temp;
 
-void nairdaBegin(const char *deviceName)
+void nairdaBegin(const char *deviceName, long int bauds)
 {
+
+  Serial.begin(bauds);
 
   if (currentKit == ROBBUS_KIDSY_KIT)
   {

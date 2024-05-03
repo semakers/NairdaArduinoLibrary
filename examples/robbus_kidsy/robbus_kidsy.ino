@@ -3,7 +3,7 @@
 void setup()
 {
     setKit(ROBBUS_KIDSY_KIT);
-    nairdaBegin("Robbus Kidsy BT");
+    nairdaBegin("Robbus Kidsy BT", 9600);
 }
 
 void loop()

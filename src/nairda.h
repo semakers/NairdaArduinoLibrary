@@ -8,7 +8,7 @@
 #define ROBBUS_ZEEGO_KIT 3
 
 #if defined(ARDUINO_ARCH_ESP32)
-void nairdaBegin(const char *deviceName);
+void nairdaBegin(const char *deviceName, long int bauds);
 #else
 void nairdaBegin(long int bauds);
 #endif

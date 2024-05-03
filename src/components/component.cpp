@@ -1,7 +1,6 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 
-
 void execAct(uint32_t *execArgs, uint8_t type, component_t *component)
 {
     switch (type)
@@ -48,19 +47,20 @@ uint8_t getSensVal(uint8_t type, component_t *component)
                                                  : tempRead;
 }
 
-void sendSensVal(uint8_t type,component_t * component)
+void sendSensVal(uint8_t type, component_t *component)
 {
 #if defined(ARDUINO_ARCH_STM32)
-    Serial.write((char)getSensVal(type,component));
+    Serial.write((char)getSensVal(type, component));
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-    bleWrite((char)getSensVal(type,component));
+    bleWrite((char)getSensVal(type, component));
+    Serial.write((char)getSensVal(type, component));
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char)getSensVal(type,component));
+    Serial1.write((char)getSensVal(type, component));
 #endif
-    Serial.write((char)getSensVal(type,component));
+    Serial.write((char)getSensVal(type, component));
 
 #endif
 #endif

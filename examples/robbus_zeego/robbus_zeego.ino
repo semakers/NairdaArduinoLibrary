@@ -3,7 +3,7 @@
 void setup()
 {
     setKit(ROBBUS_ZEEGO_KIT);
-    nairdaBegin(" ZEEGO BT");
+    nairdaBegin(" ZEEGO BT", 9600);
 }
 
 void loop()

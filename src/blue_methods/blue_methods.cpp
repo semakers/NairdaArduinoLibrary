@@ -129,7 +129,7 @@ void sendMemorySize(uint32_t memorySize)
 {
 #if defined(ARDUINO_ARCH_ESP32)
 
-        uint8_t buffer[16];
+    uint8_t buffer[16];
     spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
     spi_flash_erase_range(0x200000, 4096 * 128);
     spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
@@ -162,7 +162,22 @@ bool nextBlueByte(uint8_t *blueByte)
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-    if (bleAvailable())
+    int serialAvailable = Serial.available();
+    int serial1Available = Serial1.available();
+    if (serialAvailable > 0 || serial1Available > 0)
+    {
+        if (serialAvailable > 0)
+        {
+            blueByte[0] = Serial.read();
+            return true;
+        }
+        else if (serial1Available > 0)
+        {
+            blueByte[0] = Serial1.read();
+            return true;
+        }
+    }
+    else if (bleAvailable())
     {
 
         blueByte[0] = bleRead();
