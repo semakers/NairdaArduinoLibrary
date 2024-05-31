@@ -64,8 +64,7 @@ bool Servo::attach(int pin, int channel,
     _minPulseWidth = minPulseWidth;
     _maxPulseWidth = maxPulseWidth;
 
-    ledcSetup(_channel, 50, 16); // channel X, 50 Hz, 16-bit depth
-    ledcAttachPin(_pin, _channel);
+    ledcAttachChannel(_pin,50,16,_channel);
     return true;
 }
 
@@ -78,7 +77,7 @@ bool Servo::detach() {
     if(_channel == (channel_next_free - 1))
         channel_next_free--;
 
-    ledcDetachPin(_pin);
+    ledcDetach(_pin);
     _pin = PIN_NOT_ATTACHED;
     return true;
 }

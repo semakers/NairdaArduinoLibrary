@@ -30,8 +30,7 @@ void digitalOutCreate(uint16_t *args, component_t *component)
         else
         {
 
-            ledcSetup(getCurrentChannel(), 50, 16);
-            ledcAttachPin(args[1], getCurrentChannel());
+            ledcAttachChannel(args[1],50,16,getCurrentChannel());
             component->ledcChannel[0] = getCurrentChannel();
             nextCurrentChannel();
         }
@@ -101,7 +100,7 @@ void digitalOutOff(uint8_t *pins, int8_t *ledcChannel)
 #elif defined(ARDUINO_ARCH_ESP32)
 
     ledcWrite(ledcChannel[0], 0);
-    ledcDetachPin(pins[0]);
+    ledcDetach(pins[0]);
 
 #else
     SoftPWMSet(pins[0], 0);

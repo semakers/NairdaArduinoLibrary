@@ -39,7 +39,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
 {
     void onWrite(BLECharacteristic *pCharacteristic)
     {
-        std::string rxValue = pCharacteristic->getValue();
+        String rxValue = pCharacteristic->getValue();
         if (rxValue.length() > 0)
         {
             for (int i = 0; i < rxValue.length(); i++)
@@ -88,8 +88,7 @@ uint8_t bleRead()
 
 void bleWrite(uint8_t byte)
 {
-    std::string myStringForUnit8((char *)&byte, 1);
-    pCharacteristic->setValue(myStringForUnit8);
+    pCharacteristic->setValue(&byte,1);
     pCharacteristic->notify();
 }
 
@@ -130,9 +129,9 @@ void sendMemorySize(uint32_t memorySize)
 #if defined(ARDUINO_ARCH_ESP32)
 
     uint8_t buffer[16];
-    spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
-    spi_flash_erase_range(0x200000, 4096 * 128);
-    spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
+    //spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
+    //spi_flash_erase_range(0x200000, 4096 * 128);
+    //spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
     char cleanBuffer[22];
     memset(cleanBuffer, 0, 22);
     pCharacteristic->setValue(cleanBuffer);

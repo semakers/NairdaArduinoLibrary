@@ -31,8 +31,7 @@ void motorCreate(uint16_t *args, component_t *component)
 
     if(args[3]==0){
          if (getCurrentChannel() < 16){
-            ledcSetup(getCurrentChannel(), 50, 16);
-            ledcAttachPin(args[1], getCurrentChannel());
+            ledcAttachChannel(args[1],50,16,getCurrentChannel());
             component->ledcChannel[0] = getCurrentChannel();
             nextCurrentChannel();
             }
@@ -41,8 +40,7 @@ void motorCreate(uint16_t *args, component_t *component)
             }
 
         if (getCurrentChannel() < 16){
-            ledcSetup(getCurrentChannel(), 50, 16);
-            ledcAttachPin(args[2], getCurrentChannel());
+            ledcAttachChannel(args[2],50,16,getCurrentChannel());
             component->ledcChannel[1] = getCurrentChannel();
             nextCurrentChannel();
             }
@@ -54,8 +52,7 @@ void motorCreate(uint16_t *args, component_t *component)
     pinMode(args[2], OUTPUT);
     if (getCurrentChannel() < 16)
     {
-        ledcSetup(getCurrentChannel(), 50, 16);
-        ledcAttachPin(args[3], getCurrentChannel());
+        ledcAttachChannel(args[3],50,16,getCurrentChannel());
         component->ledcChannel[0] = getCurrentChannel();
         nextCurrentChannel();
     }
@@ -288,9 +285,9 @@ void motorOff(uint8_t *pins, int8_t *ledcChannel)
 #elif defined(ARDUINO_ARCH_ESP32)
 
     ledcWrite(ledcChannel[0], 0);
-    ledcDetachPin(pins[0]);
+    ledcDetach(pins[0]);
     ledcWrite(ledcChannel[1], 0);
-    ledcDetachPin(pins[1]);
+    ledcDetach(pins[1]);
 #else
     SoftPWMSet(pins[0], 0);
     SoftPWMEnd(pins[0]);
@@ -307,7 +304,7 @@ void motorOff(uint8_t *pins, int8_t *ledcChannel)
 #elif defined(ARDUINO_ARCH_ESP32)
 
     ledcWrite(ledcChannel[0], 0);
-    ledcDetachPin(pins[2]);
+    ledcDetach(pins[2]);
 #else
     SoftPWMSet(pins[2], 0);
     SoftPWMEnd(pins[2]);
