@@ -30,7 +30,7 @@ void digitalOutCreate(uint16_t *args, component_t *component)
         else
         {
 
-            ledcAttachChannel(args[1],50,16,getCurrentChannel());
+            ledcAttachChannel(args[1], 50, 16, getCurrentChannel());
             component->ledcChannel[0] = getCurrentChannel();
             nextCurrentChannel();
         }
@@ -71,7 +71,7 @@ void digitalOutExec(uint32_t *execArgs, uint8_t *pins, uint8_t *values, int8_t *
     {
         if (ledcChannel[0] != -1)
         {
-            ledcWrite(ledcChannel[0], map(values[0], 0, 100, 0, 65535));
+            ledcWrite(pins[0], map(values[0], 0, 100, 0, 65535));
         }
         else
         {
@@ -99,7 +99,7 @@ void digitalOutOff(uint8_t *pins, int8_t *ledcChannel)
     softPwmSTM32Dettach(pins[0]);
 #elif defined(ARDUINO_ARCH_ESP32)
 
-    ledcWrite(ledcChannel[0], 0);
+    ledcWrite(pins[0], 0);
     ledcDetach(pins[0]);
 
 #else
