@@ -17,73 +17,65 @@ void motorCreate(uint16_t *args, component_t *component)
     component->pins[1] = args[2];
     component->pins[2] = args[3];
 #if defined(ARDUINO_ARCH_STM32)
-    if (args[3] == 0)
-    {
+    if(args[3]==0){
         softPwmSTM32Attach(args[1], 0);
         softPwmSTM32Attach(args[2], 0);
-    }
-    else
-    {
+    }else{
         pinMode(args[1], OUTPUT);
         pinMode(args[2], OUTPUT);
         softPwmSTM32Attach(args[3], 0);
     }
-
+    
 #else
 #if defined(ARDUINO_ARCH_ESP32)
 
-    if (args[3] == 0)
-    {
-        if (getCurrentChannel() < 16)
-        {
-            ledcAttachChannel(args[1], 50, 16, getCurrentChannel());
+    if(args[3]==0){
+         if (getCurrentChannel() < 16){
+            ledcSetup(getCurrentChannel(), 50, 16);
+            ledcAttachPin(args[1], getCurrentChannel());
             component->ledcChannel[0] = getCurrentChannel();
             nextCurrentChannel();
-        }
-        else
-        {
-            pinMode(args[1], OUTPUT);
-        }
+            }
+        else{
+        pinMode(args[1], OUTPUT);
+            }
 
-        if (getCurrentChannel() < 16)
-        {
-            ledcAttachChannel(args[2], 50, 16, getCurrentChannel());
+        if (getCurrentChannel() < 16){
+            ledcSetup(getCurrentChannel(), 50, 16);
+            ledcAttachPin(args[2], getCurrentChannel());
             component->ledcChannel[1] = getCurrentChannel();
             nextCurrentChannel();
-        }
-        else
-        {
+            }
+        else{
             pinMode(args[2], OUTPUT);
-        }
+            }
+    }else{
+    pinMode(args[1], OUTPUT);
+    pinMode(args[2], OUTPUT);
+    if (getCurrentChannel() < 16)
+    {
+        ledcSetup(getCurrentChannel(), 50, 16);
+        ledcAttachPin(args[3], getCurrentChannel());
+        component->ledcChannel[0] = getCurrentChannel();
+        nextCurrentChannel();
     }
     else
     {
-        pinMode(args[1], OUTPUT);
-        pinMode(args[2], OUTPUT);
-        if (getCurrentChannel() < 16)
-        {
-            ledcAttachChannel(args[3], 50, 16, getCurrentChannel());
-            component->ledcChannel[0] = getCurrentChannel();
-            nextCurrentChannel();
-        }
-        else
-        {
-            pinMode(args[3], OUTPUT);
-        }
+        pinMode(args[3], OUTPUT);
     }
+    }
+    
 
 #else
-    if (args[3] == 0)
-    {
+    if(args[3]==0){
         SoftPWMSet(args[1], 0);
         SoftPWMSet(args[2], 0);
-    }
-    else
-    {
+    }else{
         pinMode(args[1], OUTPUT);
         pinMode(args[2], OUTPUT);
         SoftPWMSet(args[3], 0);
     }
+    
 
 #endif
 #endif
@@ -93,249 +85,235 @@ void motorExec(uint32_t *execArgs, uint8_t *pins, uint8_t *values, int8_t *ledcC
     values[0] = (execArgs[0] < 0) ? 0 : (execArgs[0] > 100) ? 100
                                                             : execArgs[0];
 #if defined(ARDUINO_ARCH_STM32)
-    if (pins[2] == 0)
-    {
+    if(pins[2]==0){
         switch (execArgs[1])
-        {
-        case 0:
-            softPwmSTM32Set(pins[0], values[0]);
-            softPwmSTM32Set(pins[1], 0);
-
-            break;
-        case 1:
-            softPwmSTM32Set(pins[0], 0);
-            softPwmSTM32Set(pins[1], 0);
-            break;
-        case 2:
-            softPwmSTM32Set(pins[0], 0);
-            softPwmSTM32Set(pins[1], values[0]);
-            break;
-        }
-    }
-    else
     {
-        switch (execArgs[1])
-        {
-        case 0:
-            digitalWrite(pins[0], HIGH);
-            digitalWrite(pins[1], LOW);
-            softPwmSTM32Set(pins[2], values[0]);
+    case 0:
+        softPwmSTM32Set(pins[0], values[0]);
+        softPwmSTM32Set(pins[1], 0);
+        
 
-            break;
-        case 1:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], LOW);
-            softPwmSTM32Set(pins[2], 0);
-            break;
-        case 2:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], HIGH);
-            softPwmSTM32Set(pins[2], values[0]);
-            break;
-        }
+        break;
+    case 1:
+        softPwmSTM32Set(pins[0], 0);
+        softPwmSTM32Set(pins[1], 0);
+        break;
+    case 2:
+        softPwmSTM32Set(pins[0], 0);
+        softPwmSTM32Set(pins[1],  values[0]);
+        break;
     }
+    }else{
+        switch (execArgs[1])
+    {
+    case 0:
+        digitalWrite(pins[0], HIGH);
+        digitalWrite(pins[1], LOW);
+        softPwmSTM32Set(pins[2], values[0]);
 
+        break;
+    case 1:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], LOW);
+        softPwmSTM32Set(pins[2], 0);
+        break;
+    case 2:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], HIGH);
+        softPwmSTM32Set(pins[2], values[0]);
+        break;
+    }
+    }
+    
 #else
 #if defined(ARDUINO_ARCH_ESP32)
-    if (pins[2] == 0)
-    {
+    if(pins[2]==0){
         switch (execArgs[1])
+    {
+    case 0:
+        if (ledcChannel[0] != -1)
         {
-        case 0:
-            if (ledcChannel[0] != -1)
-            {
-                ledcWrite(pins[0], map(values[0], 0, 100, 0, 65535));
-            }
-            else
-            {
-                if (values[0] >= 0 && values[0] <= 50)
-                {
-                    digitalWrite(pins[0], LOW);
-                }
-                else if (values[0] > 50 && values[0] <= 100)
-                {
-                    digitalWrite(pins[0], HIGH);
-                }
-            }
-            if (ledcChannel[1] != -1)
-            {
-                ledcWrite(pins[1], 0);
-            }
-            else
-            {
-                digitalWrite(pins[1], LOW);
-            }
-
-            break;
-        case 1:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], LOW);
-            ledcWrite(pins[0], 0);
-            break;
-        case 2:
-            if (ledcChannel[1] != -1)
-            {
-                ledcWrite(pins[1], map(values[0], 0, 100, 0, 65535));
-            }
-            else
-            {
-                if (values[0] >= 0 && values[0] <= 50)
-                {
-                    digitalWrite(pins[1], LOW);
-                }
-                else if (values[0] > 50 && values[0] <= 100)
-                {
-                    digitalWrite(pins[1], HIGH);
-                }
-            }
-            if (ledcChannel[0] != -1)
-            {
-                ledcWrite(pins[0], 0);
-            }
-            else
+            ledcWrite(ledcChannel[0], map(values[0], 0, 100, 0, 65535));
+        }
+        else
+        {
+            if (values[0] >= 0 && values[0] <= 50)
             {
                 digitalWrite(pins[0], LOW);
             }
-            break;
+            else if (values[0] > 50 && values[0] <= 100)
+            {
+                digitalWrite(pins[0], HIGH);
+            }
         }
-    }
-    else
-    {
-        switch (execArgs[1])
-        {
-        case 0:
-            digitalWrite(pins[0], HIGH);
-            digitalWrite(pins[1], LOW);
-            if (ledcChannel[0] != -1)
-            {
-                ledcWrite(pins[0], map(values[0], 0, 100, 0, 65535));
-            }
-            else
-            {
-                if (values[0] >= 0 && values[0] <= 50)
-                {
-                    digitalWrite(pins[2], LOW);
-                }
-                else if (values[0] > 50 && values[0] <= 100)
-                {
-                    digitalWrite(pins[2], HIGH);
-                }
-            }
+        if(ledcChannel[1]!= -1){
+            ledcWrite(ledcChannel[1], 0);
+        }else{
+             digitalWrite(pins[1], LOW);
+        }
 
-            break;
-        case 1:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], LOW);
-            ledcWrite(pins[0], 0);
-            break;
-        case 2:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], HIGH);
-            if (ledcChannel[0] != -1)
-            {
-                ledcWrite(pins[0], map(values[0], 0, 100, 0, 65535));
-            }
-            else
-            {
-                if (values[0] >= 0 && values[0] <= 50)
-                {
-                    digitalWrite(pins[2], LOW);
-                }
-                else if (values[0] > 50 && values[0] <= 100)
-                {
-                    digitalWrite(pins[2], HIGH);
-                }
-            }
-            break;
+        break;
+    case 1:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], LOW);
+        ledcWrite(ledcChannel[0], 0);
+        break;
+    case 2:
+       if (ledcChannel[1] != -1)
+        {
+            ledcWrite(ledcChannel[1], map(values[0], 0, 100, 0, 65535));
         }
+        else
+        {
+            if (values[0] >= 0 && values[0] <= 50)
+            {
+                digitalWrite(pins[1], LOW);
+            }
+            else if (values[0] > 50 && values[0] <= 100)
+            {
+                digitalWrite(pins[1], HIGH);
+            }
+        }
+        if(ledcChannel[0]!= -1){
+            ledcWrite(ledcChannel[0], 0);
+        }else{
+             digitalWrite(pins[0], LOW);
+        }
+        break;
     }
+
+    }else{
+        switch (execArgs[1])
+    {
+    case 0:
+        digitalWrite(pins[0], HIGH);
+        digitalWrite(pins[1], LOW);
+        if (ledcChannel[0] != -1)
+        {
+            ledcWrite(ledcChannel[0], map(values[0], 0, 100, 0, 65535));
+        }
+        else
+        {
+            if (values[0] >= 0 && values[0] <= 50)
+            {
+                digitalWrite(pins[2], LOW);
+            }
+            else if (values[0] > 50 && values[0] <= 100)
+            {
+                digitalWrite(pins[2], HIGH);
+            }
+        }
+
+        break;
+    case 1:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], LOW);
+        ledcWrite(ledcChannel[0], 0);
+        break;
+    case 2:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], HIGH);
+        if (ledcChannel[0] != -1)
+        {
+            ledcWrite(ledcChannel[0], map(values[0], 0, 100, 0, 65535));
+        }
+        else
+        {
+            if (values[0] >= 0 && values[0] <= 50)
+            {
+                digitalWrite(pins[2], LOW);
+            }
+            else if (values[0] > 50 && values[0] <= 100)
+            {
+                digitalWrite(pins[2], HIGH);
+            }
+        }
+        break;
+    }
+    }
+    
 
 #else
-    if (pins[2] == 0)
-    {
+    if(pins[2]==0){
         switch (execArgs[1])
-        {
-        case 0:
-            SoftPWMSetPercent(pins[0], values[0]);
-            SoftPWMSetPercent(pins[1], 0);
-
-            break;
-        case 1:
-            SoftPWMSetPercent(pins[0], 0);
-            SoftPWMSetPercent(pins[1], 0);
-            break;
-        case 2:
-            SoftPWMSetPercent(pins[0], 0);
-            SoftPWMSetPercent(pins[1], values[0]);
-            break;
-        }
-    }
-    else
     {
-        switch (execArgs[1])
-        {
-        case 0:
-            digitalWrite(pins[0], HIGH);
-            digitalWrite(pins[1], LOW);
-            SoftPWMSetPercent(pins[2], values[0]);
+    case 0:
+        SoftPWMSetPercent(pins[0], values[0]);
+        SoftPWMSetPercent(pins[1], 0);
 
-            break;
-        case 1:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], LOW);
-            SoftPWMSetPercent(pins[2], 0);
-            break;
-        case 2:
-            digitalWrite(pins[0], LOW);
-            digitalWrite(pins[1], HIGH);
-            SoftPWMSetPercent(pins[2], values[0]);
-            break;
-        }
+        break;
+    case 1:
+         SoftPWMSetPercent(pins[0], 0);
+          SoftPWMSetPercent(pins[1], 0);
+        break;
+    case 2:
+        SoftPWMSetPercent(pins[0], 0);
+        SoftPWMSetPercent(pins[1], values[0]);
+        break;
     }
+    }else{
+        switch (execArgs[1])
+    {
+    case 0:
+        digitalWrite(pins[0], HIGH);
+        digitalWrite(pins[1], LOW);
+        SoftPWMSetPercent(pins[2], values[0]);
 
+        break;
+    case 1:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], LOW);
+        SoftPWMSetPercent(pins[2], 0);
+        break;
+    case 2:
+        digitalWrite(pins[0], LOW);
+        digitalWrite(pins[1], HIGH);
+        SoftPWMSetPercent(pins[2], values[0]);
+        break;
+    }
+    }
+    
 #endif
 #endif
 }
 void motorOff(uint8_t *pins, int8_t *ledcChannel)
 {
-    if (pins[2] == 0)
-    {
-#if defined(ARDUINO_ARCH_STM32)
+    if(pins[2]==0){
+        #if defined(ARDUINO_ARCH_STM32)
 
-        softPwmSTM32Set(pins[0], 0);
-        softPwmSTM32Set(pins[1], 0);
-        softPwmSTM32Dettach(pins[0]);
-        softPwmSTM32Dettach(pins[1]);
+    softPwmSTM32Set(pins[0], 0);
+     softPwmSTM32Set(pins[1], 0);
+    softPwmSTM32Dettach(pins[0]);
+    softPwmSTM32Dettach(pins[1]);
 #elif defined(ARDUINO_ARCH_ESP32)
 
-        ledcWrite(pins[0], 0);
-        ledcDetach(pins[0]);
-        ledcWrite(pins[1], 0);
-        ledcDetach(pins[1]);
+    ledcWrite(ledcChannel[0], 0);
+    ledcDetachPin(pins[0]);
+    ledcWrite(ledcChannel[1], 0);
+    ledcDetachPin(pins[1]);
 #else
-        SoftPWMSet(pins[0], 0);
-        SoftPWMEnd(pins[0]);
-        SoftPWMSet(pins[1], 0);
-        SoftPWMEnd(pins[1]);
+    SoftPWMSet(pins[0], 0);
+    SoftPWMEnd(pins[0]);
+    SoftPWMSet(pins[1], 0);
+    SoftPWMEnd(pins[1]);
 #endif
-    }
-    else
-    {
-        digitalWrite(pins[0], LOW);
-        digitalWrite(pins[1], LOW);
+    }else{
+    digitalWrite(pins[0], LOW);
+    digitalWrite(pins[1], LOW);
 #if defined(ARDUINO_ARCH_STM32)
 
-        softPwmSTM32Set(pins[2], 0);
-        softPwmSTM32Dettach(pins[2]);
+    softPwmSTM32Set(pins[2], 0);
+    softPwmSTM32Dettach(pins[2]);
 #elif defined(ARDUINO_ARCH_ESP32)
 
-        ledcWrite(pins[0], 0);
-        ledcDetach(pins[2]);
+    ledcWrite(ledcChannel[0], 0);
+    ledcDetachPin(pins[2]);
 #else
-        SoftPWMSet(pins[2], 0);
-        SoftPWMEnd(pins[2]);
+    SoftPWMSet(pins[2], 0);
+    SoftPWMEnd(pins[2]);
 #endif
     }
+
 }
 
 void motorDebugLoad(VolatileMemory *volatileMemory)

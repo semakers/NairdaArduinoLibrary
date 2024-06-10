@@ -10,7 +10,7 @@ uint8_t lastPosition;
 void readFloorCalibration()
 {
     uint8_t buffer[10];
-    //spi_flash_read(0x200000 + (4096 * 127), buffer, 10);
+    spi_flash_read(0x200000 + (4096 * 127), buffer, 10);
     delay(150);
     for (int i = 0; i < 5; i++)
     {
@@ -151,7 +151,7 @@ void calibrateZeegoFloorSensor(Adafruit_SSD1306 display)
 
             offsetValues[i] = offsetValues[i] + 150;
         }
-        //spi_flash_erase_range(0x200000 + (4096 * 127), 4096);
+        spi_flash_erase_range(0x200000 + (4096 * 127), 4096);
         delay(150);
         uint8_t buffer[10];
         for (uint8_t i = 0; i < 5; i++)
@@ -159,7 +159,7 @@ void calibrateZeegoFloorSensor(Adafruit_SSD1306 display)
             buffer[i * 2] = offsetValues[i] & 0xFF;
             buffer[(i * 2) + 1] = (offsetValues[i] >> 8) & 0xFF;
         }
-        //spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
+        spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
         delay(150);
 
         display.clearDisplay();

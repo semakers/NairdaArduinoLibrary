@@ -8,7 +8,7 @@
 #include "kits/v1.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
-//#include "esp_//spi_flash.h"
+#include "esp_spi_flash.h"
 #include <esp32-hal.h>
 #include "kits/kidsy.h"
 #include "kits/zeego.h"

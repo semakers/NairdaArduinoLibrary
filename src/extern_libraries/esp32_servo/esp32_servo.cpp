@@ -24,7 +24,7 @@
  * SOFTWARE.
  *****************************************************************************/
 
-/*
+ /*
  * Arduino srl - www.arduino.org
  * Base on lib for stm32f4 (d2a4a47): https://github.com/arduino-libraries/Servo/blob/master/src/stm32f4/ServoTimers.h
  * 2017 Jul 5: Edited by Jaroslav Páral (jarekparal) - paral@robotikabrno.cz
@@ -36,31 +36,25 @@
 
 int Servo::channel_next_free = 0;
 
-Servo::Servo()
-{
+Servo::Servo() {
     _resetFields();
 };
 
-Servo::~Servo()
-{
+Servo::~Servo() {
     detach();
 }
 
-bool Servo::attach(int pin, int channel,
-                   int minAngle, int maxAngle,
-                   int minPulseWidth, int maxPulseWidth)
+bool Servo::attach(int pin, int channel, 
+                   int minAngle, int maxAngle, 
+                   int minPulseWidth, int maxPulseWidth) 
 {
-    if (channel == CHANNEL_NOT_ATTACHED)
-    {
-        if (channel_next_free == CHANNEL_MAX_NUM)
-        {
+    if(channel == CHANNEL_NOT_ATTACHED) {
+        if(channel_next_free == CHANNEL_MAX_NUM) {
             return false;
         }
         _channel = channel_next_free;
         channel_next_free++;
-    }
-    else
-    {
+    } else {
         _channel = channel;
     }
 
@@ -70,51 +64,45 @@ bool Servo::attach(int pin, int channel,
     _minPulseWidth = minPulseWidth;
     _maxPulseWidth = maxPulseWidth;
 
-    ledcAttachChannel(_pin, 50, 16, _channel);
+    ledcSetup(_channel, 50, 16); // channel X, 50 Hz, 16-bit depth
+    ledcAttachPin(_pin, _channel);
     return true;
 }
 
-bool Servo::detach()
-{
-    if (!this->attached())
-    {
+
+bool Servo::detach() {
+    if (!this->attached()) {
         return false;
     }
 
-    if (_channel == (channel_next_free - 1))
+    if(_channel == (channel_next_free - 1))
         channel_next_free--;
 
-    ledcDetach(_pin);
+    ledcDetachPin(_pin);
     _pin = PIN_NOT_ATTACHED;
     return true;
 }
 
-void Servo::write(int degrees)
-{
+void Servo::write(int degrees) {
     degrees = constrain(degrees, _minAngle, _maxAngle);
     writeMicroseconds(_angleToUs(degrees));
 }
 
-void Servo::writeMicroseconds(int pulseUs)
-{
-    if (!attached())
-    {
+void Servo::writeMicroseconds(int pulseUs) {
+    if (!attached()) {
         return;
     }
     pulseUs = constrain(pulseUs, _minPulseWidth, _maxPulseWidth);
     _pulseWidthDuty = _usToDuty(pulseUs);
-    ledcWrite(_pin, _pulseWidthDuty);
+    ledcWrite(_channel, _pulseWidthDuty);
 }
 
-int Servo::read()
-{
+int Servo::read() {
     return _usToAngle(readMicroseconds());
 }
 
-int Servo::readMicroseconds()
-{
-    if (!this->attached())
-    {
+int Servo::readMicroseconds() {
+    if (!this->attached()) {
         return 0;
     }
     int duty = ledcRead(_channel);
@@ -125,8 +113,7 @@ bool Servo::attached() const { return _pin != PIN_NOT_ATTACHED; }
 
 int Servo::attachedPin() const { return _pin; }
 
-void Servo::_resetFields(void)
-{
+void Servo::_resetFields(void) {
     _pin = PIN_NOT_ATTACHED;
     _pulseWidthDuty = 0;
     _channel = CHANNEL_NOT_ATTACHED;

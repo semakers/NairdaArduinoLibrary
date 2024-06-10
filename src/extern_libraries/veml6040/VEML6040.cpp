@@ -42,8 +42,9 @@ void VEML6040::nairdaBegin(void)
 
     begin();
     setConfiguration(VEML6040_IT_40MS + VEML6040_TRIG_ENABLE + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
-    ledcAttachChannel(16, 50, 8, 0);
-    ledcWrite(16, 255);
+    ledcSetup(0, 50, 8);
+    ledcAttachPin(16, 0);
+    ledcWrite(0, 255);
     readCalibration();
 
     working = true;
@@ -53,7 +54,7 @@ void VEML6040::nairdaBegin(void)
 void VEML6040::readCalibration(void)
 {
   uint8_t buffer[16];
-  // spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
+  spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
   for (int i = 0; i < 4; i++)
   {
     minValues[i] = (uint16_t)buffer[i * 2] | ((uint16_t)buffer[i * 2 + 1] << 8);
