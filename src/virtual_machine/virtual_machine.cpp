@@ -42,7 +42,7 @@ void writeByte(uint32_t address, uint8_t byte)
 #if defined(ARDUINO_ARCH_ESP32)
     static uint8_t mbuffer[1];
     mbuffer[0] = byte;
-    spi_flash_write(0x200000 + address, mbuffer, 1);
+    esp_flash_write(esp_flash_default_chip, mbuffer, 0x200000 + address, 1);
 #else
 #if defined(_24LC_256) || defined(_24LC_512)
     if (readByte(address) != byte)
@@ -68,7 +68,7 @@ uint8_t readByte(uint32_t address)
 {
 #if defined(ARDUINO_ARCH_ESP32)
     static uint8_t mbuffer[1];
-    spi_flash_read(0x200000 + address, mbuffer, 1);
+    esp_flash_write(esp_flash_default_chip, mbuffer, 0x200000 + address, 1);
     return mbuffer[0];
 #else
 #if defined(_24LC_256) || defined(_24LC_512)

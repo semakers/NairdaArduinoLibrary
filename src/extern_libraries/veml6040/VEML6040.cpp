@@ -30,6 +30,7 @@ SOFTWARE.
 #endif
 #include "veml6040.h"
 #include <Arduino.h>
+#include "virtual_machine/virtual_machine.h"
 
 VEML6040::VEML6040(void)
 {
@@ -42,9 +43,10 @@ void VEML6040::nairdaBegin(void)
 
     begin();
     setConfiguration(VEML6040_IT_40MS + VEML6040_TRIG_ENABLE + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
-    ledcSetup(0, 50, 8);
-    ledcAttachPin(16, 0);
-    ledcWrite(0, 255);
+    uint8_t ch = getCurrentChannel();
+    ledcAttachChannel(16, 50, 16, ch);
+    nextCurrentChannel();
+    ledcWrite(16, 255);
     readCalibration();
 
     working = true;
@@ -54,7 +56,7 @@ void VEML6040::nairdaBegin(void)
 void VEML6040::readCalibration(void)
 {
   uint8_t buffer[16];
-  spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
+  esp_flash_read(esp_flash_default_chip, buffer, 0x200000 + (4096 * 127), 16);
   for (int i = 0; i < 4; i++)
   {
     minValues[i] = (uint16_t)buffer[i * 2] | ((uint16_t)buffer[i * 2 + 1] << 8);

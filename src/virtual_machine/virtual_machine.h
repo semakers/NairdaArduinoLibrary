@@ -1,6 +1,8 @@
 #include <EEPROM.h>
 #include <Wire.h>
 #include <Arduino.h>
+#include <driver/ledc.h>
+#include "esp_flash.h"
 
 #include "volatile_memory/volatile_memory.h"
 

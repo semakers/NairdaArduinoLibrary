@@ -49,7 +49,7 @@ void calibrateKidsyColorSensor(VEML6040 RGBWSensor)
             }
             neoPixel.setPixelColor(0, 0, 0, 0);
             neoPixel.show();
-            spi_flash_erase_range(0x200000 + (4096 * 127), 4096);
+            esp_flash_erase_region(esp_flash_default_chip, 0x200000 + (4096 * 127), 4096);
             delay(150);
             uint8_t buffer[16];
             for (uint8_t i = 0; i < 4; i++)
@@ -62,7 +62,7 @@ void calibrateKidsyColorSensor(VEML6040 RGBWSensor)
                 buffer[8 + (i * 2)] = maxValues[i] & 0xFF;
                 buffer[8 + ((i * 2) + 1)] = (maxValues[i] >> 8) & 0xFF;
             }
-            spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
+            esp_flash_write(esp_flash_default_chip, buffer, 0x200000 + (4096 * 127), 16);
             delay(150);
         }
         RGBWSensor.readCalibration();
