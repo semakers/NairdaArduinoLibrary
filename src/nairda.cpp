@@ -6,15 +6,13 @@
 #include "blue_methods/blue_methods.h"
 #include "nairda_debug/nairda_debug.h"
 #include "kits/v1.h"
+#include <DynamixelSDK.h>
 
 #if defined(ARDUINO_ARCH_ESP32)
-//#include "esp_//spi_flash.h"
+// #include "esp_//spi_flash.h"
 #include <esp32-hal.h>
 #include "kits/kidsy.h"
 #include "kits/zeego.h"
-#endif
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
-#include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
 
 uint8_t currentValue;
@@ -22,6 +20,9 @@ int runProgrammTimeOut = 0;
 VolatileMemory volatileMemory;
 uint8_t currentKit = NO_KIT;
 bool running = false;
+
+extern dynamixel::PortHandler *portHandler;
+extern dynamixel::PacketHandler *packetHandler;
 
 void setKit(uint8_t kitCode)
 {
@@ -44,7 +45,7 @@ int temp;
 void nairdaBegin(const char *deviceName, long int bauds)
 {
 
-  Serial.begin(bauds);
+  Serial3.begin(bauds);
 
   if (currentKit == ROBBUS_KIDSY_KIT)
   {
@@ -97,13 +98,19 @@ void nairdaBegin(long int bauds)
   Wire.begin();
 #endif
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-  Serial1.begin(bauds);
+  Serial3.begin(bauds);
 #endif
-  Serial.begin(bauds);
+  Serial.begin(9600);
+  Serial3.begin(bauds);
+  portHandler = dynamixel::PortHandler::getPortHandler("1");
+  packetHandler = dynamixel::PacketHandler::getPacketHandler(2.0);
+
+  portHandler->openPort();
+  portHandler->setBaudRate(1000000);
+
 #if defined(ARDUINO_ARCH_STM32)
   softPwmSTM32Init();
 #else
-  SoftPWMBegin();
 #endif
 #endif
   runProgrammTimeOut = millis();

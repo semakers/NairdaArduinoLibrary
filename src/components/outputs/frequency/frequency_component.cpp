@@ -2,7 +2,6 @@
 #include "virtual_machine/virtual_machine.h"
 #include "frequency_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
-#include "extern_libraries/free_tone/timer_free_tone.h"
 #include "value_conversion/value_conversion.h"
 
 #include <Arduino.h>
@@ -16,7 +15,6 @@ void frequencyCreate(uint16_t *args, component_t *component)
 
 void frequencyExec(uint32_t *execArgs, uint8_t *pins)
 {
-    TimerFreeTone(pins[0], (execArgs[0] * 100) + execArgs[1], (execArgs[2] * 10000) + (execArgs[3] * 100) + execArgs[4], execArgs[5]);
 }
 
 void frequencyOff()

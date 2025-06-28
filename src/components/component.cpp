@@ -6,7 +6,7 @@ void execAct(uint32_t *execArgs, uint8_t type, component_t *component)
     switch (type)
     {
     case SERVO:
-        servoExec(execArgs, component->servo);
+        servoExec(execArgs, component->pins);
         break;
     case MOTOR:
         motorExec(execArgs, component->pins, component->values, component->ledcChannel);
@@ -18,7 +18,7 @@ void execAct(uint32_t *execArgs, uint8_t type, component_t *component)
         frequencyExec(execArgs, component->pins);
         break;
     case NEOPIXEL:
-        neoPixelExec(execArgs, component->neopixel);
+        neoPixelExec(execArgs);
         break;
     }
 }
@@ -35,11 +35,8 @@ uint8_t getSensVal(uint8_t type, component_t *component)
         analogicSense(component->pins, &tempRead);
         break;
     case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
-        ultrasonicSense(component->pins, &tempRead, component->sonar);
-#else
+
         ultrasonicSense(component->pins, &tempRead);
-#endif
 
         break;
     }
@@ -50,17 +47,17 @@ uint8_t getSensVal(uint8_t type, component_t *component)
 void sendSensVal(uint8_t type, component_t *component)
 {
 #if defined(ARDUINO_ARCH_STM32)
-    Serial.write((char)getSensVal(type, component));
+    Serial3.write((char)getSensVal(type, component));
 #else
 #if defined(ARDUINO_ARCH_ESP32)
     bleWrite((char)getSensVal(type, component));
-    Serial.write((char)getSensVal(type, component));
+    Serial3.write((char)getSensVal(type, component));
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char)getSensVal(type, component));
+    Serial3.write((char)getSensVal(type, component));
 #endif
-    Serial.write((char)getSensVal(type, component));
+    Serial3.write((char)getSensVal(type, component));
 
 #endif
 #endif
@@ -71,15 +68,13 @@ void off(uint8_t type, component_t *component)
     switch (type)
     {
     case NEOPIXEL:
-        neoPixelOff(component->neopixel);
+        neoPixelOff();
         break;
     case SERVO:
-        servoOff(component->servo);
+        servoOff();
         break;
     case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
-        ultrasonicOff(component->sonar);
-#endif
+
         break;
     case MOTOR:
         motorOff(component->pins, component->ledcChannel);

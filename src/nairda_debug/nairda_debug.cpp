@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
+#include <DynamixelSDK.h>
 
 enum
 {
@@ -22,8 +23,13 @@ uint8_t argsSizeByComponent[] = {7, 3, 1, 1, 2, 1, 1, 2};
 
 uint8_t execArgsSizeByComponent[] = {1, 2, 1, 6, 4};
 
+uint8_t execArgsSizeByDynamixel[] = {2, 3, 1};
+
 uint8_t indexArray[COMPONENTS_SIZE];
 uint8_t componentId = 0;
+
+dynamixel::PortHandler *portHandler;
+dynamixel::PacketHandler *packetHandler;
 
 void fillIndexArray(VolatileMemory *volatileMemory)
 {
@@ -35,16 +41,16 @@ void fillIndexArray(VolatileMemory *volatileMemory)
         }
         else
         {
-            /* Serial.print("current size ");
-             Serial.print(volatileMemory->components[i].size());
-             Serial.print(" before size ");
-             Serial.println(indexArray[i - 1]);*/
+            /* Serial3.print("current size ");
+             Serial3.print(volatileMemory->components[i].size());
+             Serial3.print(" before size ");
+             Serial3.println(indexArray[i - 1]);*/
             indexArray[i] = volatileMemory->components[i].size() + indexArray[i - 1];
         }
-        /*Serial.print("index array: ");
-         Serial.print(i);
-         Serial.print(" ");
-         Serial.println(indexArray[i]);*/
+        /*Serial3.print("index array: ");
+         Serial3.print(i);
+         Serial3.print(" ");
+         Serial3.println(indexArray[i]);*/
     }
 }
 
@@ -60,7 +66,7 @@ void cleanSavingBoolean(bool *savingBoolean)
 
 int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
 {
-    // Serial.println(currentValue[0]);
+    // Serial3.println(currentValue[0]);
     for (int i = 0; i < COMPONENTS_SIZE; i++)
     {
         if (currentValue[0] == declaratedCommands[i])
@@ -68,7 +74,7 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
             volatileMemory->declaratedComponents[i] = true;
             if (i == COMPONENTS_SIZE - 1)
             {
-                //  Serial.println("loaded descriptor");
+                //  Serial3.println("loaded descriptor");
                 volatileMemory->declaratedDescriptor = true;
                 fillIndexArray(volatileMemory);
             }
@@ -95,26 +101,76 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
     }
 }
 
+int executeDynamixel(uint8_t *currentValue, VolatileMemory *volatileMemory)
+{
+    if (volatileMemory->executedComponent == NON_COMPONENT)
+    {
+        if (currentValue[0] >= dynamixelColor && currentValue[0] < dynamixelRead)
+        {
+            volatileMemory->executedComponent = DYNAMIXEL;
+            componentId = currentValue[0];
+            return 1;
+        }
+    }
+    else if (volatileMemory->executedComponent == DYNAMIXEL)
+    {
+        uint8_t dynamixelId = componentId - dynamixelColor;
+        for (uint8_t j = 0; j < execArgsSizeByDynamixel[dynamixelId]; j++)
+        {
+            if (!volatileMemory->executionBoolean[j])
+            {
+                volatileMemory->executionBuffer[j] = currentValue[0];
+                volatileMemory->executionBoolean[j] = true;
+                if (j == execArgsSizeByDynamixel[dynamixelId] - 1)
+                {
+                    if (componentId == dynamixelColor)
+                    {
+                        dynamixelColorExec(volatileMemory->executionBuffer);
+                    }
+                    else if (componentId == dynamixelWrite)
+                    {
+                        dynamixelWriteExec(volatileMemory->executionBuffer);
+                    }
+                    else if (componentId == dynamixelRead)
+                    {
+                        dynamixelReadSense(volatileMemory->executionBuffer);
+                    }
+                    memset(volatileMemory->executionBoolean, false, 7);
+                    volatileMemory->executedComponent = NON_COMPONENT;
+                }
+                return 1;
+            }
+        }
+        return 1
+    }
+    return 0;
+}
+
 int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
 {
-    /* Serial.print("byte: ");
-     Serial.println(currentValue[0]);*/
+    /* Serial3.print("byte: ");
+     Serial3.println(currentValue[0]);*/
+
+    if (executeDynamixel(currentValue, volatileMemory) == 1)
+    {
+        return 0;
+    }
 
     if (volatileMemory->executedComponent == NON_COMPONENT)
     {
 
         for (int8_t i = 0; i < COMPONENTS_SIZE; i++)
         {
-            /* Serial.print(currentValue[0]);
-             Serial.print(">=");
-             Serial.print(( i == 0 ? 0 : indexArray[i - 1]));
-             Serial.print("&&");
-             Serial.print(currentValue[0]);
-             Serial.print("<");
-             Serial.print(indexArray[i]);
-             Serial.print("&&");
-             Serial.print(volatileMemory->components[i].size());
-             Serial.println(">0");*/
+            /* Serial3.print(currentValue[0]);
+             Serial3.print(">=");
+             Serial3.print(( i == 0 ? 0 : indexArray[i - 1]));
+             Serial3.print("&&");
+             Serial3.print(currentValue[0]);
+             Serial3.print("<");
+             Serial3.print(indexArray[i]);
+             Serial3.print("&&");
+             Serial3.print(volatileMemory->components[i].size());
+             Serial3.println(">0");*/
             if (currentValue[0] >= (i == 0 ? 0 : indexArray[i - 1]) && currentValue[0] < indexArray[i] && volatileMemory->components[i].size() > 0)
             {
                 componentId = currentValue[0] - ((i == 0) ? 0 : indexArray[i - 1]);
@@ -124,19 +180,19 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                 }
                 else
                 {
-                    /*Serial.print("Send sens val ");
-                    Serial.println(i);*/
+                    /*Serial3.print("Send sens val ");
+                    Serial3.println(i);*/
                     sendSensVal(i, volatileMemory->components[i].get(componentId));
                     return 0;
                 }
             }
         }
-        /* Serial.print("executed component: ");
-         Serial.println(volatileMemory->executedComponent);*/
+        /* Serial3.print("executed component: ");
+         Serial3.println(volatileMemory->executedComponent);*/
         return 0;
     }
-    /*Serial.print("component: ");
-    Serial.println(componentId);*/
+    /*Serial3.print("component: ");
+    Serial3.println(componentId);*/
 
     for (uint8_t i = 0; i < ACTUATORS_SIZE; i++)
     {
@@ -150,14 +206,14 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                     volatileMemory->executionBoolean[j] = true;
                     if (j == execArgsSizeByComponent[i] - 1)
                     {
-                        /*Serial.print("execute component: ");
-                        Serial.print(i);
-                        Serial.print("on index ");
-                        Serial.print(componentId);
-                        Serial.print(" pin ");
-                        Serial.print(volatileMemory->components[i].get(componentId)->pins[0]);
-                        Serial.print(" ledc ");
-                        Serial.println(volatileMemory->components[i].get(componentId)->ledcChannel[0]);*/
+                        /*Serial3.print("execute component: ");
+                        Serial3.print(i);
+                        Serial3.print("on index ");
+                        Serial3.print(componentId);
+                        Serial3.print(" pin ");
+                        Serial3.print(volatileMemory->components[i].get(componentId)->pins[0]);
+                        Serial3.print(" ledc ");
+                        Serial3.println(volatileMemory->components[i].get(componentId)->ledcChannel[0]);*/
                         if (i == SERVO)
                         {
                             volatileMemory->executionBuffer[0] = map(volatileMemory->executionBuffer[0], 0, 99, 0, 180);
@@ -191,10 +247,11 @@ void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
         clearVolatileMemory(volatileMemory, true);
 #else
         clearVolatileMemory(volatileMemory, true);
+        //  NVIC_SystemReset();
 
-        asm volatile("jmp 0");
+        // asm volatile("jmp 0");
 #endif
-        // Serial.println("Se limpriaron las listas");
+        // Serial3.println("Se limpriaron las listas");
     }
     if (currentValue == saveCommand)
     {
@@ -293,9 +350,9 @@ void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-        Serial1.write(((char)CURRENT_VERSION));
+        Serial3.write(((char)CURRENT_VERSION));
 #endif
-        Serial.write(((char)CURRENT_VERSION));
+        Serial3.write(((char)CURRENT_VERSION));
 #endif
     }
     else if (volatileMemory->declaratedDescriptor == false)

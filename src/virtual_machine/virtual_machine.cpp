@@ -1,16 +1,19 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 #include "kits/v1.h"
+#include <DynamixelSDK.h>
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-//#include "esp_//spi_flash.h"
+// #include "esp_//spi_flash.h"
 #endif
 
 #ifndef __AVR_ATmega168__
 
 extern VolatileMemory volatileMemory;
 
+extern dynamixel::PortHandler *portHandler;
+extern dynamixel::PacketHandler *packetHandler;
 uint8_t readByte(uint32_t address);
 extern int runProgrammTimeOut;
 extern bool running;
@@ -42,7 +45,7 @@ void writeByte(uint32_t address, uint8_t byte)
 #if defined(ARDUINO_ARCH_ESP32)
     static uint8_t mbuffer[1];
     mbuffer[0] = byte;
-    //spi_flash_write(0x200000 + address, mbuffer, 1);
+    // spi_flash_write(0x200000 + address, mbuffer, 1);
 #else
 #if defined(_24LC_256) || defined(_24LC_512)
     if (readByte(address) != byte)
@@ -68,7 +71,7 @@ uint8_t readByte(uint32_t address)
 {
 #if defined(ARDUINO_ARCH_ESP32)
     static uint8_t mbuffer[1];
-    //spi_flash_read(0x200000 + address, mbuffer, 1);
+    // spi_flash_read(0x200000 + address, mbuffer, 1);
     return mbuffer[0];
 #else
 #if defined(_24LC_256) || defined(_24LC_512)
@@ -215,25 +218,25 @@ uint8_t callInterrupt()
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-        int serialAvailable = Serial.available();
-        int serial1Available = Serial1.available();
+        int serialAvailable = Serial3.available();
+        int serial1Available = Serial3.available();
         if (serialAvailable > 0 || serial1Available > 0)
         {
             if (serialAvailable > 0)
             {
-                it = Serial.read();
+                it = Serial3.read();
             }
             else if (serial1Available > 0)
             {
-                it = Serial1.read();
+                it = Serial3.read();
             }
         }
 
 #else
 
-        if (Serial.available())
+        if (Serial3.available())
         {
-            it = Serial.read();
+            it = Serial3.read();
         }
 
 #endif
@@ -246,9 +249,9 @@ uint8_t callInterrupt()
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-            Serial1.write(((char)CURRENT_VERSION));
+            Serial3.write(((char)CURRENT_VERSION));
 #endif
-            Serial.write(((char)CURRENT_VERSION));
+            Serial3.write(((char)CURRENT_VERSION));
 #endif
         }
         else if (it == projectInit)
@@ -258,7 +261,8 @@ uint8_t callInterrupt()
 
             return 1;
 #else
-            asm volatile("jmp 0");
+            // asm volatile("jmp 0");
+            NVIC_SystemReset();
 #endif
         }
         else

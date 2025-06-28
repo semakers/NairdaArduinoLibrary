@@ -9,6 +9,7 @@
 #include "components/outputs/digital_out/digital_out_component.h"
 #include "components/outputs/frequency/frequency_component.h"
 #include "components/outputs/neo_pixel/neo_pixel_component.h"
+#include "components/outputs/dynamixel/dynamixel_component.h"
 
 #include "components/inputs/analogic/analogic_component.h"
 #include "components/inputs/digital_in/digital_in_component.h"
@@ -57,6 +58,10 @@
 #define neopixelCommand 134
 #define endFunctionCommand 135
 #define goToFunctionCommand 136
+// Dynamixel
+#define dynamixelColor 137
+#define dynamixelWrite 138
+#define dynamixelRead 139
 
 #define CURRENT_VERSION 3
 

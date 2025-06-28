@@ -5,6 +5,7 @@
 #define COMPONENTS_SIZE 8
 #define ACTUATORS_SIZE 5
 #define NON_COMPONENT -1
+#define DYNAMIXEL 8
 
 enum
 {
@@ -15,8 +16,7 @@ enum
   NEOPIXEL,
   ANALOGIC,
   DIGITAL_IN,
-
-  ULTRASONIC
+  ULTRASONIC,
 };
 
 struct VolatileMemory

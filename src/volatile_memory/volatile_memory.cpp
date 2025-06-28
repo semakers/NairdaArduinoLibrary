@@ -23,14 +23,10 @@ void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
 {
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-    runProgrammTimeOut = millis();
-    if (offComonents == true)
+
+    for (int i = 0; i < COMPONENTS_SIZE; i++)
     {
-        for (int i = 0; i < COMPONENTS_SIZE; i++)
-        {
-            freeCompList(&(volatileMemory->components[i]), i);
-        }
+        freeCompList(&(volatileMemory->components[i]), i);
     }
     volatileMemory->declaratedDescriptor = false;
     volatileMemory->currentChannel = 1;
@@ -43,18 +39,8 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
     memset(volatileMemory->declarationBuffer, 0, 7);
     memset(volatileMemory->descArgsBuffer, 0, 5);
     memset(volatileMemory->execBuffer, 0, 6);
-
-#if defined(ARDUINO_ARCH_ESP32)
-    if (currentKit == ROBBUS_KIDSY_KIT)
-    {
-        RGBWSensor.nairdaEnd();
-    }
-#endif
-
-#else
     freeCompList(&(volatileMemory->components[MOTOR]), MOTOR);
     freeCompList(&(volatileMemory->components[DIGITAL_OUT]), DIGITAL_OUT);
-#endif
 }
 
 void initVolatileMemory(VolatileMemory *volatileMemory)

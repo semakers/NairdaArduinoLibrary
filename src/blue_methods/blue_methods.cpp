@@ -88,7 +88,7 @@ uint8_t bleRead()
 
 void bleWrite(uint8_t byte)
 {
-    pCharacteristic->setValue(&byte,1);
+    pCharacteristic->setValue(&byte, 1);
     pCharacteristic->notify();
 }
 
@@ -129,9 +129,9 @@ void sendMemorySize(uint32_t memorySize)
 #if defined(ARDUINO_ARCH_ESP32)
 
     uint8_t buffer[16];
-    //spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
-    //spi_flash_erase_range(0x200000, 4096 * 128);
-    //spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
+    // spi_flash_read(0x200000 + (4096 * 127), buffer, 16);
+    // spi_flash_erase_range(0x200000, 4096 * 128);
+    // spi_flash_write(0x200000 + (4096 * 127), buffer, 16);
     char cleanBuffer[22];
     memset(cleanBuffer, 0, 22);
     pCharacteristic->setValue(cleanBuffer);
@@ -146,13 +146,13 @@ void sendMemorySize(uint32_t memorySize)
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char)firstValue(memorySize));
-    Serial1.write((char)secondValue(memorySize));
-    Serial1.write((char)thirdValue(memorySize));
+    Serial3.write((char)firstValue(memorySize));
+    Serial3.write((char)secondValue(memorySize));
+    Serial3.write((char)thirdValue(memorySize));
 #endif
-    Serial.write((char)firstValue(memorySize));
-    Serial.write((char)secondValue(memorySize));
-    Serial.write((char)thirdValue(memorySize));
+    Serial3.write((char)firstValue(memorySize));
+    Serial3.write((char)secondValue(memorySize));
+    Serial3.write((char)thirdValue(memorySize));
 #endif
 }
 
@@ -161,18 +161,18 @@ bool nextBlueByte(uint8_t *blueByte)
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-    int serialAvailable = Serial.available();
-    int serial1Available = Serial1.available();
+    int serialAvailable = Serial3.available();
+    int serial1Available = Serial3.available();
     if (serialAvailable > 0 || serial1Available > 0)
     {
         if (serialAvailable > 0)
         {
-            blueByte[0] = Serial.read();
+            blueByte[0] = Serial3.read();
             return true;
         }
         else if (serial1Available > 0)
         {
-            blueByte[0] = Serial1.read();
+            blueByte[0] = Serial3.read();
             return true;
         }
     }
@@ -184,26 +184,27 @@ bool nextBlueByte(uint8_t *blueByte)
 #else
 
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    int serialAvailable = Serial.available();
-    int serial1Available = Serial1.available();
+    int serialAvailable = Serial3.available();
+    int serial1Available = Serial3.available();
     if (serialAvailable > 0 || serial1Available > 0)
     {
         if (serialAvailable > 0)
         {
-            blueByte[0] = Serial.read();
+            blueByte[0] = Serial3.read();
             return true;
         }
         else if (serial1Available > 0)
         {
-            blueByte[0] = Serial1.read();
+            blueByte[0] = Serial3.read();
             return true;
         }
 
 #else
 
-    if (Serial.available())
+    if (Serial3.available())
     {
-        blueByte[0] = Serial.read();
+        blueByte[0] = Serial3.read();
+        Serial.println(blueByte[0]);
         return true;
 
 #endif

@@ -3,31 +3,19 @@
 #include "extern_libraries/linked_list/linked_list.h"
 #include <Arduino.h>
 
-#if defined(ARDUINO_ARCH_ESP32)
-
-extern "C" void espShow(
-    uint16_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
-
-#endif
-
 extern bool loadedNeoPixels;
 
 void neoPixelCreate(uint16_t *args, component_t *component)
 {
     component->pins[0] = args[1];
-    component->neopixel = new Adafruit_NeoPixel(args[2], component->pins[0], NEO_GRB + NEO_KHZ800);
-    component->neopixel->begin();
 }
 
-void neoPixelExec(uint32_t *execArgs, Adafruit_NeoPixel *neopixel)
+void neoPixelExec(uint32_t *execArgs)
 {
-    neopixel->setPixelColor(execArgs[3], execArgs[0], execArgs[1], execArgs[2]);
-    neopixel->show();
 }
 
-void neoPixelOff(Adafruit_NeoPixel *neopixel)
+void neoPixelOff()
 {
-    free(neopixel);
 }
 
 void neoPixelDebugLoad(VolatileMemory *volatileMemory)
