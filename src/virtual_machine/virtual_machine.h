@@ -1,8 +1,11 @@
 #include <EEPROM.h>
 #include <Wire.h>
 #include <Arduino.h>
+
+#if defined(ARDUINO_ARCH_ESP32)
 #include <driver/ledc.h>
 #include "esp_flash.h"
+#endif
 
 #include "volatile_memory/volatile_memory.h"
 
