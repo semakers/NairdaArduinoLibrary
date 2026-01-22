@@ -38,14 +38,15 @@ void digitalInSense(uint8_t *pins, uint8_t *tempRead)
     if (currentKit == ROBBUS_KIDSY_KIT)
     {
 
-        if (isKidsyArrowPin(pins[0]) == 1)
-        {
-            tempRead[0] = touchRead(pins[0]) > 15 ? 0 : 1;
-        }
-        else
-        {
-            tempRead[0] = digitalRead(pins[0]);
-        }
+#if !defined(CONFIG_IDF_TARGET_ESP32C3)
+      if (isKidsyArrowPin(pins[0]) == 1) {
+        tempRead[0] = touchRead(pins[0]) > 15 ? 0 : 1;
+      } else {
+        tempRead[0] = digitalRead(pins[0]);
+      }
+#else
+      tempRead[0] = digitalRead(pins[0]);
+#endif
     }
     else
     {

@@ -13,5 +13,12 @@
         "iosfwd": "cpp",
         "__locale": "cpp",
         "__string": "cpp"
-    }
+    },
+    "[c]": {
+        "editor.formatOnSave": false
+    },
+    "[cpp]": {
+        "editor.formatOnSave": false
+    },
+    "C_Cpp.formatting": "Disabled"
 }
