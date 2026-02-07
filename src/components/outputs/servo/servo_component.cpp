@@ -7,7 +7,7 @@
 #if defined(ARDUINO_ARCH_STM32)
 #include <Servo.h>
 #elif defined(ARDUINO_ARCH_ESP32)
-#include "extern_libraries/esp32_servo/esp32_servo.h"
+#include "extern_libraries/esp32_servo/ESP32Servo.h"
 #else
 #include <Servo.h>
 #endif
@@ -27,13 +27,9 @@ void servoCreate(uint16_t *args, component_t *component)
 #else
 #if defined(ARDUINO_ARCH_ESP32)
 
-    if (getCurrentChannel() < 16)
-    {
-        component->servo->attach(args[1], getCurrentChannel(), 0, 180, args[2], args[3]);
+  
+        component->servo->attach(args[1], args[2], args[3]);
         component->servo->write(args[4]);
-        component->ledcChannel[0] = getCurrentChannel();
-        nextCurrentChannel();
-    }
 
 #else
 

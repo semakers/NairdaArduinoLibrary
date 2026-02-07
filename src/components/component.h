@@ -4,7 +4,7 @@
 #if defined(ARDUINO_ARCH_STM32)
 #include <Servo.h>
 #elif defined(ARDUINO_ARCH_ESP32)
-#include "extern_libraries/esp32_servo/esp32_servo.h"
+#include "extern_libraries/esp32_servo/ESP32Servo.h"
 #else
 #include "extern_libraries/new_ping/new_ping.h"
 #include <Servo.h>
