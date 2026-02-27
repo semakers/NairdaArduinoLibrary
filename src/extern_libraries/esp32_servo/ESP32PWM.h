@@ -23,6 +23,8 @@
  * Enhanced for ESP32S3 MCPWM support
  */
 
+#if defined(ARDUINO_ARCH_ESP32)
+
 #ifndef LIBRARIES_ESP32SERVO_SRC_ESP32PWM_H_
 #define LIBRARIES_ESP32SERVO_SRC_ESP32PWM_H_
 #include "esp32-hal-ledc.h"
@@ -200,3 +202,5 @@ public:
 ESP32PWM* pwmFactory(int pin);
 
 #endif /* LIBRARIES_ESP32SERVO_SRC_ESP32PWM_H_ */
+
+#endif

@@ -78,6 +78,8 @@
  int readTimerWidth() - Gets the PWM timer width (ESP32 ONLY)
  */
 
+#if defined(ARDUINO_ARCH_ESP32)
+
 #ifndef ESP32_Servo_h
 #define ESP32_Servo_h
 //#include "analogWrite.h"
@@ -184,4 +186,6 @@ private:
 	int REFRESH_CPS = 50;
 
 };
+#endif
+
 #endif

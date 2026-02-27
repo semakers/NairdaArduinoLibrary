@@ -4,6 +4,7 @@
  *  Created on: Sep 22, 2018
  *      Author: hephaestus
  */
+#if defined(ARDUINO_ARCH_ESP32)
 
 #include "ESP32PWM.h"
 #include "esp32-hal-ledc.h"
@@ -610,3 +611,4 @@ ESP32PWM* pwmFactory(int pin) {
 #endif
 	return NULL;
 }
+#endif

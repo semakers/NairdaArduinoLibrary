@@ -50,6 +50,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 * The ESP32 is a 32 bit processor that includes FP support; this code reflects that fact.
 */
 
+#if defined(ARDUINO_ARCH_ESP32)
+
 #include "ESP32Servo.h"
 #if defined(ARDUINO)
 	#include "Arduino.h"
@@ -267,4 +269,4 @@ int Servo::ticksToUs(int ticks)
     return (int)((double)ticks * ((double)REFRESH_USEC / (double)this->timer_width_ticks)/(((double)REFRESH_CPS)/50.0));
 }
 
- 
+#endif
