@@ -16,6 +16,25 @@
 
 extern bool loadedServos;
 
+void servoCreate(uint16_t *args, component_t *component);
+
+void setupServo(component_t* component, int pin, int minPulse, int maxPulse, int initialAngle) {
+  uint16_t descArgsBuffer[5];
+  descArgsBuffer[0] = SERVO;
+  descArgsBuffer[1] = pin;
+  descArgsBuffer[2] = minPulse;
+  descArgsBuffer[3] = maxPulse;
+  descArgsBuffer[4] = initialAngle;
+  servoCreate(descArgsBuffer, component);
+}
+
+void runServo(component_t *component, int angle) {
+  uint32_t execArgs[1];
+  execArgs[0] = angle;
+  servoExec(execArgs, component->servo);
+  nairdaLoop();
+}
+
 void servoCreate(uint16_t *args, component_t *component)
 {
     component->servo = new Servo();

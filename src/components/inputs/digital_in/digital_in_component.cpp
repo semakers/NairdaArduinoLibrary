@@ -8,6 +8,8 @@ extern bool loadedDigitalIns;
 extern VolatileMemory volatileMemory;
 extern uint8_t currentKit;
 
+void digitalInCreate(uint16_t *args, component_t *component);
+
 #if defined(ARDUINO_ARCH_ESP32)
 
 uint8_t isKidsyArrowPin(uint8_t pin)
@@ -25,6 +27,22 @@ uint8_t isKidsyArrowPin(uint8_t pin)
 }
 
 #endif
+
+void setupDigitalIn(component_t *component, int pin) {
+  uint16_t descArgsBuffer[2];
+  descArgsBuffer[0] = DIGITAL_IN;
+  descArgsBuffer[1] = pin;
+  digitalInCreate(descArgsBuffer, component);
+}
+
+uint8_t readDigitalIn(component_t *component) {
+  uint8_t pins[1];
+  pins[0] = component->pins[0];
+  uint8_t values[1];
+  digitalInSense(pins, values);
+  nairdaLoop();
+  return values[0];
+}
 
 void digitalInCreate(uint16_t *args, component_t *component)
 {

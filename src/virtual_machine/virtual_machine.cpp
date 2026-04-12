@@ -253,6 +253,7 @@ uint8_t callInterrupt()
         }
         else if (it == projectInit)
         {
+           
 #if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
             restartRunFromEeprom();
 

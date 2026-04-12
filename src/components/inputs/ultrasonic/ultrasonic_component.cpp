@@ -10,6 +10,30 @@
 
 extern bool loadedUltrasonics;
 
+void ultrasonicCreate(uint16_t *args, component_t *component);
+
+void setupUltrasonic(component_t* component, int triggerPin, int echoPin) {
+  uint16_t descArgsBuffer[3];
+  descArgsBuffer[0] = ULTRASONIC;
+  descArgsBuffer[1] = triggerPin;
+  descArgsBuffer[2] = echoPin;
+  ultrasonicCreate(descArgsBuffer, component);
+}
+
+uint8_t readUltrasonic(component_t *component) {
+  uint8_t pins[2];
+  pins[0] = component->pins[0];
+  pins[1] = component->pins[1];
+  uint8_t values[1];
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+  ultrasonicSense(pins, values, component->sonar);
+#else
+  ultrasonicSense(pins, values);
+#endif
+  nairdaLoop();
+  return values[0];
+}
+
 #if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
 
 void ultrasonicCreate(uint16_t *args, component_t *component)

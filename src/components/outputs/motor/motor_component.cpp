@@ -10,6 +10,25 @@
 
 extern bool loadedMotors;
 
+void motorCreate(uint16_t *args, component_t *component);
+
+void setupMotor(component_t* component, int pin1, int pin2, int pinSpeed) {
+  uint16_t descArgsBuffer[4];
+  descArgsBuffer[0] = MOTOR;
+  descArgsBuffer[1] = pin1;
+  descArgsBuffer[2] = pin2;
+  descArgsBuffer[3] = pinSpeed;
+  motorCreate(descArgsBuffer, component);
+}
+
+void runMotor(component_t *component, int speed, int direction) {
+  uint32_t execArgs[2];
+  execArgs[0] = speed;
+  execArgs[1] = direction;
+  motorExec(execArgs, component->pins, component->values, component->ledcChannel);
+  nairdaLoop();
+}
+
 void motorCreate(uint16_t *args, component_t *component)
 {
 

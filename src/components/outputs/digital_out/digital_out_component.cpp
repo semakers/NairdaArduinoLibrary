@@ -14,6 +14,27 @@
 extern bool loadedDigitalOuts;
 extern uint8_t currentKit;
 
+void digitalOutCreate(uint16_t *args, component_t *component);
+
+void setupDigitalOut(component_t* component, int pin) {
+  uint16_t descArgsBuffer[2];
+  descArgsBuffer[0] = DIGITAL_OUT;
+  descArgsBuffer[1] = pin;
+  digitalOutCreate(descArgsBuffer, component);
+}
+
+void runDigitalOut(component_t *component, int value) {
+  uint32_t execArgs[1];
+  execArgs[0] = value;
+  uint8_t pins[1];
+  pins[0] = component->pins[0];
+  uint8_t values[1];
+  int8_t ledcChannel[1];
+  ledcChannel[0] = 1;
+  digitalOutExec(execArgs, pins, values, ledcChannel);
+  nairdaLoop();
+}
+
 void digitalOutCreate(uint16_t *args, component_t *component)
 {
     component->pins[0] = args[1];

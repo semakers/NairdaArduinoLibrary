@@ -1,3 +1,5 @@
+#ifndef component_h
+#define component_h
 #include <stdint.h>
 #include <Arduino.h>
 
@@ -28,3 +30,4 @@ void execAct(uint32_t *execArgs, uint8_t type, component_t *component);
 uint8_t getSensVal(uint8_t type, component_t *component);
 void sendSensVal(uint8_t type,component_t * component);
 void off(uint8_t type, component_t *component);
+#endif

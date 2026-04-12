@@ -22,6 +22,7 @@ int runProgrammTimeOut = 0;
 VolatileMemory volatileMemory;
 uint8_t currentKit = NO_KIT;
 bool running = false;
+bool runningFromRom = true;
 
 void setKit(uint8_t kitCode)
 {
@@ -109,6 +110,19 @@ void nairdaBegin(long int bauds)
   runProgrammTimeOut = millis();
 
   initVolatileMemory(&volatileMemory);
+}
+
+bool isRunningFromRom()
+{
+  return runningFromRom;
+}
+
+void nairdaDelay(unsigned long ms)
+{
+  unsigned long start = millis();
+  while (millis() - start < ms) {
+    nairdaLoop();
+  }
 }
 
 void nairdaLoop()

@@ -24,6 +24,7 @@ uint8_t execArgsSizeByComponent[] = {1, 2, 1, 6, 4};
 
 uint8_t indexArray[COMPONENTS_SIZE];
 uint8_t componentId = 0;
+extern bool runningFromRom;
 
 void fillIndexArray(VolatileMemory *volatileMemory)
 {
@@ -70,6 +71,7 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
             {
                 //  Serial.println("loaded descriptor");
                 volatileMemory->declaratedDescriptor = true;
+                runningFromRom = false;
                 fillIndexArray(volatileMemory);
             }
             return 0;

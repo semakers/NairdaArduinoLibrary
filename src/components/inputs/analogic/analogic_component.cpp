@@ -21,6 +21,24 @@ unsigned long previousMillis = 0;
 
 extern uint8_t currentKit;
 
+void analogicCreate(uint16_t *args, component_t *component);
+
+void setupAnalogic(component_t* component, int pin) {
+  uint16_t descArgsBuffer[2];
+  descArgsBuffer[0] = ANALOGIC;
+  descArgsBuffer[1] = pin;
+  analogicCreate(descArgsBuffer, component);
+}
+
+uint8_t readAnalogic(component_t *component) {
+  uint8_t pins[1];
+  pins[0] = component->pins[0];
+  uint8_t values[1];
+  analogicSense(pins, values);
+  nairdaLoop();
+  return values[0];
+}
+
 void analogicCreate(uint16_t *args, component_t *component)
 {
 

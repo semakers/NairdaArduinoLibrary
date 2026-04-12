@@ -11,7 +11,8 @@ void ultrasonicSense(uint8_t * pins,uint8_t* tempRead);
 void ultrasonicOff();
 #endif
 
-
+void setupUltrasonic(component_t *component, int triggerPin, int echoPin);
+uint8_t readUltrasonic(component_t *component);
 void ultrasonicEepromLoad(VolatileMemory *volatileMemory);
 int32_t ultrasonicEepromRead(VolatileMemory *volatileMemory);
 void ultrasonicDebugLoad(VolatileMemory *volatileMemory);

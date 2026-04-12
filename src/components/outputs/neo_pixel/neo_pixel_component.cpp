@@ -12,6 +12,26 @@ extern "C" void espShow(
 
 extern bool loadedNeoPixels;
 
+void neoPixelCreate(uint16_t *args, component_t *component);
+
+void setupNeoPixel(component_t* component, int pin, int numPixels) {
+  uint16_t descArgsBuffer[3];
+  descArgsBuffer[0] = NEOPIXEL;
+  descArgsBuffer[1] = pin;
+  descArgsBuffer[2] = numPixels;
+  neoPixelCreate(descArgsBuffer, component);
+}
+
+void runNeoPixel(component_t *component, int r, int g, int b, int index) {
+  uint32_t execArgs[4];
+  execArgs[0] = r;
+  execArgs[1] = g;
+  execArgs[2] = b;
+  execArgs[3] = index;
+  neoPixelExec(execArgs, component->neopixel);
+  nairdaLoop();
+}
+
 void neoPixelCreate(uint16_t *args, component_t *component)
 {
     component->pins[0] = args[1];
