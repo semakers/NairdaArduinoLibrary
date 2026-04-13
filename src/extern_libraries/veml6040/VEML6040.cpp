@@ -28,7 +28,7 @@ SOFTWARE.
 #ifndef __MATH_H
 #include <math.h>
 #endif
-#include "veml6040.h"
+#include "VEML6040.h"
 #include <Arduino.h>
 #include "virtual_machine/virtual_machine.h"
 
