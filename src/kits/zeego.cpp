@@ -2,6 +2,7 @@
 
 #include "kits/zeego.h"
 #include "virtual_machine/virtual_machine.h"
+#include "esp_flash.h"
 #include <Arduino.h>
 
 uint16_t offsetValues[5] = {4095, 4095, 4095, 4095, 4095};

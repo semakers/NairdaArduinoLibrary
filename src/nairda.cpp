@@ -8,21 +8,17 @@
 #include "kits/v1.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
-#include "esp_spi_flash.h"
 #include <esp32-hal.h>
 #include "kits/kidsy.h"
 #include "kits/zeego.h"
 #endif
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
 #endif
 
 uint8_t currentValue;
-int runProgrammTimeOut = 0;
 VolatileMemory volatileMemory;
 uint8_t currentKit = NO_KIT;
-bool running = false;
-bool runningFromRom = true;
 
 void setKit(uint8_t kitCode)
 {
@@ -101,20 +97,10 @@ void nairdaBegin(long int bauds)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
-#if defined(ARDUINO_ARCH_STM32)
-  softPwmSTM32Init();
-#else
   SoftPWMBegin();
 #endif
-#endif
-  runProgrammTimeOut = millis();
 
   initVolatileMemory(&volatileMemory);
-}
-
-bool isRunningFromRom()
-{
-  return runningFromRom;
 }
 
 void nairdaDelay(unsigned long ms)
@@ -130,38 +116,6 @@ void nairdaLoop()
 #if defined(KIT_V1_ENABLED)
   writeKitDisplay();
 #endif
-  /*
-  #ifndef __AVR_ATmega168__
-  #ifdef __AVR_ATmega32U4__
-
-    if (asmOperations > 250000 && volatileMemory.declaratedComponents == false)
-    {
-      loadEepromDescriptor();
-    }
-    else
-    {
-      if (asmOperations <= 200000)
-      {
-        asmOperations++;
-      }
-    }
-
-  #else
-  #if defined(ARDUINO_ARCH_ESP32)
-    if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
-    {
-  #else
-    if ((millis() - runProgrammTimeOut) > 2500 && volatileMemory.declaratedComponents[0] == false)
-    {
-  #endif
-      loadEepromDescriptor();
-      runProgrammTimeOut = millis();
-    }
-
-
-  #endif
-  #endif
-  */
 
   if (nextBlueByte(&currentValue) == true)
   {

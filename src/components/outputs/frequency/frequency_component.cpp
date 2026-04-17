@@ -7,8 +7,6 @@
 
 #include <Arduino.h>
 
-extern bool loadedFrequencies;
-
 void frequencyCreate(uint16_t *args, component_t *component);
 
 void setupFrequency(component_t* component, int pin) {
@@ -54,44 +52,3 @@ void frequencyDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[FREQUENCY].add(component);
 }
 
-void frequencyEepromLoad(VolatileMemory *volatileMemory)
-{
-#ifndef __AVR_ATmega168__
-    uint8_t currentByte;
-    while (!loadedFrequencies)
-    {
-        currentByte = nextByte();
-        if (currentByte == endFrequencies)
-        {
-            loadedFrequencies = true;
-        }
-        else
-        {
-            volatileMemory->descArgsBuffer[0] = FREQUENCY;
-            volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t *component = (component_t *)malloc(sizeof(component_t));
-            frequencyCreate(volatileMemory->descArgsBuffer, component);
-            volatileMemory->components[FREQUENCY].add(component);
-        }
-    }
-
-    neoPixelEepromLoad(volatileMemory);
-#endif
-}
-
-void frequencyEepromRun(uint8_t id, VolatileMemory *volatileMemory)
-{
-    volatileMemory->execBuffer[0] = getInputValue(nextByte());
-    volatileMemory->execBuffer[1] = getInputValue(nextByte());
-    volatileMemory->execBuffer[2] = getInputValue(nextByte());
-    uint32_t frequencyBuffer[6];
-
-    frequencyBuffer[0] = (uint32_t)secondValue(volatileMemory->execBuffer[0]);
-    frequencyBuffer[1] = (uint32_t)thirdValue(volatileMemory->execBuffer[0]);
-    frequencyBuffer[2] = (uint32_t)firstValue(volatileMemory->execBuffer[2]);
-    frequencyBuffer[3] = (uint32_t)secondValue(volatileMemory->execBuffer[2]);
-    frequencyBuffer[4] = (uint32_t)thirdValue(volatileMemory->execBuffer[2]);
-    frequencyBuffer[5] = volatileMemory->execBuffer[1];
-
-    execAct(frequencyBuffer, FREQUENCY, volatileMemory->components[FREQUENCY].get(id));
-}

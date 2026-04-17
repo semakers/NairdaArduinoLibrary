@@ -5,7 +5,6 @@
 
 #include <Arduino.h>
 
-extern bool loadedAnalogics;
 extern int temp;
 extern int hum;
 
@@ -53,9 +52,7 @@ void analogicCreate(uint16_t *args, component_t *component)
 
 void analogicSense(uint8_t *pins, uint8_t *tempRead)
 {
-#if defined(ARDUINO_ARCH_STM32)
-    tempRead[0] = map(analogRead(pins[0]), 0, 1023, 0, 100);
-#elif defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32)
 
     if (currentKit == LK32_KIT)
     {
@@ -148,31 +145,3 @@ void analogicDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[ANALOGIC].add(component);
 }
 
-void analogicEepromLoad(VolatileMemory *volatileMemory)
-{
-#ifndef __AVR_ATmega168__
-    uint8_t currentByte;
-    while (!loadedAnalogics)
-    {
-        currentByte = nextByte();
-        if (currentByte == endAnalogics)
-        {
-            loadedAnalogics = true;
-        }
-        else
-        {
-            volatileMemory->descArgsBuffer[0] = ANALOGIC;
-            volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            component_t *component = (component_t *)malloc(sizeof(component_t));
-            analogicCreate(volatileMemory->descArgsBuffer, component);
-            volatileMemory->components[ANALOGIC].add(component);
-        }
-    }
-    digitalInEepromLoad(volatileMemory);
-#endif
-}
-
-int32_t analogicEepromRead(VolatileMemory *volatileMemory)
-{
-    return getSensVal(ANALOGIC, volatileMemory->components[ANALOGIC].get(nextByte()));
-}

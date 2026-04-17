@@ -1,4 +1,1 @@
-
-
-void runGoToFunction();
-void runEndOfFunction();
+#include <stdint.h>

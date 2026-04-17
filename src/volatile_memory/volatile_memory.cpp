@@ -5,7 +5,6 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/veml6040/VEML6040.h"
-extern int runProgrammTimeOut;
 extern VEML6040 RGBWSensor;
 #endif
 
@@ -23,8 +22,7 @@ void freeCompList(LinkedList<component_t *> *list, uint8_t type)
 
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
 {
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
-    runProgrammTimeOut = millis();
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
     if (offComonents == true)
     {
         for (int i = 0; i < COMPONENTS_SIZE; i++)
@@ -33,7 +31,6 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
         }
     }
     volatileMemory->declaratedDescriptor = false;
-    volatileMemory->currentChannel = 1;
     volatileMemory->executedComponent = NON_COMPONENT;
     memset(volatileMemory->declaratedComponents, false, 8);
     memset(volatileMemory->executeActuator, false, 5);

@@ -46,5 +46,4 @@ void nairdaBegin(long int bauds);
 void setKit(uint8_t kitCode);
 void nairdaLoop();
 void nairdaDelay(unsigned long ms);
-bool isRunningFromRom();
 #endif

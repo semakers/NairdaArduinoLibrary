@@ -2,6 +2,7 @@
 
 #include "kits/kidsy.h"
 #include "virtual_machine/virtual_machine.h"
+#include "esp_flash.h"
 #include <Arduino.h>
 
 void calibrateKidsyColorSensor(VEML6040 RGBWSensor)

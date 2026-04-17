@@ -4,11 +4,9 @@
 
 #include <Arduino.h>
 
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/new_ping/new_ping.h"
 #endif
-
-extern bool loadedUltrasonics;
 
 void ultrasonicCreate(uint16_t *args, component_t *component);
 
@@ -25,7 +23,7 @@ uint8_t readUltrasonic(component_t *component) {
   pins[0] = component->pins[0];
   pins[1] = component->pins[1];
   uint8_t values[1];
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
   ultrasonicSense(pins, values, component->sonar);
 #else
   ultrasonicSense(pins, values);
@@ -34,7 +32,7 @@ uint8_t readUltrasonic(component_t *component) {
   return values[0];
 }
 
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
 
 void ultrasonicCreate(uint16_t *args, component_t *component)
 {
@@ -122,39 +120,3 @@ void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
     volatileMemory->components[ULTRASONIC].add(component);
 }
 
-void ultrasonicEepromLoad(VolatileMemory *volatileMemory)
-{
-#ifndef __AVR_ATmega168__
-    uint8_t currentByte;
-    while (!loadedUltrasonics)
-    {
-        currentByte = nextByte();
-        if (currentByte == endUltrasonics)
-        {
-            loadedUltrasonics = true;
-        }
-        else
-        {
-            uint8_t ultraBytes[2];
-            ultraBytes[0] = currentByte;
-            for (uint8_t i = 1; i < 2; i++)
-            {
-                ultraBytes[i] = nextByte();
-            }
-            volatileMemory->descArgsBuffer[0] = ULTRASONIC;
-            volatileMemory->descArgsBuffer[1] = getMapedPin(ultraBytes[0]);
-            volatileMemory->descArgsBuffer[2] = getMapedPin(ultraBytes[1]);
-            component_t *component = (component_t *)malloc(sizeof(component_t));
-            ultrasonicCreate(volatileMemory->descArgsBuffer, component);
-            volatileMemory->components[ULTRASONIC].add(component);
-        }
-    }
-
-    variableEepromLoad();
-#endif
-}
-
-int32_t ultrasonicEepromRead(VolatileMemory *volatileMemory)
-{
-    return getSensVal(ULTRASONIC, volatileMemory->components[ULTRASONIC].get(nextByte()));
-}

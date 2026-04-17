@@ -9,10 +9,10 @@ void execAct(uint32_t *execArgs, uint8_t type, component_t *component)
         servoExec(execArgs, component->servo);
         break;
     case MOTOR:
-        motorExec(execArgs, component->pins, component->values, component->ledcChannel);
+        motorExec(execArgs, component->pins, component->values);
         break;
     case DIGITAL_OUT:
-        digitalOutExec(execArgs, component->pins, component->values, component->ledcChannel);
+        digitalOutExec(execArgs, component->pins, component->values);
         break;
     case FREQUENCY:
         frequencyExec(execArgs, component->pins);
@@ -35,7 +35,7 @@ uint8_t getSensVal(uint8_t type, component_t *component)
         analogicSense(component->pins, &tempRead);
         break;
     case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
         ultrasonicSense(component->pins, &tempRead, component->sonar);
 #else
         ultrasonicSense(component->pins, &tempRead);
@@ -49,9 +49,6 @@ uint8_t getSensVal(uint8_t type, component_t *component)
 
 void sendSensVal(uint8_t type, component_t *component)
 {
-#if defined(ARDUINO_ARCH_STM32)
-    Serial.write((char)getSensVal(type, component));
-#else
 #if defined(ARDUINO_ARCH_ESP32)
     bleWrite((char)getSensVal(type, component));
     Serial.write((char)getSensVal(type, component));
@@ -62,7 +59,6 @@ void sendSensVal(uint8_t type, component_t *component)
 #endif
     Serial.write((char)getSensVal(type, component));
 
-#endif
 #endif
 }
 
@@ -77,15 +73,15 @@ void off(uint8_t type, component_t *component)
         servoOff(component->servo);
         break;
     case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
         ultrasonicOff(component->sonar);
 #endif
         break;
     case MOTOR:
-        motorOff(component->pins, component->ledcChannel);
+        motorOff(component->pins);
         break;
     case DIGITAL_OUT:
-        digitalOutOff(component->pins, component->ledcChannel);
+        digitalOutOff(component->pins);
         break;
     }
 }

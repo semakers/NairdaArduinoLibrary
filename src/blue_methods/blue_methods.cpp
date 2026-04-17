@@ -5,7 +5,6 @@
 #include "nairda.h"
 
 extern VolatileMemory volatileMemory;
-extern bool running;
 extern uint8_t currentKit;
 
 #if defined(ARDUINO_ARCH_ESP32)
@@ -26,8 +25,7 @@ class MyServerCallbacks : public BLEServerCallbacks
 {
     void onConnect(BLEServer *pServer)
     {
-
-        restartRunFromEeprom();
+        clearVolatileMemory(&volatileMemory, true);
     };
     void onDisconnect(BLEServer *pServer)
     {
@@ -44,18 +42,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
         {
             for (int i = 0; i < rxValue.length(); i++)
             {
-
-                if (!running)
-                {
-
-                    nairdaDebug(rxValue[i], &volatileMemory);
-                }
-                else
-                {
-
-                    bleBuffer[bleIndex] = (uint8_t)rxValue[(rxValue.length() - 1) - i];
-                    bleIndex++;
-                }
+                nairdaDebug(rxValue[i], &volatileMemory);
             }
         }
     }
@@ -125,38 +112,6 @@ void bleInit(const char *deviceName)
     BLEDevice::startAdvertising();
 }
 #endif
-
-void sendMemorySize(uint32_t memorySize)
-{
-#if defined(ARDUINO_ARCH_ESP32)
-
-    uint8_t buffer[16];
-    esp_flash_read(esp_flash_default_chip, buffer, 0x200000 + (4096 * 127), 16);
-    esp_flash_erase_region(esp_flash_default_chip, 0x200000, 4096 * 128);
-    esp_flash_write(esp_flash_default_chip, buffer, 0x200000 + (4096 * 127), 16);
-    char cleanBuffer[22];
-    memset(cleanBuffer, 0, 22);
-    pCharacteristic->setValue(cleanBuffer);
-    char myString[4];
-    myString[0] = (char)firstValue(memorySize);
-    myString[1] = (char)secondValue(memorySize);
-    myString[2] = (char)thirdValue(memorySize);
-    myString[3] = 0;
-    pCharacteristic->setValue(myString);
-    pCharacteristic->notify();
-
-#else
-
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char)firstValue(memorySize));
-    Serial1.write((char)secondValue(memorySize));
-    Serial1.write((char)thirdValue(memorySize));
-#endif
-    Serial.write((char)firstValue(memorySize));
-    Serial.write((char)secondValue(memorySize));
-    Serial.write((char)thirdValue(memorySize));
-#endif
-}
 
 bool nextBlueByte(uint8_t *blueByte)
 {

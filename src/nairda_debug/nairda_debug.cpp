@@ -2,15 +2,6 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 
-enum
-{
-    noMemory,
-    memory1k,
-    memory4k,
-    memory256k,
-    memory512k
-};
-
 uint8_t declaratedCommands[] = {endServos, endDC, endLeds, endFrequencies, endNeopixels, endAnalogics, endDigitals,
                                 endUltrasonics};
 
@@ -24,7 +15,6 @@ uint8_t execArgsSizeByComponent[] = {1, 2, 1, 6, 4};
 
 uint8_t indexArray[COMPONENTS_SIZE];
 uint8_t componentId = 0;
-extern bool runningFromRom;
 
 void fillIndexArray(VolatileMemory *volatileMemory)
 {
@@ -36,32 +26,13 @@ void fillIndexArray(VolatileMemory *volatileMemory)
         }
         else
         {
-            /* Serial.print("current size ");
-             Serial.print(volatileMemory->components[i].size());
-             Serial.print(" before size ");
-             Serial.println(indexArray[i - 1]);*/
             indexArray[i] = volatileMemory->components[i].size() + indexArray[i - 1];
         }
-        /*Serial.print("index array: ");
-         Serial.print(i);
-         Serial.print(" ");
-         Serial.println(indexArray[i]);*/
     }
 }
-
-#ifndef __AVR_ATmega168__
-void cleanSavingBoolean(bool *savingBoolean)
-{
-    for (int j = 0; j < 4; j++)
-    {
-        savingBoolean[j] = false;
-    }
-}
-#endif
 
 int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
 {
-    // Serial.println(currentValue[0]);
     for (int i = 0; i < COMPONENTS_SIZE; i++)
     {
         if (currentValue[0] == declaratedCommands[i])
@@ -69,9 +40,7 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
             volatileMemory->declaratedComponents[i] = true;
             if (i == COMPONENTS_SIZE - 1)
             {
-                //  Serial.println("loaded descriptor");
                 volatileMemory->declaratedDescriptor = true;
-                runningFromRom = false;
                 fillIndexArray(volatileMemory);
             }
             return 0;
@@ -99,24 +68,11 @@ int declarateComponents(uint8_t *currentValue, VolatileMemory *volatileMemory)
 
 int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
 {
-    /* Serial.print("byte: ");
-     Serial.println(currentValue[0]);*/
-
     if (volatileMemory->executedComponent == NON_COMPONENT)
     {
 
         for (int8_t i = 0; i < COMPONENTS_SIZE; i++)
         {
-            /* Serial.print(currentValue[0]);
-             Serial.print(">=");
-             Serial.print(( i == 0 ? 0 : indexArray[i - 1]));
-             Serial.print("&&");
-             Serial.print(currentValue[0]);
-             Serial.print("<");
-             Serial.print(indexArray[i]);
-             Serial.print("&&");
-             Serial.print(volatileMemory->components[i].size());
-             Serial.println(">0");*/
             if (currentValue[0] >= (i == 0 ? 0 : indexArray[i - 1]) && currentValue[0] < indexArray[i] && volatileMemory->components[i].size() > 0)
             {
                 componentId = currentValue[0] - ((i == 0) ? 0 : indexArray[i - 1]);
@@ -126,19 +82,13 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                 }
                 else
                 {
-                    /*Serial.print("Send sens val ");
-                    Serial.println(i);*/
                     sendSensVal(i, volatileMemory->components[i].get(componentId));
                     return 0;
                 }
             }
         }
-        /* Serial.print("executed component: ");
-         Serial.println(volatileMemory->executedComponent);*/
         return 0;
     }
-    /*Serial.print("component: ");
-    Serial.println(componentId);*/
 
     for (uint8_t i = 0; i < ACTUATORS_SIZE; i++)
     {
@@ -152,14 +102,6 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                     volatileMemory->executionBoolean[j] = true;
                     if (j == execArgsSizeByComponent[i] - 1)
                     {
-                        /*Serial.print("execute component: ");
-                        Serial.print(i);
-                        Serial.print("on index ");
-                        Serial.print(componentId);
-                        Serial.print(" pin ");
-                        Serial.print(volatileMemory->components[i].get(componentId)->pins[0]);
-                        Serial.print(" ledc ");
-                        Serial.println(volatileMemory->components[i].get(componentId)->ledcChannel[0]);*/
                         if (i == SERVO)
                         {
                             volatileMemory->executionBuffer[0] = map(volatileMemory->executionBuffer[0], 0, 99, 0, 180);
@@ -181,110 +123,14 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
 
 void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
 {
-    static uint32_t currentProgramOffset = 0;
-    static bool savingBoolean[4];
-    static uint8_t savingBuffer[4];
-    static int32_t programmSize = 0;
-    static bool startSaving = false;
-
     if (currentValue == projectInit)
     {
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32) || (ARDUINO_ARCH_STM32)
+#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
         clearVolatileMemory(volatileMemory, true);
 #else
         clearVolatileMemory(volatileMemory, true);
 
         asm volatile("jmp 0");
-#endif
-        // Serial.println("Se limpriaron las listas");
-    }
-    if (currentValue == saveCommand)
-    {
-        uint32_t memorySize;
-
-#if !defined(_24LC_256) && !defined(_24LC_512)
-#if defined(__AVR_ATmega168__)
-        memorySize = 0;
-#endif
-
-#if defined(ARDUINO_ARCH_ESP32)
-        startSaving = true;
-        memorySize = 512 * 1024;
-#endif
-
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega328P__)
-        startSaving = true;
-        memorySize = 1024;
-#endif
-
-#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-        startSaving = true;
-        memorySize = 4 * 1024;
-#endif
-
-#if defined(ARDUINO_ARCH_STM32)
-        startSaving = true;
-        memorySize = EEPROM.length();
-#endif
-
-#else
-        startSaving = true;
-
-#if defined(_24LC_256)
-        memorySize = 256 * 1024;
-#endif
-
-#if defined(_24LC_512)
-        memorySize = 512 * 1024;
-#endif
-
-#endif
-        sendMemorySize(memorySize);
-    }
-    else if (startSaving)
-    {
-#ifndef __AVR_ATmega168__
-        if (!savingBoolean[0])
-        {
-            savingBoolean[0] = true;
-            savingBuffer[0] = currentValue;
-        }
-        else if (!savingBoolean[1])
-        {
-            savingBoolean[1] = true;
-            savingBuffer[1] = currentValue;
-        }
-        else if (!savingBoolean[2])
-        {
-            savingBoolean[2] = true;
-            savingBuffer[2] = currentValue;
-        }
-        else if (!savingBoolean[3])
-        {
-            currentProgramOffset = 4;
-            savingBoolean[3] = true;
-            savingBuffer[3] = currentValue;
-            writeByte(0, savingBuffer[0]);
-            writeByte(1, savingBuffer[1]);
-            writeByte(2, savingBuffer[2]);
-            writeByte(3, savingBuffer[3]);
-            programmSize = (savingBuffer[1] * 10000) + (savingBuffer[2] * 100) + savingBuffer[3] - currentProgramOffset;
-        }
-        else
-        {
-            if (programmSize > 1)
-            {
-                writeByte(currentProgramOffset, currentValue);
-                currentProgramOffset++;
-                programmSize--;
-            }
-            else
-            {
-                writeByte(currentProgramOffset, currentValue);
-                startSaving = false;
-                cleanSavingBoolean(savingBoolean);
-            }
-        }
 #endif
     }
     else if (currentValue == versionCommand)

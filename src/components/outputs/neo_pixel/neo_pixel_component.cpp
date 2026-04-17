@@ -10,8 +10,6 @@ extern "C" void espShow(
 
 #endif
 
-extern bool loadedNeoPixels;
-
 void neoPixelCreate(uint16_t *args, component_t *component);
 
 void setupNeoPixel(component_t* component, int pin, int numPixels) {
@@ -61,41 +59,3 @@ void neoPixelDebugLoad(VolatileMemory *volatileMemory)
         .add(component);
 }
 
-void neoPixelEepromLoad(VolatileMemory *volatileMemory)
-{
-#ifndef __AVR_ATmega168__
-    uint8_t currentByte;
-
-    while (!loadedNeoPixels)
-    {
-        currentByte = nextByte();
-
-        if (currentByte == endNeopixels)
-        {
-            loadedNeoPixels = true;
-        }
-        else
-        {
-            volatileMemory->descArgsBuffer[0] = NEOPIXEL;
-            volatileMemory->descArgsBuffer[1] = getMapedPin(currentByte);
-            volatileMemory->descArgsBuffer[2] = nextByte();
-
-            component_t *component = (component_t *)malloc(sizeof(component_t));
-            neoPixelCreate(volatileMemory->descArgsBuffer, component);
-            volatileMemory->components[NEOPIXEL]
-                .add(component);
-        }
-    }
-    analogicEepromLoad(volatileMemory);
-#endif
-}
-
-void neoPixelEepromRun(uint8_t id, VolatileMemory *volatileMemory)
-{
-    volatileMemory->execBuffer[0] = getInputValue(nextByte());
-    volatileMemory->execBuffer[1] = getInputValue(nextByte());
-    volatileMemory->execBuffer[2] = getInputValue(nextByte());
-    volatileMemory->execBuffer[3] = getInputValue(nextByte());
-
-    execAct(volatileMemory->execBuffer, NEOPIXEL, volatileMemory->components[NEOPIXEL].get(id));
-}

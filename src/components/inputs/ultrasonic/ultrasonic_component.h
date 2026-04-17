@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/new_ping/new_ping.h"
 
 void ultrasonicSense(uint8_t * pins,uint8_t* tempRead, NewPing *sonar);
@@ -13,6 +13,4 @@ void ultrasonicOff();
 
 void setupUltrasonic(component_t *component, int triggerPin, int echoPin);
 uint8_t readUltrasonic(component_t *component);
-void ultrasonicEepromLoad(VolatileMemory *volatileMemory);
-int32_t ultrasonicEepromRead(VolatileMemory *volatileMemory);
 void ultrasonicDebugLoad(VolatileMemory *volatileMemory);
