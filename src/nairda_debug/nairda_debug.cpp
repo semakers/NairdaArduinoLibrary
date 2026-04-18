@@ -2,6 +2,10 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#include "flash_writer/flash_writer.h"
+#endif
+
 uint8_t declaratedCommands[] = {endServos, endDC, endLeds, endFrequencies, endNeopixels, endAnalogics, endDigitals,
                                 endUltrasonics};
 
@@ -121,6 +125,89 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
     volatileMemory->executedComponent = NON_COMPONENT;
 }
 
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+// Modo Bootloader: recibe chunks por BLE/Serial y los escribe en Flash.
+// Protocolo: [len][checksum][datos...] — terminador [0][0]
+// Comunicación unidireccional (no envía respuestas).
+static void enterBootloaderMode() {
+    uint8_t page_buffer[SPM_PAGESIZE];
+    uint8_t first_page_copy[SPM_PAGESIZE];
+    uint16_t current_addr = USER_SPACE_ADDR;
+    uint8_t chunk_half = 0;  // 0 = primera mitad, 1 = segunda mitad
+    uint8_t byte_val;
+
+    while (true) {
+        // Esperar len
+        while (!nextBlueByte(&byte_val));
+        uint8_t len = byte_val;
+
+        // Esperar checksum
+        while (!nextBlueByte(&byte_val));
+        uint8_t expected_checksum = byte_val;
+
+        // Paquete terminador [0][0]
+        if (len == 0 && expected_checksum == 0) {
+            if (chunk_half == 1) {
+                // Página incompleta: rellenar segunda mitad con 0xFF
+                memset(page_buffer + 64, 0xFF, 64);
+                if (current_addr == USER_SPACE_ADDR) {
+                    page_buffer[0] = 0x00;  // Flag inválido
+                    memcpy(first_page_copy + 64, page_buffer + 64, 64);
+                }
+                flashWritePage(current_addr, page_buffer);
+            }
+            break;
+        }
+
+        if (len > 64) continue;  // Chunk inválido, ignorar
+
+        // Recibir datos del chunk
+        uint8_t offset = chunk_half * 64;
+        uint8_t checksum_calc = 0;
+        for (uint8_t i = 0; i < len; i++) {
+            while (!nextBlueByte(&byte_val));
+            page_buffer[offset + i] = byte_val;
+            checksum_calc += byte_val;
+        }
+        // Rellenar resto con 0xFF si len < 64
+        if (len < 64) {
+            memset(page_buffer + offset + len, 0xFF, 64 - len);
+        }
+
+        // Validar checksum
+        checksum_calc = checksum_calc % 64;
+        if (checksum_calc != expected_checksum) {
+            continue;  // Chunk corrupto, descartar
+        }
+
+        // Primera página: forzar flag inválido y guardar copia
+        if (current_addr == USER_SPACE_ADDR) {
+            if (chunk_half == 0) {
+                page_buffer[0] = 0x00;
+                memcpy(first_page_copy, page_buffer, 64);
+            } else {
+                memcpy(first_page_copy + 64, page_buffer + 64, 64);
+            }
+        }
+
+        chunk_half++;
+        if (chunk_half == 2) {
+            // Página completa: escribir a Flash
+            flashWritePage(current_addr, page_buffer);
+            current_addr += SPM_PAGESIZE;
+            chunk_half = 0;
+        }
+    }
+
+    // Reescribir primera página con flag válido
+    first_page_copy[0] = USER_FLAG_VALID;
+    flashWritePage(USER_SPACE_ADDR, first_page_copy);
+
+    // Reset por software
+    asm volatile("jmp 0");
+}
+#endif
+
 void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
 {
     if (currentValue == projectInit)
@@ -133,6 +220,14 @@ void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
         asm volatile("jmp 0");
 #endif
     }
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+    else if (currentValue == userBootloader)
+    {
+        clearVolatileMemory(volatileMemory, true);
+        enterBootloaderMode();
+        // No retorna — hace jmp 0 al final
+    }
+#endif
     else if (currentValue == versionCommand)
     {
 

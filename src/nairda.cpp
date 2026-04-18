@@ -7,6 +7,10 @@
 #include "nairda_debug/nairda_debug.h"
 #include "kits/v1.h"
 
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#include "flash_writer/flash_writer.h"
+#endif
+
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp32-hal.h>
 #include "kits/kidsy.h"
@@ -19,6 +23,7 @@
 uint8_t currentValue;
 VolatileMemory volatileMemory;
 uint8_t currentKit = NO_KIT;
+
 
 void setKit(uint8_t kitCode)
 {
@@ -97,10 +102,39 @@ void nairdaBegin(long int bauds)
   Serial1.begin(bauds);
 #endif
   Serial.begin(bauds);
+  Serial.println(F("NK:1"));  // Después de Serial.begin
   SoftPWMBegin();
+  Serial.println(F("NK:2"));  // Después de SoftPWMBegin
 #endif
 
   initVolatileMemory(&volatileMemory);
+  Serial.println(F("NK:3"));  // Después de initVolatileMemory
+
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+  Serial.println(F("NK:BOOT"));
+
+  // Ventana de decisión: esperar 2 segundos por comando 101 o 150.
+  unsigned long bootStart = millis();
+  while (millis() - bootStart < 2000) {
+      if (nextBlueByte(&currentValue)) {
+          Serial.print(F("NK:WIN ")); Serial.println(currentValue);
+          nairdaDebug(currentValue, &volatileMemory);
+          return;
+      }
+  }
+
+  // Timeout: verificar flag
+  uint8_t flag = pgm_read_byte(USER_SPACE_ADDR);
+  Serial.print(F("NK:FLAG ")); Serial.println(flag, HEX);
+
+  if (flag == USER_FLAG_VALID) {
+      Serial.println(F("NK:EXEC"));
+      Serial.flush();
+      ((void (*)(void))USER_PROGRAM_WORD_ADDR)();
+  }
+
+  Serial.println(F("NK:LOOP"));
+#endif
 }
 
 void nairdaDelay(unsigned long ms)

@@ -22,6 +22,7 @@
 #define endDigitals 105
 #define endUltrasonics 106
 #define versionCommand 107
+#define userBootloader 150
 #define endFrequencies 131
 #define endNeopixels 133
 
