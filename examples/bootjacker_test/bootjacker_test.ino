@@ -9,8 +9,10 @@
 //   3. Escribe la página en 0x6000 usando BootJacker
 //   4. Lee de nuevo y muestra el resultado ("Después: XX")
 //
-// Primera ejecución esperada:  Antes: FF  /  Después: 05
-// Segunda ejecución esperada:  Antes: 05  /  Después: 05
+// The write takes 3 setup() cycles (2 WDT resets of ~15 ms each):
+//   Run 1: Phase 1 — erase page → WDT reset
+//   Run 2: Phase 2 — fill + write page → WDT reset
+//   Run 3: Phase 3 — verify → prints result
 // ============================================================================
 
 #include "bootjacker.h"
@@ -26,7 +28,7 @@ void setup() {
     Serial.println(F("=== BootJacker Test ==="));
     Serial.println();
 
-    // Inicializar BootJacker
+    // Init state machine (.noinit survives WDT reset)
     bj_init();
 
     // 1. Leer valor actual en 0x6000
@@ -40,7 +42,7 @@ void setup() {
     //    Bytes 1-127 = 0xFF (Flash "vacía")
     uint8_t page[128];
     memset(page, 0xFF, sizeof(page));
-    page[0] = 0x06;
+    page[0] = 0x07;
 
     // 3. Escribir con BootJacker
     Serial.print(F("Escribiendo en 0x"));
