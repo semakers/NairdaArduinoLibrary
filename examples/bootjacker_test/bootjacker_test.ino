@@ -40,12 +40,13 @@ void setup() {
     //    Bytes 1-127 = 0xFF (Flash "vacía")
     uint8_t page[128];
     memset(page, 0xFF, sizeof(page));
-    page[0] = 0x05;
+    page[0] = 0x06;
 
     // 3. Escribir con BootJacker
     Serial.print(F("Escribiendo en 0x"));
     Serial.print(USER_SPACE_ADDR, HEX);
     Serial.println(F("..."));
+    Serial.flush(); // FORZANDO ENVIO PARA DEBUGGAR DONDE SE CONGELA
 
     uint8_t result = bj_write_page(USER_SPACE_ADDR, page);
 

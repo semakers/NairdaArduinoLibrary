@@ -3,44 +3,70 @@
 
 #include <stdint.h>
 
+// ── Constantes compartidas AVR / ESP32 ──────────────────────────────
+#define USER_FLAG_VALID   0x01
+#define USER_SPACE_SIZE   8192
+#define CHUNK_MAX         64
+
+bool flashUserProgramValid(void);
+
+// ── AVR (ATmega328P) ────────────────────────────────────────────────
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 
 #include <avr/pgmspace.h>
 
-// do_spm expuesto por Optiboot v8+ en (FLASHEND - 511 + 2) >> 1
-// Para ATmega328P: (0x7FFF - 511 + 2) >> 1 = 0x3F01
 typedef void (*do_spm_t)(uint16_t address, uint8_t command, uint16_t data);
 #define DO_SPM ((do_spm_t)(0x3F01))
 
-// Comandos SPM
 #define SPM_PAGE_ERASE  0x03
 #define SPM_PAGE_FILL   0x01
 #define SPM_PAGE_WRITE  0x05
 #define SPM_RWW_ENABLE  0x11
 
-// Jump Table: 17 slots × 2 bytes = 34 bytes
-// En su propia página Flash (0x5F80-0x5FFF) para que escribir el espacio
-// de usuario no borre la tabla.
 #define JUMP_TABLE_ADDR   0x5F80
-
-// Dirección base del espacio de usuario
 #define USER_SPACE_ADDR   0x6000
-#define USER_SPACE_SIZE   8192
-#define USER_FLAG_VALID   0x01
-// El programa empieza en 0x6002 (byte 2 del espacio de usuario).
-// Byte 0 = flag, byte 1 = padding (AVR requiere alineación par).
-// En AVR, function pointers son word addresses: 0x6002 / 2 = 0x3001
 #define USER_PROGRAM_BYTE_ADDR  0x6002
 #define USER_PROGRAM_WORD_ADDR  0x3001
 
-// Escribe una página completa (128 bytes) en Flash.
-// target_addr debe estar alineada a 128 bytes.
-// Retorna 1 si la verificación pasa, 0 si falla.
 uint8_t flashWritePage(uint16_t target_addr, const uint8_t *data);
 
-// Lee el flag de integridad en USER_SPACE_ADDR.
-// Retorna true si == USER_FLAG_VALID.
-bool flashUserProgramValid(void);
-
 #endif // __AVR_ATmega328P__
+
+// ── ESP32 ───────────────────────────────────────────────────────────
+#if defined(ARDUINO_ARCH_ESP32)
+
+#include "esp_partition.h"
+#include "esp_heap_caps.h"
+
+// Jump Table en RTC slow memory (dirección fija, equivalente a 0x5F80 en AVR)
+#define ESP32_JUMP_TABLE_ADDR ((volatile void**)0x50000000)
+
+// Partición "userapp" — últimos 8KB del flash virtual 2MB
+#define USER_PARTITION_LABEL "userapp"
+
+// Header en flash: [flag][size_lo][size_hi][entry_offset][code...]
+#define USER_HEADER_SIZE 4
+
+// Ventana de boot en segundos
+#define ESP32_BOOT_WINDOW_MS 2000
+
+// Salta fuera del user code de vuelta al kernel (llamar al recibir cmd 100)
+void esp32AbortUserCode(void);
+
+// Inicializa la partición y la jump table
+void esp32FlashInit(void);
+
+// Escribe el programa de usuario en la partición
+// dataBuffer ya contiene [0x00, entry_offset, ...code] de Flutter
+// Retorna true si la escritura fue exitosa
+bool esp32FlashWriteUserProgram(uint8_t *dataBuffer, uint16_t totalBytes);
+
+// Ejecuta el programa de usuario desde flash
+void esp32ExecuteUserCode(void);
+
+// Llena la jump table con los punteros a funciones del kernel
+void esp32SetupJumpTable(void);
+
+#endif // ARDUINO_ARCH_ESP32
+
 #endif // FLASH_WRITER_H

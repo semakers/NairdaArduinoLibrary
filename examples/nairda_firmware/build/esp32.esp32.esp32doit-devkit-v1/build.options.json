@@ -1,0 +1,9 @@
+{
+  "additionalFiles": "",
+  "compiler.optimization_flags": "-Os",
+  "customBuildProperties": "build.partitions=partitions,upload.maximum_size=2027520",
+  "fqbn": "esp32:esp32:esp32doit-devkit-v1",
+  "hardwareFolders": "/Users/adrianalvarezgalicia/Library/Arduino15/packages/esp32/hardware/esp32/3.3.7,/Users/adrianalvarezgalicia/Library/Arduino15/packages/esp32/hardware/esp32/3.3.7",
+  "otherLibrariesFolders": "/Users/adrianalvarezgalicia/Documents/Arduino/libraries",
+  "sketchLocation": "/Users/adrianalvarezgalicia/flutter projects/nairda_workspace/NairdaArduinoLibrary/examples/nairda_firmware"
+}

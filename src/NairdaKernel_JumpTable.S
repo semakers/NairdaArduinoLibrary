@@ -1,10 +1,9 @@
-; ============================================================================
-; NairdaKernel_JumpTable.S
-; Jump Table en sección fija .nairda_vectors (dirección 0x5F80)
-; Archivo assembly puro (no pasa por LTO).
-; ============================================================================
-
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+// ============================================================================
+// NairdaKernel_JumpTable.S
+// Jump Table en sección fija .nairda_vectors (dirección 0x5F80)
+// Archivo assembly puro (no pasa por LTO).
+// ============================================================================
 
 .section .nairda_vectors,"ax",@progbits
 .global nairda_jump_table

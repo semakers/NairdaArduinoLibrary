@@ -40,9 +40,15 @@ class MyCallbacks : public BLECharacteristicCallbacks
         String rxValue = pCharacteristic->getValue();
         if (rxValue.length() > 0)
         {
-            for (int i = 0; i < rxValue.length(); i++)
+            // Solo poner en buffer — nairdaLoop (Core 1) los procesa.
+            // No llamar nairdaDebug aquí (Core 0/BLE task) porque
+            // operaciones de flash desde el BLE task bloquean el IWDT.
+            for (int i = rxValue.length() - 1; i >= 0; i--)
             {
-                nairdaDebug(rxValue[i], &volatileMemory);
+                if (bleIndex < 255) {
+                    bleBuffer[bleIndex] = (uint8_t)rxValue[i];
+                    bleIndex++;
+                }
             }
         }
     }

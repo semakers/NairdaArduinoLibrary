@@ -7,14 +7,13 @@
 #include "nairda_debug/nairda_debug.h"
 #include "kits/v1.h"
 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 #include "flash_writer/flash_writer.h"
-#endif
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp32-hal.h>
 #include "kits/kidsy.h"
 #include "kits/zeego.h"
+#include "nairda_debug/nairda_debug.h"
 #endif
 #if !defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/soft_pwm/soft_pwm.h"
@@ -91,6 +90,10 @@ void nairdaBegin(const char *deviceName, long int bauds)
 #endif
   bleInit(deviceName);
 
+  // Inicializar flash y jump table para bootloader ESP32
+  esp32FlashInit();
+  esp32SetupJumpTable();
+
 #else
 void nairdaBegin(long int bauds)
 {
@@ -135,7 +138,35 @@ void nairdaBegin(long int bauds)
 
   Serial.println(F("NK:LOOP"));
 #endif
+
+#if defined(ARDUINO_ARCH_ESP32)
+  esp32BootWindow();
+#endif
 }
+
+#if defined(ARDUINO_ARCH_ESP32)
+void esp32BootWindow() {
+  Serial.println(F("NK:BOOT"));
+
+  unsigned long bootStart = millis();
+  while (millis() - bootStart < ESP32_BOOT_WINDOW_MS) {
+    if (nextBlueByte(&currentValue)) {
+      Serial.print(F("NK:WIN ")); Serial.println(currentValue);
+      nairdaDebug(currentValue, &volatileMemory);
+      return;
+    }
+    delay(1);
+  }
+
+  if (flashUserProgramValid()) {
+    Serial.println(F("NK:EXEC"));
+    Serial.flush();
+    esp32ExecuteUserCode();
+  }
+
+  Serial.println(F("NK:LOOP"));
+}
+#endif
 
 void nairdaDelay(unsigned long ms)
 {
@@ -149,6 +180,14 @@ void nairdaLoop()
 {
 #if defined(KIT_V1_ENABLED)
   writeKitDisplay();
+#endif
+
+#if defined(ARDUINO_ARCH_ESP32)
+  if (esp32RebootRequested) {
+    esp32RebootRequested = false;
+    esp32BootWindow();
+    return;
+  }
 #endif
 
   if (nextBlueByte(&currentValue) == true)

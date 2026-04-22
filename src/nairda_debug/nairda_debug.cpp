@@ -1,10 +1,7 @@
 #include <stdint.h>
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
-
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 #include "flash_writer/flash_writer.h"
-#endif
 
 uint8_t declaratedCommands[] = {endServos, endDC, endLeds, endFrequencies, endNeopixels, endAnalogics, endDigitals,
                                 endUltrasonics};
@@ -208,15 +205,76 @@ static void enterBootloaderMode() {
 }
 #endif
 
+// ── ESP32 Bootloader ────────────────────────────────────────────────────────
+#if defined(ARDUINO_ARCH_ESP32)
+
+// Flag global: cuando se pone en true, nairdaLoop debe re-entrar
+// a la ventana de boot en vez de seguir en modo intérprete.
+volatile bool esp32RebootRequested = false;
+
+static bool esp32NextByte(uint8_t* out) {
+    unsigned long timeout = millis() + 5000;
+    while (!nextBlueByte(out)) {
+        if (millis() > timeout) return false;
+        delay(10); // yield al RTOS para que BLE/watchdog no muera
+    }
+    return true;
+}
+
+static void esp32EnterBootloaderMode() {
+    static uint8_t dataBuffer[USER_SPACE_SIZE]; // static: BSS, no stack
+    uint16_t totalBytes = 0;
+    uint8_t chunkData[CHUNK_MAX];
+    uint8_t byte_val;
+
+    while (true) {
+        if (!esp32NextByte(&byte_val)) return;
+        uint8_t len = byte_val;
+
+        if (!esp32NextByte(&byte_val)) return;
+        uint8_t expected_checksum = byte_val;
+
+        if (len == 0 && expected_checksum == 0) break;
+        if (len > CHUNK_MAX) continue;
+
+        uint8_t checksum_calc = 0;
+        for (uint8_t i = 0; i < len; i++) {
+            if (!esp32NextByte(&byte_val)) return;
+            chunkData[i] = byte_val;
+            checksum_calc += byte_val;
+        }
+        checksum_calc = checksum_calc % 64;
+
+        if (checksum_calc != expected_checksum) continue;
+
+        if (totalBytes + len <= USER_SPACE_SIZE) {
+            memcpy(dataBuffer + totalBytes, chunkData, len);
+            totalBytes += len;
+        } else {
+            break;
+        }
+    }
+
+    if (totalBytes > 0) {
+        esp32FlashWriteUserProgram(dataBuffer, totalBytes);
+        esp32ExecuteUserCode();
+    }
+}
+
+#endif // ARDUINO_ARCH_ESP32
+
 void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
 {
     if (currentValue == projectInit)
     {
-#if defined(__AVR_ATmega32U4__) || (ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32)
+        clearVolatileMemory(volatileMemory, true);
+        esp32RebootRequested = true;
+        esp32AbortUserCode(); // longjmp: sale del user code si está corriendo
+#elif defined(__AVR_ATmega32U4__)
         clearVolatileMemory(volatileMemory, true);
 #else
         clearVolatileMemory(volatileMemory, true);
-
         asm volatile("jmp 0");
 #endif
     }
@@ -225,7 +283,13 @@ void nairdaDebug(uint8_t currentValue, VolatileMemory *volatileMemory)
     {
         clearVolatileMemory(volatileMemory, true);
         enterBootloaderMode();
-        // No retorna — hace jmp 0 al final
+    }
+#endif
+#if defined(ARDUINO_ARCH_ESP32)
+    else if (currentValue == userBootloader)
+    {
+        clearVolatileMemory(volatileMemory, true);
+        esp32EnterBootloaderMode();
     }
 #endif
     else if (currentValue == versionCommand)

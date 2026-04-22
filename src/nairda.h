@@ -46,4 +46,9 @@ void nairdaBegin(long int bauds);
 void setKit(uint8_t kitCode);
 void nairdaLoop();
 void nairdaDelay(unsigned long ms);
+
+#if defined(ARDUINO_ARCH_ESP32)
+void esp32BootWindow();
+#endif
+
 #endif
