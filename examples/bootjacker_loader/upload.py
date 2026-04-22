@@ -106,6 +106,37 @@ def main():
         ser.close()
         return
 
+    # Ensure jump table is written: J → E → W at 0x5F80
+    jt_addr = 0x5F80
+    print("Writing jump table...")
+
+    # J: fill page_buf with JT entries (on Arduino side)
+    ser.write(b'J')
+    time.sleep(0.2)
+    while ser.in_waiting:
+        ser.readline()
+
+    # E: erase JT page
+    lo, hi = jt_addr & 0xFF, (jt_addr >> 8) & 0xFF
+    ser.write(bytes([ord('E'), lo, hi]))
+    time.sleep(WDT_DELAY)
+    if not wait_ready(ser, timeout=5):
+        print("  !! JT erase timeout")
+
+    # J again: refill page_buf (lost during WDT)
+    ser.write(b'J')
+    time.sleep(0.2)
+    while ser.in_waiting:
+        ser.readline()
+
+    # W: write JT page
+    ser.write(bytes([ord('W'), lo, hi]))
+    time.sleep(WDT_DELAY)
+    if not wait_ready(ser, timeout=5):
+        print("  !! JT write timeout")
+    else:
+        print("  JT OK")
+
     # Upload page by page
     for page_idx in range(total_pages):
         offset = page_idx * PAGE_SIZE

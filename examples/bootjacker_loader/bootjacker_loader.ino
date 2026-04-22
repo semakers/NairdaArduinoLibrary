@@ -1,31 +1,77 @@
 // ============================================================================
 // bootjacker_loader.ino
-// Mini-kernel con jump table + bootjacker loader via Serial.
+// Mini-kernel con jump table + bootjacker loader via Serial (bare-metal UART).
 //
-// Protocol (driven entirely by the Python/Flutter script):
-//   'C' n        → Configure: expect n pages
-//   'L' [64B]    → Load chunk into page buffer (2 chunks = 1 page)
-//   'E' lo hi    → Erase page at addr (lo,hi). WDT resets.
+// Protocol (script-driven, delay-based):
+//   'F'          → Fill page buffer with 0xFF
+//   'L' off len [data]  → Load chunk at offset
+//   'E' lo hi    → Erase page at addr. WDT resets.
 //   'W' lo hi    → Write page_buf to addr. WDT resets.
 //   'R'          → Run user program at 0x6002
-//   '?'          → Print status (flag, JT)
-//
-// Flow per page:
-//   Script sends chunks via 'L' → sends 'E' addr → waits 300ms (WDT)
-//   → sends 'W' addr → waits 300ms (WDT) → repeat for next page
+//   '?'          → Print status
 // ============================================================================
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
+#include <avr/interrupt.h>
 #include <string.h>
+
+// ═══════════════════════════════════════════════════════════════════
+// Bare-metal UART (no Arduino Serial — saves ~170 bytes RAM)
+// ═══════════════════════════════════════════════════════════════════
+static void uart_init(void) {
+    uint16_t ubrr = (F_CPU / 4 / 115200 - 1) / 2;  // U2X mode
+    UBRR0H = ubrr >> 8;
+    UBRR0L = ubrr;
+    UCSR0A = (1 << U2X0);
+    UCSR0B = (1 << RXEN0) | (1 << TXEN0);
+    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);  // 8N1
+}
+
+static void uart_tx(uint8_t c) {
+    while (!(UCSR0A & (1 << UDRE0)));
+    UDR0 = c;
+}
+
+static void uart_print(const char *s) {
+    while (*s) uart_tx(*s++);
+}
+
+static void uart_print_P(const char *s) {
+    char c;
+    while ((c = pgm_read_byte(s++))) uart_tx(c);
+}
+
+static void uart_hex(uint8_t b) {
+    const char hex[] = "0123456789ABCDEF";
+    uart_tx(hex[b >> 4]);
+    uart_tx(hex[b & 0x0F]);
+}
+
+static void uart_println(const char *s) { uart_print(s); uart_tx('\r'); uart_tx('\n'); }
+static void uart_println_P(const char *s) { uart_print_P(s); uart_tx('\r'); uart_tx('\n'); }
+
+static void uart_flush(void) {
+    while (!(UCSR0A & (1 << TXC0)));
+    UCSR0A |= (1 << TXC0);
+}
+
+static uint8_t uart_rx(void) {
+    while (!(UCSR0A & (1 << RXC0)));
+    return UDR0;
+}
+
+static uint8_t uart_available(void) {
+    return UCSR0A & (1 << RXC0);
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Memory map
 // ═══════════════════════════════════════════════════════════════════
 #define JT_ADDR                0x5F80
 #define USER_SPACE_ADDR        0x6000
-#define USER_PROGRAM_WORD_ADDR 0x3001
+#define USER_PROGRAM_WORD_ADDR 0x3001   // 0x6002 / 2
 #define USER_FLAG_VALID        0x01
 
 // ═══════════════════════════════════════════════════════════════════
@@ -36,20 +82,31 @@
 #define OPTIBOOT_BUF         0x0100
 
 // ═══════════════════════════════════════════════════════════════════
-// Page buffer in .noinit (survives WDT reset)
+// Page buffer in .noinit
 // ═══════════════════════════════════════════════════════════════════
 static volatile uint8_t page_buf[SPM_PAGESIZE] __attribute__((section(".noinit")));
 
 // ═══════════════════════════════════════════════════════════════════
-// Syscalls (exposed via jump table at 0x5F80)
+// Syscalls
 // ═══════════════════════════════════════════════════════════════════
-void pin13_setup(void) { pinMode(13, OUTPUT); }
-void led_on(void)      { digitalWrite(13, HIGH); }
-void led_off(void)     { digitalWrite(13, LOW); }
-void delay_ms(unsigned long ms) { delay(ms); }
+static void pin13_setup(void) {
+    DDRB |= (1 << 5);
+}
+static void led_on(void) {
+    PORTB |= (1 << 5);
+}
+static void led_off(void) {
+    PORTB &= ~(1 << 5);
+}
+static void delay_ms(unsigned long ms) {
+    // Simple busy-wait delay (~16 cycles per iteration at 16MHz)
+    while (ms--) {
+        for (volatile uint16_t i = 0; i < 1995; i++);
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════
-// Bootjacker core — both noreturn, trigger WDT reset
+// Bootjacker core
 // ═══════════════════════════════════════════════════════════════════
 static void bj_erase(uint16_t addr) __attribute__((noreturn));
 static void bj_erase(uint16_t addr) {
@@ -85,128 +142,103 @@ static void bj_fill_write(uint16_t addr) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Write jump table to 0x5F80 (first boot only)
+// Jump table — filled via 'J' command, written via E/W by script
 // ═══════════════════════════════════════════════════════════════════
-static void ensure_jump_table() {
-    uint16_t first = pgm_read_word(JT_ADDR);
-    // Check if already has valid-looking pointer (not erased Flash)
-    if (first != 0xFFFF && first != 0x0000) return;
-
-    memset((void *)page_buf, 0xFF, SPM_PAGESIZE);
-    uint16_t *entries = (uint16_t *)((void*)page_buf);
-    entries[0] = (uint16_t)(void *)pin13_setup;
-    entries[1] = (uint16_t)(void *)led_on;
-    entries[2] = (uint16_t)(void *)led_off;
-    entries[3] = (uint16_t)(void *)delay_ms;
-
-    // Erase JT page — after WDT, we'll end up in setup() again
-    // with JT page erased. But page_buf still has JT data (.noinit).
-    // The script isn't running yet, so we just need to get back to
-    // a state where we can write. We'll use a simple flag.
-    bj_erase(JT_ADDR);
-    // Never returns — WDT resets. Next boot: JT page is 0xFF.
-    // We detect this and write it.
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Serial helpers
-// ═══════════════════════════════════════════════════════════════════
-static uint8_t serial_read_byte() {
-    while (!Serial.available());
-    return Serial.read();
-}
-
-// ═══════════════════════════════════════════════════════════════════
-void setup() {
-    Serial.begin(115200);
-
-    // On boot after JT erase: write JT data from page_buf (.noinit)
-    uint16_t jt_first = pgm_read_word(JT_ADDR);
-    if (jt_first == 0xFFFF) {
-        // JT page was just erased — write it now
-        // page_buf still has JT data from ensure_jump_table
-        bj_fill_write(JT_ADDR);  // WDT resets
-        // Next boot: JT is written, we fall through to READY
+static void fill_jt_page_buf(void) {
+    for (uint8_t i = 0; i < SPM_PAGESIZE; i++) page_buf[i] = 0xFF;
+    uint16_t ptrs[4] = {
+        (uint16_t)(void *)pin13_setup,
+        (uint16_t)(void *)led_on,
+        (uint16_t)(void *)led_off,
+        (uint16_t)(void *)delay_ms,
+    };
+    for (uint8_t i = 0; i < 4; i++) {
+        page_buf[i * 2]     = ptrs[i] & 0xFF;
+        page_buf[i * 2 + 1] = ptrs[i] >> 8;
     }
-
-    // First-ever boot: write JT
-    ensure_jump_table();
-
-    Serial.println(F("BJ:READY"));
 }
 
-void loop() {
-    if (!Serial.available()) return;
-    uint8_t cmd = Serial.read();
+// ═══════════════════════════════════════════════════════════════════
+// Main
+// ═══════════════════════════════════════════════════════════════════
+int main(void) {
+    uart_init();
+    sei();
 
-    switch (cmd) {
-        case 'L': {
-            // Load chunk into page buffer
-            // Format: 'L' [offset_lo] [len] [data...]
-            uint8_t offset = serial_read_byte();
-            uint8_t len = serial_read_byte();
-            if (len > 64) break;
-            for (uint8_t i = 0; i < len; i++) {
-                uint8_t b = serial_read_byte();
-                if (offset + i < SPM_PAGESIZE)
-                    page_buf[offset + i] = b;
+    uart_println_P(PSTR("BJ:READY"));
+
+    while (1) {
+        if (!uart_available()) continue;
+        uint8_t cmd = uart_rx();
+
+        switch (cmd) {
+            case 'F':
+                memset((void *)page_buf, 0xFF, SPM_PAGESIZE);
+                uart_println_P(PSTR("F:OK"));
+                break;
+
+            case 'L': {
+                uint8_t off = uart_rx();
+                uint8_t len = uart_rx();
+                for (uint8_t i = 0; i < len && (off + i) < SPM_PAGESIZE; i++)
+                    page_buf[off + i] = uart_rx();
+                uart_println_P(PSTR("L:OK"));
+                break;
             }
-            Serial.println(F("L:OK"));
-            break;
-        }
 
-        case 'F': {
-            // Fill page buffer (reset to 0xFF)
-            memset((void *)page_buf, 0xFF, SPM_PAGESIZE);
-            Serial.println(F("F:OK"));
-            break;
-        }
-
-        case 'E': {
-            // Erase page at address (2 bytes: lo, hi)
-            uint8_t lo = serial_read_byte();
-            uint8_t hi = serial_read_byte();
-            uint16_t addr = lo | ((uint16_t)hi << 8);
-            Serial.print(F("E:0x")); Serial.println(addr, HEX);
-            Serial.flush();
-            bj_erase(addr);  // WDT resets
-            break;
-        }
-
-        case 'W': {
-            // Write page_buf to address (2 bytes: lo, hi)
-            uint8_t lo = serial_read_byte();
-            uint8_t hi = serial_read_byte();
-            uint16_t addr = lo | ((uint16_t)hi << 8);
-            Serial.print(F("W:0x")); Serial.println(addr, HEX);
-            Serial.flush();
-            bj_fill_write(addr);  // WDT resets
-            break;
-        }
-
-        case 'R': {
-            uint8_t flag = pgm_read_byte(USER_SPACE_ADDR);
-            if (flag == USER_FLAG_VALID) {
-                Serial.println(F("R:GO"));
-                Serial.flush();
-                ((void (*)(void))USER_PROGRAM_WORD_ADDR)();
-            } else {
-                Serial.println(F("R:NOPROG"));
+            case 'E': {
+                uint8_t lo = uart_rx();
+                uint8_t hi = uart_rx();
+                uint16_t addr = lo | ((uint16_t)hi << 8);
+                uart_print_P(PSTR("E:0x")); uart_hex(hi); uart_hex(lo);
+                uart_tx('\r'); uart_tx('\n'); uart_flush();
+                bj_erase(addr);
+                break;
             }
-            break;
-        }
 
-        case '?': {
-            Serial.print(F("JT=0x")); Serial.println(pgm_read_word(JT_ADDR), HEX);
-            Serial.print(F("FL=0x")); Serial.println(pgm_read_byte(USER_SPACE_ADDR), HEX);
-            // Dump first 8 bytes at 0x6000
-            for (uint8_t i = 0; i < 8; i++) {
-                uint8_t b = pgm_read_byte(USER_SPACE_ADDR + i);
-                if (b < 0x10) Serial.print('0');
-                Serial.print(b, HEX); Serial.print(' ');
+            case 'W': {
+                uint8_t lo = uart_rx();
+                uint8_t hi = uart_rx();
+                uint16_t addr = lo | ((uint16_t)hi << 8);
+                uart_print_P(PSTR("W:0x")); uart_hex(hi); uart_hex(lo);
+                uart_tx('\r'); uart_tx('\n'); uart_flush();
+                bj_fill_write(addr);
+                break;
             }
-            Serial.println();
-            break;
+
+            case 'J':
+                // Fill page_buf with jump table data
+                fill_jt_page_buf();
+                uart_println_P(PSTR("J:OK"));
+                break;
+
+            case 'R': {
+                uint8_t flag = pgm_read_byte(USER_SPACE_ADDR);
+                if (flag == USER_FLAG_VALID) {
+                    uart_println_P(PSTR("R:GO"));
+                    uart_flush();
+                    ((void (*)(void))USER_PROGRAM_WORD_ADDR)();
+                } else {
+                    uart_println_P(PSTR("R:NOPROG"));
+                }
+                break;
+            }
+
+            case '?': {
+                uart_print_P(PSTR("JT=0x"));
+                uint16_t j = pgm_read_word(JT_ADDR);
+                uart_hex(j >> 8); uart_hex(j & 0xFF);
+                uart_tx('\r'); uart_tx('\n');
+                uart_print_P(PSTR("FL=0x"));
+                uart_hex(pgm_read_byte(USER_SPACE_ADDR));
+                uart_tx('\r'); uart_tx('\n');
+                for (uint8_t i = 0; i < 8; i++) {
+                    uart_hex(pgm_read_byte(USER_SPACE_ADDR + i));
+                    uart_tx(' ');
+                }
+                uart_tx('\r'); uart_tx('\n');
+                break;
+            }
         }
     }
 }
