@@ -8,6 +8,9 @@
 #include "kits/v1.h"
 
 #include "flash_writer/flash_writer.h"
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#include <avr/eeprom.h>
+#endif
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp32-hal.h>
@@ -116,7 +119,19 @@ void nairdaBegin(long int bauds)
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
   Serial.println(F("NK:BOOT"));
 
-  // Ventana de decisión: esperar 2 segundos por comando 101 o 150.
+  // Si estamos en modo bootloader (EEPROM flag de un WDT reset previo),
+  // re-entrar directamente sin esperar la ventana de 2 segundos.
+  {
+      uint8_t bjMode = eeprom_read_byte(BJ_EE_MODE);
+      if (bjMode == 0xBB) {
+          Serial.println(F("NK:BJ"));
+          // Re-entrar al bootloader — Flutter enviará el siguiente comando
+          nairdaDebug(userBootloader, &volatileMemory);
+          return;
+      }
+  }
+
+  // Ventana de decisión: esperar 2 segundos por comando 100 o 150.
   unsigned long bootStart = millis();
   while (millis() - bootStart < 2000) {
       if (nextBlueByte(&currentValue)) {

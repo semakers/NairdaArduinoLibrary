@@ -1,41 +1,61 @@
 #include "flash_writer.h"
 
-// ── AVR (ATmega328P) ────────────────────────────────────────────────────────
+// ── AVR (ATmega328P) — BootJacker ROP gadgets on Optiboot 4.4 ────────────
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 #include <string.h>
 
-uint8_t flashWritePage(uint16_t target_addr, const uint8_t *data) {
-    uint8_t sreg = SREG;
+// Gadget word addresses in Optiboot 4.4 (stock Arduino Uno bootloader)
+// Verified via avr-objdump of optiboot_atmega328.hex (Arduino core 1.8.6)
+#define GADGET_ERASE_W       0x3F99   // byte 0x7F32: spm(erase) + busy-wait + RWWSRE
+#define GADGET_FILL_WRITE_W  0x3F80   // byte 0x7F00: fill from SRAM 0x0100 + spm(write) + RWWSRE
+
+// Page buffer in .noinit — survives WDT reset
+volatile uint8_t bj_page_buf[SPM_PAGESIZE] __attribute__((section(".noinit")));
+
+void bjPageClear(void) {
+    for (uint8_t i = 0; i < SPM_PAGESIZE; i++) bj_page_buf[i] = 0xFF;
+}
+
+void bjPageLoad(uint8_t offset, const uint8_t *data, uint8_t len) {
+    for (uint8_t i = 0; i < len && (offset + i) < SPM_PAGESIZE; i++)
+        bj_page_buf[offset + i] = data[i];
+}
+
+void bjErase(uint16_t addr) {
     cli();
+    wdt_enable(WDTO_15MS);
+    asm volatile(
+        "mov r12, %A[a] \n\t" "mov r13, %B[a] \n\t"
+        "ldi r30, 0x03  \n\t" "mov r10, r30   \n\t"
+        "ldi r30, 0x11  \n\t" "mov r9,  r30   \n\t"
+        "ldi r30, lo8(%[g]) \n\t" "ldi r31, hi8(%[g]) \n\t"
+        "ijmp \n\t"
+        : : [a] "r" (addr), [g] "n" (GADGET_ERASE_W)
+    );
+    __builtin_unreachable();
+}
 
-    // 1. Page Erase
-    DO_SPM(target_addr, SPM_PAGE_ERASE, 0);
-
-    // 2. Page Fill (64 words = 128 bytes)
-    for (uint16_t i = 0; i < SPM_PAGESIZE; i += 2) {
-        uint16_t word = data[i] | ((uint16_t)data[i + 1] << 8);
-        DO_SPM(target_addr + i, SPM_PAGE_FILL, word);
-    }
-
-    // 3. Page Write
-    DO_SPM(target_addr, SPM_PAGE_WRITE, 0);
-
-    // 4. RWW Enable
-    DO_SPM(0, SPM_RWW_ENABLE, 0);
-
-    SREG = sreg;
-
-    // 5. Verificar
-    for (uint16_t i = 0; i < SPM_PAGESIZE; i++) {
-        if (pgm_read_byte(target_addr + i) != data[i]) {
-            return 0;
-        }
-    }
-    return 1;
+void bjFillWrite(uint16_t addr) {
+    cli();
+    // Volatile-safe copy to Optiboot's SRAM buffer at 0x0100
+    for (uint8_t i = 0; i < SPM_PAGESIZE; i++)
+        ((volatile uint8_t *)OPTIBOOT_BUF)[i] = bj_page_buf[i];
+    wdt_enable(WDTO_15MS);
+    asm volatile(
+        "mov r12, %A[a] \n\t" "mov r13, %B[a] \n\t"
+        "ldi r30, 0x01  \n\t" "mov r8,  r30   \n\t"
+        "ldi r30, 0x05  \n\t" "mov r10, r30   \n\t"
+        "ldi r30, 0x11  \n\t" "mov r9,  r30   \n\t"
+        "ldi r30, lo8(%[g]) \n\t" "ldi r31, hi8(%[g]) \n\t"
+        "ijmp \n\t"
+        : : [a] "r" (addr), [g] "n" (GADGET_FILL_WRITE_W)
+    );
+    __builtin_unreachable();
 }
 
 bool flashUserProgramValid(void) {
@@ -52,7 +72,6 @@ bool flashUserProgramValid(void) {
 #include <string.h>
 #include <setjmp.h>
 
-// longjmp para salir del user code de vuelta al kernel
 static jmp_buf kernelJmpBuf;
 static bool jmpBufValid = false;
 static uint8_t* execMemRef = NULL;
@@ -74,22 +93,17 @@ bool flashUserProgramValid(void) {
     return flag == USER_FLAG_VALID;
 }
 
-
 bool esp32FlashWriteUserProgram(uint8_t *dataBuffer, uint16_t totalBytes) {
     if (!userPartition || totalBytes == 0) return false;
 
-    // Flutter envía [0x00, entry_offset, ...code]
-    // Kernel construye header: [flag, size_lo, size_hi, entry_offset, code...]
     uint8_t entryOffset = dataBuffer[1];
     memmove(dataBuffer + USER_HEADER_SIZE, dataBuffer + 2, totalBytes - 2);
     uint16_t totalStored = totalBytes + 2;
-    dataBuffer[0] = 0x00;  // Flag inválido durante escritura
+    dataBuffer[0] = 0x00;
     dataBuffer[1] = totalStored & 0xFF;
     dataBuffer[2] = (totalStored >> 8) & 0xFF;
     dataBuffer[3] = entryOffset;
 
-    // Escribir directo — onWrite ya no corre en Core 0,
-    // toda la lógica pasa por nairdaLoop en Core 1
     esp_partition_erase_range(userPartition, 0, userPartition->size);
     esp_partition_write(userPartition, 0, dataBuffer, totalStored);
 
@@ -110,7 +124,6 @@ void esp32AbortUserCode(void) {
 void esp32ExecuteUserCode(void) {
     if (!userPartition) return;
 
-    // Leer header: [flag][size_lo][size_hi][entry_offset]
     uint8_t hdr[3];
     esp_partition_read(userPartition, 1, hdr, 3);
     uint16_t totalLen = hdr[0] | (hdr[1] << 8);
@@ -121,11 +134,9 @@ void esp32ExecuteUserCode(void) {
 
     uint16_t alignedLen = (codeLen + 3) & ~3;
 
-    // Asignar memoria ejecutable (IRAM)
     uint8_t* execMem = (uint8_t*)heap_caps_malloc(alignedLen, MALLOC_CAP_EXEC);
     if (!execMem) return;
 
-    // Flash → DRAM (IRAM no soporta acceso byte-a-byte)
     uint8_t* tmpBuf = (uint8_t*)malloc(alignedLen);
     if (!tmpBuf) {
         heap_caps_free(execMem);
@@ -135,7 +146,6 @@ void esp32ExecuteUserCode(void) {
     memset(tmpBuf, 0, alignedLen);
     esp_partition_read(userPartition, USER_HEADER_SIZE, tmpBuf, codeLen);
 
-    // DRAM → IRAM (escrituras de 32 bits alineadas)
     uint32_t* src = (uint32_t*)tmpBuf;
     uint32_t* dst = (uint32_t*)execMem;
     for (uint16_t i = 0; i < alignedLen / 4; i++) {
@@ -143,91 +153,44 @@ void esp32ExecuteUserCode(void) {
     }
     free(tmpBuf);
 
-    // Punto de retorno: si llega cmd 100, longjmp vuelve aquí
     execMemRef = execMem;
     jmpBufValid = true;
     if (setjmp(kernelJmpBuf) != 0) {
-        // Llegamos aquí vía longjmp (cmd 100 abortó el user code)
         heap_caps_free(execMemRef);
         execMemRef = NULL;
         jmpBufValid = false;
         return;
     }
 
-    // Ejecutar user code
     typedef void (*entry_fn)(void);
     entry_fn entry = (entry_fn)(execMem + entryOffset);
     entry();
 
-    // Si retorna normalmente
     heap_caps_free(execMem);
     execMemRef = NULL;
     jmpBufValid = false;
 }
 
-// ── Wrappers ESP32: misma firma que AVR Proxy (void* arr, ...) ────────────
-// El usuario pasa uint8_t arr[NAIRDA_COMP_SIZE], el wrapper castea a component_t*
-
 static inline component_t* asComp(void *arr) {
     return (component_t*)arr;
 }
 
-static void jt_setupDigitalOut(void *arr, int pin) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupDigitalOut(c, pin);
-}
-static void jt_runDigitalOut(void *arr, int value) {
-    runDigitalOut(asComp(arr), value);
-}
-static void jt_setupServo(void *arr, int pin, int minP, int maxP, int angle) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupServo(c, pin, minP, maxP, angle);
-}
-static void jt_runServo(void *arr, int angle) {
-    runServo(asComp(arr), angle);
-}
-static void jt_setupMotor(void *arr, int p1, int p2, int ps) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupMotor(c, p1, p2, ps);
-}
-static void jt_runMotor(void *arr, int speed, int dir) {
-    runMotor(asComp(arr), speed, dir);
-}
-static void jt_setupNeoPixel(void *arr, int pin, int num) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupNeoPixel(c, pin, num);
-}
-static void jt_runNeoPixel(void *arr, int r, int g, int b, int idx) {
-    runNeoPixel(asComp(arr), r, g, b, idx);
-}
-static void jt_setupFrequency(void *arr, int pin) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupFrequency(c, pin);
-}
-static void jt_runFrequency(void *arr, int freq, int dur, int vol) {
-    runFrequency(asComp(arr), freq, dur, vol);
-}
-static void jt_setupDigitalIn(void *arr, int pin) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupDigitalIn(c, pin);
-}
-static uint8_t jt_readDigitalIn(void *arr) {
-    return readDigitalIn(asComp(arr));
-}
-static void jt_setupAnalogic(void *arr, int pin) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupAnalogic(c, pin);
-}
-static uint8_t jt_readAnalogic(void *arr) {
-    return readAnalogic(asComp(arr));
-}
-static void jt_setupUltrasonic(void *arr, int trig, int echo) {
-    component_t *c = asComp(arr); memset(c, 0, sizeof(component_t));
-    setupUltrasonic(c, trig, echo);
-}
-static uint8_t jt_readUltrasonic(void *arr) {
-    return readUltrasonic(asComp(arr));
-}
+static void jt_setupDigitalOut(void *arr, int pin) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupDigitalOut(c, pin); }
+static void jt_runDigitalOut(void *arr, int value) { runDigitalOut(asComp(arr), value); }
+static void jt_setupServo(void *arr, int pin, int minP, int maxP, int angle) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupServo(c, pin, minP, maxP, angle); }
+static void jt_runServo(void *arr, int angle) { runServo(asComp(arr), angle); }
+static void jt_setupMotor(void *arr, int p1, int p2, int ps) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupMotor(c, p1, p2, ps); }
+static void jt_runMotor(void *arr, int speed, int dir) { runMotor(asComp(arr), speed, dir); }
+static void jt_setupNeoPixel(void *arr, int pin, int num) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupNeoPixel(c, pin, num); }
+static void jt_runNeoPixel(void *arr, int r, int g, int b, int idx) { runNeoPixel(asComp(arr), r, g, b, idx); }
+static void jt_setupFrequency(void *arr, int pin) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupFrequency(c, pin); }
+static void jt_runFrequency(void *arr, int freq, int dur, int vol) { runFrequency(asComp(arr), freq, dur, vol); }
+static void jt_setupDigitalIn(void *arr, int pin) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupDigitalIn(c, pin); }
+static uint8_t jt_readDigitalIn(void *arr) { return readDigitalIn(asComp(arr)); }
+static void jt_setupAnalogic(void *arr, int pin) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupAnalogic(c, pin); }
+static uint8_t jt_readAnalogic(void *arr) { return readAnalogic(asComp(arr)); }
+static void jt_setupUltrasonic(void *arr, int trig, int echo) { component_t *c = asComp(arr); memset(c, 0, sizeof(component_t)); setupUltrasonic(c, trig, echo); }
+static uint8_t jt_readUltrasonic(void *arr) { return readUltrasonic(asComp(arr)); }
 
 void esp32SetupJumpTable(void) {
     ESP32_JUMP_TABLE_ADDR[0] = (void*)jt_setupDigitalOut;

@@ -10,25 +10,32 @@
 
 bool flashUserProgramValid(void);
 
-// ── AVR (ATmega328P) ────────────────────────────────────────────────
+// ── AVR (ATmega328P) — BootJacker ROP on Optiboot 4.4 ──────────────
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 
 #include <avr/pgmspace.h>
 
-typedef void (*do_spm_t)(uint16_t address, uint8_t command, uint16_t data);
-#define DO_SPM ((do_spm_t)(0x3F01))
+// SRAM address where Optiboot's fill+write gadget reads page data
+#define OPTIBOOT_BUF      0x0100
 
-#define SPM_PAGE_ERASE  0x03
-#define SPM_PAGE_FILL   0x01
-#define SPM_PAGE_WRITE  0x05
-#define SPM_RWW_ENABLE  0x11
-
+// Flash memory layout
 #define JUMP_TABLE_ADDR   0x5F80
 #define USER_SPACE_ADDR   0x6000
 #define USER_PROGRAM_BYTE_ADDR  0x6002
 #define USER_PROGRAM_WORD_ADDR  0x3001
 
-uint8_t flashWritePage(uint16_t target_addr, const uint8_t *data);
+// EEPROM addresses for bootjacker state persistence across WDT resets
+#define BJ_EE_MODE   ((uint8_t *)0)   // 0x00=normal, 0xBB=bootloader active
+#define BJ_EE_CMD    ((uint8_t *)1)   // pending command after WDT: 'E'rase done → need 'W'rite
+
+// Page buffer (volatile .noinit — survives WDT reset)
+extern volatile uint8_t bj_page_buf[SPM_PAGESIZE];
+
+// BootJacker API
+void bjPageClear(void);                              // fill page_buf with 0xFF
+void bjPageLoad(uint8_t offset, const uint8_t *data, uint8_t len);  // load chunk
+void bjErase(uint16_t addr);                         // erase page → WDT reset (noreturn)
+void bjFillWrite(uint16_t addr);                     // write page_buf to Flash → WDT reset (noreturn)
 
 #endif // __AVR_ATmega328P__
 
@@ -38,33 +45,15 @@ uint8_t flashWritePage(uint16_t target_addr, const uint8_t *data);
 #include "esp_partition.h"
 #include "esp_heap_caps.h"
 
-// Jump Table en RTC slow memory (dirección fija, equivalente a 0x5F80 en AVR)
 #define ESP32_JUMP_TABLE_ADDR ((volatile void**)0x50000000)
-
-// Partición "userapp" — últimos 8KB del flash virtual 2MB
 #define USER_PARTITION_LABEL "userapp"
-
-// Header en flash: [flag][size_lo][size_hi][entry_offset][code...]
 #define USER_HEADER_SIZE 4
-
-// Ventana de boot en segundos
 #define ESP32_BOOT_WINDOW_MS 2000
 
-// Salta fuera del user code de vuelta al kernel (llamar al recibir cmd 100)
 void esp32AbortUserCode(void);
-
-// Inicializa la partición y la jump table
 void esp32FlashInit(void);
-
-// Escribe el programa de usuario en la partición
-// dataBuffer ya contiene [0x00, entry_offset, ...code] de Flutter
-// Retorna true si la escritura fue exitosa
 bool esp32FlashWriteUserProgram(uint8_t *dataBuffer, uint16_t totalBytes);
-
-// Ejecuta el programa de usuario desde flash
 void esp32ExecuteUserCode(void);
-
-// Llena la jump table con los punteros a funciones del kernel
 void esp32SetupJumpTable(void);
 
 #endif // ARDUINO_ARCH_ESP32
