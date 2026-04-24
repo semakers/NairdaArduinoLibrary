@@ -1,24 +1,23 @@
-#include "virtual_machine/virtual_machine.h"
-#include <stdint.h>
-#include "value_conversion/value_conversion.h"
+#if defined(ARDUINO_ARCH_ESP32)
+
 #include <Arduino.h>
+#include "virtual_machine/virtual_machine.h"
+#include "blue_methods/blue_methods.h"
+#include "platform/platform_hal.h"
 #include "nairda.h"
 
-extern VolatileMemory volatileMemory;
-extern uint8_t currentKit;
-
-#if defined(ARDUINO_ARCH_ESP32)
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "nairda_debug/nairda_debug.h"
+
+extern VolatileMemory volatileMemory;
 
 BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
 
-#define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb" // UART service UUID
+#define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
 class MyServerCallbacks : public BLEServerCallbacks
@@ -40,9 +39,6 @@ class MyCallbacks : public BLECharacteristicCallbacks
         String rxValue = pCharacteristic->getValue();
         if (rxValue.length() > 0)
         {
-            // Solo poner en buffer — nairdaLoop (Core 1) los procesa.
-            // No llamar nairdaDebug aquí (Core 0/BLE task) porque
-            // operaciones de flash desde el BLE task bloquean el IWDT.
             for (int i = rxValue.length() - 1; i >= 0; i--)
             {
                 if (bleIndex < 255) {
@@ -56,14 +52,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
 
 bool bleAvailable()
 {
-    if (bleIndex > 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return bleIndex > 0;
 }
 
 uint8_t bleRead()
@@ -73,10 +62,7 @@ uint8_t bleRead()
         bleIndex--;
         return bleBuffer[bleIndex];
     }
-    else
-    {
-        return 0;
-    }
+    return 0;
 }
 
 void bleWrite(uint8_t byte)
@@ -89,12 +75,10 @@ void bleWrite(uint8_t byte)
 
 void bleInit(const char *deviceName)
 {
-    BLEDevice::init(deviceName); // Give it a name
-    // Create the BLE Server
+    BLEDevice::init(deviceName);
     BLEServer *pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
 
-    // Create the BLE Service
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
     pCharacteristic = pService->createCharacteristic(
@@ -104,26 +88,20 @@ void bleInit(const char *deviceName)
             BLECharacteristic::PROPERTY_WRITE_NR |
             BLECharacteristic::PROPERTY_READ);
     pCharacteristic->addDescriptor(new BLE2902());
-
     pCharacteristic->setCallbacks(new MyCallbacks());
-    // Start the service
+
     pService->start();
 
-    // Start advertising
     BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06); // functions that help with iPhone connections issue
+    pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
 }
-#endif
 
 bool nextBlueByte(uint8_t *blueByte)
 {
-
-#if defined(ARDUINO_ARCH_ESP32)
-
     int serialAvailable = Serial.available();
     int serial1Available = Serial1.available();
     if (serialAvailable > 0 || serial1Available > 0)
@@ -141,37 +119,16 @@ bool nextBlueByte(uint8_t *blueByte)
     }
     else if (bleAvailable())
     {
-
         blueByte[0] = bleRead();
         return true;
-#else
-
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    int serialAvailable = Serial.available();
-    int serial1Available = Serial1.available();
-    if (serialAvailable > 0 || serial1Available > 0)
-    {
-        if (serialAvailable > 0)
-        {
-            blueByte[0] = Serial.read();
-            return true;
-        }
-        else if (serial1Available > 0)
-        {
-            blueByte[0] = Serial1.read();
-            return true;
-        }
-
-#else
-
-    if (Serial.available())
-    {
-        blueByte[0] = Serial.read();
-        return true;
-
-#endif
-
-#endif
     }
     return false;
 }
+
+void hal_sendByte(uint8_t byte)
+{
+    bleWrite(byte);
+    Serial.write(byte);
+}
+
+#endif

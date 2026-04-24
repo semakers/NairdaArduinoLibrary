@@ -5,27 +5,8 @@
 #include <Arduino.h>
 
 extern VolatileMemory volatileMemory;
-extern uint8_t currentKit;
 
 void digitalInCreate(uint16_t *args, component_t *component);
-
-#if defined(ARDUINO_ARCH_ESP32)
-
-uint8_t isKidsyArrowPin(uint8_t pin)
-{
-    uint8_t kidsyArrowsPins[4] = {12, 13, 15, 14};
-
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        if (pin == kidsyArrowsPins[i])
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-#endif
 
 void setupDigitalIn(component_t *component, int pin) {
   uint16_t descArgsBuffer[2];
@@ -49,31 +30,6 @@ void digitalInCreate(uint16_t *args, component_t *component)
     pinMode(component->pins[0], INPUT);
 }
 
-void digitalInSense(uint8_t *pins, uint8_t *tempRead)
-{
-#if defined(ARDUINO_ARCH_ESP32)
-    if (currentKit == ROBBUS_KIDSY_KIT)
-    {
-
-#if !defined(CONFIG_IDF_TARGET_ESP32C3)
-      if (isKidsyArrowPin(pins[0]) == 1) {
-        tempRead[0] = touchRead(pins[0]) > 15 ? 0 : 1;
-      } else {
-        tempRead[0] = digitalRead(pins[0]);
-      }
-#else
-      tempRead[0] = digitalRead(pins[0]);
-#endif
-    }
-    else
-    {
-        tempRead[0] = digitalRead(pins[0]);
-    }
-#else
-    tempRead[0] = digitalRead(pins[0]);
-#endif
-}
-
 void digitalInOff()
 {
 }
@@ -86,4 +42,3 @@ void digitalInDebugLoad(VolatileMemory *volatileMemory)
     digitalInCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[DIGITAL_IN].add(component);
 }
-

@@ -6,7 +6,6 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include "extern_libraries/esp32_servo/ESP32Servo.h"
 #else
-#include "extern_libraries/new_ping/new_ping.h"
 #include <Servo.h>
 #endif
 
@@ -18,9 +17,7 @@ struct component_t{
 
       Adafruit_NeoPixel *neopixel;
       Servo *servo;
-      #if !defined(ARDUINO_ARCH_ESP32)
-      NewPing *sonar;
-#endif
+      void *sonar;
 };
 
 void execAct(uint32_t *execArgs, uint8_t type, component_t *component);

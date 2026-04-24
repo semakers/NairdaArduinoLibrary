@@ -1,3 +1,6 @@
+#ifndef VOLATILE_MEMORY_H
+#define VOLATILE_MEMORY_H
+
 #include <stdint.h>
 #include "extern_libraries/linked_list/linked_list.h"
 #include "components/component.h"
@@ -40,6 +43,8 @@ struct VolatileMemory
   uint32_t execBuffer[6];
 };
 
+void freeCompList(LinkedList<component_t *> *list, uint8_t type);
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents);
-
 void initVolatileMemory(VolatileMemory *volatileMemory);
+
+#endif

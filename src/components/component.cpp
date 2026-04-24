@@ -1,5 +1,5 @@
 #include "virtual_machine/virtual_machine.h"
-#include "blue_methods/blue_methods.h"
+#include "platform/platform_hal.h"
 
 void execAct(uint32_t *execArgs, uint8_t type, component_t *component)
 {
@@ -35,12 +35,7 @@ uint8_t getSensVal(uint8_t type, component_t *component)
         analogicSense(component->pins, &tempRead);
         break;
     case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_ESP32)
-        ultrasonicSense(component->pins, &tempRead, component->sonar);
-#else
-        ultrasonicSense(component->pins, &tempRead);
-#endif
-
+        ultrasonicSenseImpl(component, &tempRead);
         break;
     }
     return (tempRead < 0) ? 0 : (tempRead > 100) ? 100
@@ -49,17 +44,8 @@ uint8_t getSensVal(uint8_t type, component_t *component)
 
 void sendSensVal(uint8_t type, component_t *component)
 {
-#if defined(ARDUINO_ARCH_ESP32)
-    bleWrite((char)getSensVal(type, component));
-    Serial.write((char)getSensVal(type, component));
-#else
-
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
-    Serial1.write((char)getSensVal(type, component));
-#endif
-    Serial.write((char)getSensVal(type, component));
-
-#endif
+    uint8_t val = getSensVal(type, component);
+    hal_sendByte(val);
 }
 
 void off(uint8_t type, component_t *component)
@@ -73,9 +59,7 @@ void off(uint8_t type, component_t *component)
         servoOff(component->servo);
         break;
     case ULTRASONIC:
-#if !defined(ARDUINO_ARCH_ESP32)
-        ultrasonicOff(component->sonar);
-#endif
+        ultrasonicOffImpl(component);
         break;
     case MOTOR:
         motorOff(component->pins);

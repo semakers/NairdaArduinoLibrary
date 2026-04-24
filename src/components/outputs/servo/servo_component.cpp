@@ -4,12 +4,6 @@
 #include "servo_component.h"
 #include "extern_libraries/linked_list/linked_list.h"
 
-#if defined(ARDUINO_ARCH_ESP32)
-#include "extern_libraries/esp32_servo/ESP32Servo.h"
-#else
-#include <Servo.h>
-#endif
-
 #include <Arduino.h>
 
 void servoCreate(uint16_t *args, component_t *component);
@@ -34,15 +28,9 @@ void runServo(component_t *component, int angle) {
 void servoCreate(uint16_t *args, component_t *component)
 {
     component->servo = new Servo();
-
     component->pins[0] = args[1];
-#if defined(ARDUINO_ARCH_ESP32)
-        component->servo->attach(args[1], args[2], args[3]);
-        component->servo->write(args[4]);
-#else
     component->servo->attach(args[1], args[2], args[3]);
     component->servo->write(args[4]);
-#endif
 }
 
 void servoExec(uint32_t *execArgs, Servo *servo)
@@ -67,4 +55,3 @@ void servoDebugLoad(VolatileMemory *volatileMemory)
     servoCreate(volatileMemory->descArgsBuffer, component);
     volatileMemory->components[SERVO].add(component);
 }
-

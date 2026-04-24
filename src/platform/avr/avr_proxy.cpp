@@ -1,16 +1,7 @@
-// ============================================================================
-// NairdaKernel_Proxy.cpp
-// Wrappers extern "C" que convierten arrays opacos (uint8_t[16]) a component_t
-// para la Jump Table. El usuario nunca ve component_t.
-// ============================================================================
-
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 
 #include "nairda.h"
 #include <string.h>
-
-// El usuario pasa uint8_t arr[16]. Internamente es un component_t.
-// sizeof(component_t) en AVR = 5+5+2+2+2 = 16 bytes.
 
 static inline component_t* asComp(void *arr) {
     return (component_t*)arr;
@@ -95,9 +86,6 @@ __attribute__((used)) uint8_t jt_readUltrasonic(void *arr) {
 }
 
 // ── Strings ─────────────────────────────────────────────────────────────
-// El usuario pasa char*, el wrapper convierte a String internamente.
-// Para stringCompare, retorna 1 si iguales, 0 si no.
-// Para toLower/toUpper, el resultado se escribe en el buffer destino.
 
 __attribute__((used)) int jt_stringCompare(const char *a, const char *b) {
     return stringCompare(String(a), String(b));
@@ -114,8 +102,6 @@ __attribute__((used)) void jt_stringToUpper(const char *src, char *dst, int maxL
 }
 
 // ── Tables ──────────────────────────────────────────────────────────────
-// El usuario pasa void* (handle opaco). Internamente es nairda_table_t*.
-// El setup crea la tabla con new y guarda el puntero en el handle.
 
 __attribute__((used)) void jt_tableCreate(void *handle, int rows, int cols, int32_t defaultVal) {
     nairda_table_t *table = new nairda_table_t();

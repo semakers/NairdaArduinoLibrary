@@ -40,15 +40,12 @@ uint8_t readUltrasonic(component_t *component);
 // ── core ───────────────────────────────────────────────────────────
 #if defined(ARDUINO_ARCH_ESP32)
 void nairdaBegin(const char *deviceName, long int bauds);
+void esp32BootWindow();
 #else
 void nairdaBegin(long int bauds);
 #endif
 void setKit(uint8_t kitCode);
 void nairdaLoop();
 void nairdaDelay(unsigned long ms);
-
-#if defined(ARDUINO_ARCH_ESP32)
-void esp32BootWindow();
-#endif
 
 #endif

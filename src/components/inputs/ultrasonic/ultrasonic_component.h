@@ -1,15 +1,8 @@
 #include <stdint.h>
 
-#if !defined(ARDUINO_ARCH_ESP32)
-#include "extern_libraries/new_ping/new_ping.h"
-
-void ultrasonicSense(uint8_t * pins,uint8_t* tempRead, NewPing *sonar);
-void ultrasonicOff( NewPing *sonar);
-#else
-
-void ultrasonicSense(uint8_t * pins,uint8_t* tempRead);
-void ultrasonicOff();
-#endif
+void ultrasonicCreate(uint16_t *args, component_t *component);
+void ultrasonicSenseImpl(component_t *component, uint8_t *tempRead);
+void ultrasonicOffImpl(component_t *component);
 
 void setupUltrasonic(component_t *component, int triggerPin, int echoPin);
 uint8_t readUltrasonic(component_t *component);
