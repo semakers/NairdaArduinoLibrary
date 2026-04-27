@@ -24,9 +24,9 @@ bool flashUserProgramValid(void);
 #define USER_PROGRAM_BYTE_ADDR  0x6002
 #define USER_PROGRAM_WORD_ADDR  0x3001
 
-// EEPROM addresses for bootjacker state persistence across WDT resets
-#define BJ_EE_MODE   ((uint8_t *)0)   // 0x00=normal, 0xBB=bootloader active
-#define BJ_EE_CMD    ((uint8_t *)1)   // pending command after WDT: 'E'rase done → need 'W'rite
+// .noinit magic — survives jmp 0 / WDT reset, lost on power cycle / reflash
+#define BJ_MAGIC_ACTIVE  0xBEEF
+extern volatile uint16_t bj_mode_magic;
 
 // Page buffer (volatile .noinit — survives WDT reset)
 extern volatile uint8_t bj_page_buf[SPM_PAGESIZE];

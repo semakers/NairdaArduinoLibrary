@@ -11,6 +11,7 @@
 #define GADGET_FILL_WRITE_W  0x3F80
 
 volatile uint8_t bj_page_buf[SPM_PAGESIZE] __attribute__((section(".noinit")));
+volatile uint16_t bj_mode_magic __attribute__((section(".noinit")));
 
 void bjPageClear(void) {
     for (uint8_t i = 0; i < SPM_PAGESIZE; i++) bj_page_buf[i] = 0xFF;

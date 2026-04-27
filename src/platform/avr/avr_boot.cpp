@@ -13,7 +13,6 @@
 #include <Wire.h>
 #endif
 
-#include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
 extern uint8_t currentValue;
@@ -29,14 +28,12 @@ void nairdaBegin(long int bauds)
 
     initVolatileMemory(&volatileMemory);
 
-    {
-        uint8_t bjMode = eeprom_read_byte(BJ_EE_MODE);
-        if (bjMode == 0xBB) {
-            nairdaDebug(userBootloader, &volatileMemory);
-            return;
-        }
+    if (bj_mode_magic == BJ_MAGIC_ACTIVE) {
+        nairdaDebug(userBootloader, &volatileMemory);
+        return;
     }
 
+    while (Serial.available()) Serial.read();
     unsigned long bootStart = millis();
     while (millis() - bootStart < 2000) {
         if (nextBlueByte(&currentValue)) {

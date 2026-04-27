@@ -10,8 +10,6 @@
 // ── AVR BootJacker protocol (ATmega328P only) ──────────────────────
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 
-#include <avr/eeprom.h>
-
 extern "C" {
     void jt_setupDigitalOut(void*, int);
     void jt_runDigitalOut(void*, int);
@@ -90,7 +88,7 @@ static void fillJumpTable(void) {
 static void enterBootloaderMode() {
     uint8_t byte_val;
 
-    eeprom_update_byte(BJ_EE_MODE, 0xBB);
+    bj_mode_magic = BJ_MAGIC_ACTIVE;
 
     while (true) {
         while (!nextBlueByte(&byte_val));
@@ -137,7 +135,7 @@ static void enterBootloaderMode() {
                 break;
 
             case 'R':
-                eeprom_update_byte(BJ_EE_MODE, 0x00);
+                bj_mode_magic = 0;
                 if (flashUserProgramValid()) {
                     ((void (*)(void))USER_PROGRAM_WORD_ADDR)();
                 }
