@@ -47,7 +47,11 @@ void bjFillWrite(uint16_t addr);                     // write page_buf to Flash 
 
 #define ESP32_JUMP_TABLE_ADDR ((volatile void**)0x50000000)
 #define USER_PARTITION_LABEL "userapp"
-#define USER_HEADER_SIZE 4
+// Header layout (5 bytes):
+//   byte 0    : flag (0x01 = USER_FLAG_VALID)
+//   bytes 1-2 : total length (uint16 LE)
+//   bytes 3-4 : entry offset (uint16 LE) — extends past 255 for big programs
+#define USER_HEADER_SIZE 5
 #define ESP32_BOOT_WINDOW_MS 2000
 
 void esp32AbortUserCode(void);

@@ -44,8 +44,11 @@ uint8_t getSensVal(uint8_t type, component_t *component)
 
 void sendSensVal(uint8_t type, component_t *component)
 {
+    // Wire protocol: real value (0..100) is sent as (val + 1) so the wire
+    // range is 1..101. A wire byte of 0 received on the host means "no
+    // response / packet lost", since the firmware never emits 0.
     uint8_t val = getSensVal(type, component);
-    hal_sendByte(val);
+    hal_sendByte(val + 1);
 }
 
 void off(uint8_t type, component_t *component)

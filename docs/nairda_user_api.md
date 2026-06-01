@@ -2,9 +2,13 @@
 
 ## Introducción
 
-Los programas de usuario se ejecutan desde el espacio Flash del ATmega328P (dirección 0x6002+). No tienen acceso directo al kernel de Nairda ni a las librerías de Arduino. En su lugar, usan la **Jump Table** — un array de punteros a función en Flash (0x5F80) — para llamar al kernel.
+Los programas de usuario se ejecutan:
+- **AVR** (ATmega328P): desde Flash a partir de `0x6002+`, Jump Table en Flash en `0x5F80`.
+- **ESP32**: desde DRAM (allocada con `MALLOC_CAP_EXEC` por el kernel), Jump Table en RTC slow memory `0x50000000`.
 
-Cada función de la API recibe un **handle opaco** (`uint8_t comp[16]`) que representa un componente de hardware. El usuario declara el handle, las funciones `setup*` lo inicializan, y las funciones `run*`/`read*` lo usan para operar el hardware.
+No tienen acceso directo al kernel de Nairda ni a las librerías de Arduino. En su lugar, usan la **Jump Table** — un array de punteros a función en una dirección fija — para llamar al kernel.
+
+Cada función de la API recibe un **handle opaco** (`uint8_t comp[NAIRDA_COMP_SIZE]`) que representa un componente de hardware. El tamaño difiere por plataforma: 16 bytes en AVR (`sizeof(component_t)` con punteros 2B), 24 bytes en ESP32 (5+5+padding+3*4 con punteros 4B). El usuario declara el handle, las funciones `setup*` lo inicializan, y las funciones `run*`/`read*` lo usan para operar el hardware.
 
 ---
 
@@ -18,8 +22,8 @@ Todo programa de usuario debe incluir este header:
 
 Provee:
 - Macros para todas las funciones de la API
-- `NAIRDA_COMP_SIZE` (16) — tamaño del handle de componente
-- `JT_READ(slot)` — macro interna que lee punteros desde Flash con `pgm_read_word()`
+- `NAIRDA_COMP_SIZE` — tamaño del handle de componente (16 AVR / 24 ESP32). **Importante:** debe igualar `sizeof(component_t)` del kernel para evitar overflow del `memset()` interno de cada `setup*` al buffer adyacente del usuario.
+- `JT_READ(slot)` — macro interna que lee punteros desde Flash/RTC: en AVR con `pgm_read_word()`, en ESP32 con dereference directo a `0x50000000 + slot*4`.
 
 ---
 
@@ -434,3 +438,52 @@ El binario resultante (`app.bin`) se envía al Arduino prepuesto con 2 bytes de 
 | 16 | 0x5FA0 | nairdaDelay | `void (unsigned long)` |
 
 Cada slot almacena un **word address** (2 bytes). Los punteros se leen con `pgm_read_word()` porque la tabla está en Flash (PROGMEM), no en RAM.
+
+### Slots adicionales (ESP32 — `0x50000000 + slot*4`)
+
+| Slot | Función | Firma | Notas |
+|---|---|---|---|
+| 17 | random | `long (long, long)` | min/max inclusive |
+| 18 | map | `long (long, long, long, long, long)` | igual que Arduino map() |
+| 19-21 | strings | (declarados en backend, NO populados en ESP32) | TODO |
+| 22-30 | tables 2D | (declarados en backend, NO populados en ESP32) | TODO |
+| **31** | **setBleName** | `void (const char*, int)` | ESP32-only. Persiste en flash, aplica al próximo boot. Ver más abajo. |
+
+---
+
+## API: BLE name persistente (ESP32 only)
+
+```c
+nairda_setBleName(const char *name, int len);
+```
+
+Persiste el nombre de advertising BLE en flash sector `0x27E000`. El kernel lo lee al boot y lo usa como el nombre advertised por BLE. Útil para distinguir múltiples dispositivos iguales (ej. aulas con varios Kidsy).
+
+**Limitaciones:**
+- Max 29 bytes (BLE adv payload max).
+- Aplica al **PRÓXIMO boot** (no inmediato).
+- `len = 0` borra el nombre y vuelve al default.
+- Solo ESP32. En AVR el macro no se define (`#ifndef __AVR__`).
+
+**Importante — Evita string literals:**
+
+Por la limitación de `.rodata` position-independent en ESP32 user code (documentada en `nairda_kernel_bootloader_esp32.md`), **no pases string literals directamente** a esta función. El transpiler Dart se encarga de generar el nombre como stack array byte-por-byte. Si vas a llamar `setBleName` manualmente desde C que escribirás a mano, construye el array así:
+
+```c
+char name[7];
+name[0] = 'M'; name[1] = 'i'; name[2] = 'g'; name[3] = 'u';
+name[4] = 'e'; name[5] = 'l'; name[6] = 0;
+nairda_setBleName(name, 6);
+```
+
+NO esto (crashea con LoadProhibited):
+```c
+nairda_setBleName("Miguel", 6);  // ❌ "Miguel" termina en .rodata con puntero absoluto inválido
+```
+
+Layout en flash sector `0x27E000`:
+```
+byte 0    : 0xBE (magic — cualquier otro valor = sin nombre, usa default)
+byte 1    : longitud (1-29)
+bytes 2.. : ASCII (no NUL-terminated en flash)
+```

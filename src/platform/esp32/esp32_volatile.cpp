@@ -3,6 +3,7 @@
 #include <string.h>
 #include "volatile_memory/volatile_memory.h"
 #include "nairda.h"
+#include "nairda_log.h"
 
 #include "extern_libraries/veml6040/VEML6040.h"
 extern VEML6040 RGBWSensor;
@@ -10,6 +11,8 @@ extern uint8_t currentKit;
 
 void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
 {
+    NRD_LOG("[NRD] clearVolatileMemory(offComonents=%s) kit=%d\n",
+            offComonents ? "true" : "false", currentKit);
     if (offComonents == true)
     {
         for (int i = 0; i < COMPONENTS_SIZE; i++)
@@ -30,6 +33,7 @@ void clearVolatileMemory(VolatileMemory *volatileMemory, bool offComonents)
 
     if (currentKit == ROBBUS_KIDSY_KIT)
     {
+        NRD_LOGLN("[NRD]   → RGBWSensor.nairdaEnd() (working=false)");
         RGBWSensor.nairdaEnd();
     }
 }

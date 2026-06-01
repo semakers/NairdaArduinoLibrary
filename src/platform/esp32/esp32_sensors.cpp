@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "virtual_machine/virtual_machine.h"
 #include "nairda.h"
+#include "nairda_log.h"
 
 #include "extern_libraries/veml6040/VEML6040.h"
 #include "extern_libraries/dht11/DHT.h"
@@ -20,10 +21,13 @@ static unsigned long previousMillis = 0;
 
 void analogicCreate(uint16_t *args, component_t *component)
 {
+    NRD_LOG("[NRD] analogicCreate(pin=%u) kit=%d comp=%p\n", args[1], currentKit, component);
     component->pins[0] = args[1];
     if (currentKit == ROBBUS_KIDSY_KIT && (args[1] == 37 || args[1] == 38 || args[1] == 39))
     {
+        NRD_LOGLN("[NRD]   → Kidsy color pin, calling RGBWSensor.nairdaBegin()");
         RGBWSensor.nairdaBegin();
+        NRD_LOGLN("[NRD]   ← RGBWSensor.nairdaBegin() returned");
     }
 }
 
@@ -56,6 +60,7 @@ void analogicSense(uint8_t *pins, uint8_t *tempRead)
     }
     else if (currentKit == ROBBUS_KIDSY_KIT)
     {
+        NRD_LOG_THROTTLED(500, "[NRD] analogicSense pin=%u (Kidsy path)\n", pins[0]);
         if (pins[0] == 37 || pins[0] == 38 || pins[0] == 39)
         {
             RGBWSensor.readFixedColors();
@@ -74,6 +79,7 @@ void analogicSense(uint8_t *pins, uint8_t *tempRead)
         default:
             tempRead[0] = map(analogRead(pins[0]), 0, 4095, 0, 100);
         }
+        NRD_LOG_THROTTLED(500, "[NRD]   tempRead[0]=%u\n", tempRead[0]);
     }
     else if (currentKit == ROBBUS_ZEEGO_KIT)
     {
@@ -119,7 +125,11 @@ void digitalInSense(uint8_t *pins, uint8_t *tempRead)
     {
 #if !defined(CONFIG_IDF_TARGET_ESP32C3)
         if (isKidsyArrowPin(pins[0]) == 1) {
-            tempRead[0] = touchRead(pins[0]) > 15 ? 0 : 1;
+            // Kidsy touch pads: untouched ~850-1150, touched approaches 0.
+            // Pressed when value drops below 200.
+            uint32_t tval = touchRead(pins[0]);
+            NRD_LOG_THROTTLED(200, "[NRD/TOUCH] pin=%u raw=%u threshold=200\n", pins[0], (unsigned)tval);
+            tempRead[0] = tval < 200 ? 1 : 0;
         } else {
             tempRead[0] = digitalRead(pins[0]);
         }

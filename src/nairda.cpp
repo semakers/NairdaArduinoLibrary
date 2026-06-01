@@ -4,6 +4,7 @@
 #include "nairda_debug/nairda_debug.h"
 #include "platform/platform_hal.h"
 #include "kits/v1.h"
+#include "nairda_log.h"
 
 uint8_t currentValue;
 VolatileMemory volatileMemory;
@@ -16,6 +17,7 @@ void setKit(uint8_t kitCode)
 
 void nairdaDelay(unsigned long ms)
 {
+    NRD_LOG_THROTTLED(500, "[JT] nairdaDelay ms=%lu\n", ms);
     unsigned long start = millis();
     while (millis() - start < ms) {
         nairdaLoop();
@@ -29,6 +31,13 @@ void nairdaLoop()
 #endif
 
     if (hal_checkRebootRequest()) return;
+
+#if defined(ARDUINO_ARCH_ESP32)
+    // Consume any deferred BLE actions queued by the BLE task callbacks
+    // (e.g. re-start advertising after a disconnect). Must run on the main
+    // task — see blePollActions docs.
+    blePollActions();
+#endif
 
     if (nextBlueByte(&currentValue) == true)
     {

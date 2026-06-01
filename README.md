@@ -108,6 +108,27 @@ By clicking on the puzzle button, the block panel will be displayed, in which we
 
 ![](https://www.nairda.com.mx/TopicForumResources/blockTypes.gif)![](https://www.nairda.com.mx/TopicForumResources/dragBlock.gif)
 
+## Developer / kernel documentation
+
+Esta librería implementa un **microkernel** con jump table que permite ejecutar binarios de usuario pequeños (~700 bytes) escritos en C, separados del firmware base. Detalles:
+
+| Doc | Contenido |
+|---|---|
+| [`docs/nairda_kernel_architecture.md`](docs/nairda_kernel_architecture.md) | Arquitectura general del jump table + user-app loader |
+| [`docs/nairda_kernel_bootloader_avr.md`](docs/nairda_kernel_bootloader_avr.md) | AVR: BootJacker ROP en Optiboot 4.4, partition table custom |
+| [`docs/nairda_kernel_bootloader_esp32.md`](docs/nairda_kernel_bootloader_esp32.md) | ESP32: jump table en RTC slow memory, partition Kidsy 2MB, header v2 con entry_offset 16-bit, BLE name persistente, cross-thread re-advertising fix |
+| [`docs/nairda_user_api.md`](docs/nairda_user_api.md) | API completa que los binarios de usuario pueden llamar via jump table — incluyendo `nairda_setBleName` (ESP32, slot 31) |
+| [`docs/linker_nairda_vectors.md`](docs/linker_nairda_vectors.md) | Linker script para crear el jump table en la sección apropiada |
+
+Build:
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 examples/nairda_firmware
+arduino-cli upload --fqbn esp32:esp32:esp32doit-devkit-v1 --port /dev/cu.usbserial-XXX \
+  --upload-property upload.speed=115200 examples/nairda_firmware
+```
+
+Para enable logs de depuración, editar [`src/nairda_log.h`](src/nairda_log.h) y cambiar `#define NAIRDA_DEBUG 0` → `1`. Monitor serial a 9600 baud.
+
 * ## Thanks to [ivanseidel](https://github.com/ivanseidel) for his library [LinkedList](https://github.com/ivanseidel/LinkedList).
 
 * ## Thanks to [teckel12](https://bitbucket.org/teckel12) for his library [NewPing](https://bitbucket.org/teckel12/arduino-new-ping).

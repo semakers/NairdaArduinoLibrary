@@ -8,7 +8,7 @@ type: project
 
 Adaptación del microkernel Nairda para ESP32 WROOM. El kernel se instala una vez vía arduino-cli. Los programas del usuario se compilan con xtensa-gcc a binario crudo, se envían por serial (o BLE) con el mismo protocolo chunked del AVR, se almacenan en una partición de flash, y se ejecutan desde IRAM.
 
-## Estado: FUNCIONA para ESP32 (DOIT DevKit V1)
+## Estado: FUNCIONA para ESP32 (DOIT DevKit V1) y Kidsy
 
 Probado end-to-end:
 - Blink pin 2 vía Jump Table ✓
@@ -16,9 +16,29 @@ Probado end-to-end:
 - Dual blink (pin 2 + pin 13) ✓
 - Cambio de delay (100ms, 250ms, 500ms, 1000ms) sin recompilar kernel ✓
 - Carga vía serial con protocolo chunked ✓
-- Auto-ejecución al boot (ventana de 4s) ✓
+- Auto-ejecución al boot (ventana de 2s) ✓
 - Flag de integridad anti-corrupción ✓
 - Jump Table en dirección fija (RTC memory 0x50000000) ✓
+- Programas grandes (21+ componentes, helpers + _start) — fix de entry_offset 16-bit (header v2) ✓
+- BLE name persistente por dispositivo (jump table slot 31) ✓
+- Re-advertising automático después de disconnect ✓
+- Sensor de color VEML6040 (Kidsy) accesible vía analogic pins 37/38/39 ✓
+
+## Header v2 (5 bytes) — partition userapp en 0x1FE000
+
+```
+byte 0    : flag (0x01 = USER_FLAG_VALID)
+bytes 1-2 : total length (uint16 LE) — incluye header
+bytes 3-4 : entry_offset (uint16 LE) — offset del entry point dentro del binario
+bytes 5+  : código (literal pool + funciones, _start típicamente al final)
+```
+
+Definido en `src/flash_writer/flash_writer.h` con `USER_HEADER_SIZE = 5`.
+
+Versión anterior (v1, deprecated) usaba 4 bytes con entry_offset como uint8_t. Eso truncaba el offset a 8 bits → cualquier programa con `_start` ubicado más de 255 bytes desde el inicio del binario (= cualquier programa con funciones helper antes de _start) crasheaba con `IllegalInstruction` porque la CPU saltaba al medio de una función random. El truncamiento ocurría EN TRES SITIOS y todos tuvieron que arreglarse:
+1. Backend `nairda_user.h` (`NAIRDA_COMP_SIZE` 20→24 para que `sizeof(component_t)` coincida y `memset` no se desborde al buffer adyacente).
+2. Kernel parse del header (`uint8_t` → `uint16_t`).
+3. Dart upload `firmware_upload_bloc._flashEsp32` (`data[1]=byte` → `data[0..1]=LE 16-bit`).
 
 ## Mapa de memoria Flash ESP32 (virtual 2MB)
 
@@ -265,4 +285,14 @@ El script:
 
 5. **Flash NOR no permite 0→1**: Para actualizar el flag de 0x00 a 0x01 hay que borrar todo el sector y reescribir. El kernel guarda los datos en RAM, borra, y reescribe con el flag actualizado.
 
-6. **Programa anterior sobrevive al re-flashear kernel**: `esptool` solo borra los sectores del app (0x10000-0x55FFF), no la partición userapp (0x1FE000). Un programa corrupto puede causar crash loop. Solución: la ventana de 4 segundos permite enviar el 150 antes de que se ejecute el programa guardado.
+6. **Programa anterior sobrevive al re-flashear kernel**: `esptool` solo borra los sectores del app (0x10000-0x55FFF), no la partición userapp (0x1FE000). Un programa corrupto puede causar crash loop. Solución: la ventana de 2 segundos permite enviar el 150 antes de que se ejecute el programa guardado.
+
+7. **`entry_offset` truncado a 8 bits (RESUELTO 2026-05-13)**: programas grandes con funciones helper antes de `_start` ubicaban el entry point a >255 bytes del inicio del binario. El header v1 guardaba `entry_offset` como `uint8_t` y el Dart hacía `data[1] = entry_offset` (que en Dart también trunca a 8 bits en Uint8List). Resultado: crash `IllegalInstruction` saltando al medio de una función. Fix: header v2 con `entry_offset` de 16 bits LE, Dart encoding `data[0..1]` como bytes LE, kernel parse como `uint16_t`. Cambios en `flash_writer.h`, `esp32_flash.cpp`, y `firmware_upload_bloc.dart`.
+
+8. **`.rodata` no es position-independent (PENDIENTE workaround)**: `compile_esp32.sh` coloca `.data` y `.bss` en RTC slow memory pero NO toca `.rodata`. Las strings (`"Nairda"`, etc.) quedan con punteros absolutos a VMAs bajos (~0x004xxxxx) que el linker eligió. Como el kernel hace `heap_caps_malloc(MALLOC_CAP_EXEC)` en cualquier address de DRAM, los punteros baked-in apuntan a memoria inválida → `Guru Meditation LoadProhibited`. Workaround actual: el transpiler Dart NO emite string literals — para `setBleName` construye el nombre byte-por-byte en stack array con valores inmediatos (cada `[i]=N` es un `s8i` con literal int, position-independent). Fix de raíz pendiente: `-Wl,--section-start=.rodata=<VMA>` y que el kernel cargue `.rodata` también, o `-fPIC` si Xtensa lo soporta.
+
+9. **NAIRDA_COMP_SIZE vs sizeof(component_t) mismatch (RESUELTO 2026-05-12)**: `nairda_user.h` definía `NAIRDA_COMP_SIZE=20` en ESP32 cuando `sizeof(component_t)` es 24 (5+5+padding+3 punteros*4). Los buffers del user code quedaban contiguos en RTC memory a 20 bytes de distancia, pero el `memset(c, 0, 24)` del kernel se desbordaba 4 bytes al buffer siguiente, pisando su `pins[0]`. Síntoma: con programas que usaban múltiples componentes en orden descendente de address, los pin values se zeraban → `analogRead(0)` en vez del pin real → sensor de color devolvía `100` siempre. Fix: cambiar a `NAIRDA_COMP_SIZE=24`. Sugerencia futura: añadir `_Static_assert(sizeof(component_t) == NAIRDA_COMP_SIZE, ...)` en el kernel para detectar drift.
+
+10. **BLE no vuelve a advertising tras disconnect (RESUELTO 2026-05-14)**: el callback `onDisconnect` llamaba `BLEDevice::startAdvertising()` directamente, pero ese callback ejecuta en el BLE task y llamar la lib desde su propio callback chain es unreliable en ESP-IDF (a veces ignora, a veces cuelga). Fix: el callback solo levanta una flag `volatile bool`; una función `blePollActions()` llamada desde `nairdaLoop()` (main task) consume la flag y llama `startAdvertising` desde un contexto seguro. Latencia <50ms entre disconnect y nuevo advertising.
+
+11. **BLE name persistente por dispositivo (NUEVO 2026-05-14)**: jump table slot 31 = `jt_setBleName`. Función `setBleName(name, len)` en `esp32_ble_name.cpp` escribe a flash sector `0x27E000` con magic byte `0xBE` + length + ASCII bytes (max 29). `readStoredBleName` se llama en `nairdaBegin` antes de `bleInit`. Aplica al PRÓXIMO boot (no inmediato). Wear-protection: skip si el sector ya tiene ese valor.

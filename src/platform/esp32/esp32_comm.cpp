@@ -17,6 +17,14 @@ BLECharacteristic *pCharacteristic;
 uint8_t bleBuffer[255];
 uint8_t bleIndex = 0;
 
+// Cross-thread flag: set from the BLE task (inside onDisconnect callback) and
+// consumed from the main task (via blePollActions, called from nairdaLoop).
+// Calling BLEDevice::startAdvertising() directly inside onDisconnect is
+// unreliable on ESP-IDF — the BLE stack is in the middle of its own event
+// processing and either ignores the call or hangs. Deferring it to the main
+// task fixes that.
+static volatile bool bleNeedsRestartAdvertising = false;
+
 #define SERVICE_UUID "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 
@@ -28,7 +36,8 @@ class MyServerCallbacks : public BLEServerCallbacks
     };
     void onDisconnect(BLEServer *pServer)
     {
-        BLEDevice::startAdvertising();
+        // Don't call startAdvertising() here — defer to main task.
+        bleNeedsRestartAdvertising = true;
     };
 };
 
@@ -98,6 +107,17 @@ void bleInit(const char *deviceName)
     pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
+}
+
+// Polled from the main task (nairdaLoop) every iteration. Consumes any
+// pending deferred BLE actions — currently just the "restart advertising
+// after disconnect" request from onDisconnect.
+void blePollActions()
+{
+    if (bleNeedsRestartAdvertising) {
+        bleNeedsRestartAdvertising = false;
+        BLEDevice::startAdvertising();
+    }
 }
 
 bool nextBlueByte(uint8_t *blueByte)

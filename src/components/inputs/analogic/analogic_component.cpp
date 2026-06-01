@@ -17,7 +17,9 @@ uint8_t readAnalogic(component_t *component) {
   uint8_t values[1];
   analogicSense(pins, values);
   nairdaLoop();
-  return values[0];
+  // Wire protocol: real (0..100) + 1, range 1..101. User-app macro undoes it.
+  uint8_t v = values[0] > 100 ? 100 : values[0];
+  return v + 1;
 }
 
 void analogicOff()

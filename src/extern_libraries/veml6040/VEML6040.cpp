@@ -32,6 +32,7 @@ SOFTWARE.
 #include <Arduino.h>
 #include "esp_flash.h"
 #include "virtual_machine/virtual_machine.h"
+#include "nairda_log.h"
 
 VEML6040::VEML6040(void)
 {
@@ -39,28 +40,53 @@ VEML6040::VEML6040(void)
 
 void VEML6040::nairdaBegin(void)
 {
+  NRD_LOG("[NRD/VEML] nairdaBegin() called, working=%s\n", working ? "true" : "false");
   if (!working)
   {
+    NRD_LOGLN("[NRD/VEML]   step 1: Wire.begin(23, 22) + I2C probe");
+    bool ok = begin();
+    NRD_LOG("[NRD/VEML]   step 1 result: sensor on I2C = %s\n", ok ? "YES" : "NO");
 
-    begin();
+    NRD_LOGLN("[NRD/VEML]   step 2: setConfiguration");
     setConfiguration(VEML6040_IT_40MS + VEML6040_TRIG_ENABLE + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
+
+    NRD_LOGLN("[NRD/VEML]   step 3: ledcAttach(16, 50, 16) — 16-bit PWM");
     ledcAttach(16, 50, 16);
-    ledcWrite(16, 255);
+    // 16-bit resolution: duty range 0..65535. Full brightness is 65535, NOT 255.
+    NRD_LOGLN("[NRD/VEML]   step 4: ledcWrite(16, 65535) — illumination LED 100%");
+    ledcWrite(16, 65535);
+
+    NRD_LOGLN("[NRD/VEML]   step 5: readCalibration");
     readCalibration();
 
     working = true;
+    NRD_LOGLN("[NRD/VEML] nairdaBegin() done, working=true");
+  }
+  else
+  {
+    NRD_LOGLN("[NRD/VEML]   (skipping init, already working)");
   }
 }
 
 void VEML6040::readCalibration(void)
 {
   uint8_t buffer[16];
-  esp_flash_read(esp_flash_default_chip, buffer, 0x200000 + (4096 * 127), 16);
+  esp_err_t err = esp_flash_read(esp_flash_default_chip, buffer, 0x200000 + (4096 * 127), 16);
+  NRD_LOG("[NRD/VEML] readCalibration: esp_flash_read err=%d addr=0x%08X\n",
+          err, 0x200000 + (4096 * 127));
   for (int i = 0; i < 4; i++)
   {
     minValues[i] = (uint16_t)buffer[i * 2] | ((uint16_t)buffer[i * 2 + 1] << 8);
     maxValues[i] = (uint16_t)buffer[i * 2 + 8] | ((uint16_t)buffer[i * 2 + 9] << 8);
   }
+#if NAIRDA_DEBUG
+  const char *labels[] = {"R", "G", "B", "W"};
+  for (int i = 0; i < 4; i++) {
+    NRD_LOG("[NRD/VEML]   %s: min=%u max=%u rango=%d\n",
+            labels[i], minValues[i], maxValues[i],
+            (int)maxValues[i] - (int)minValues[i]);
+  }
+#endif
 }
 
 void VEML6040::nairdaEnd(void)
@@ -129,11 +155,18 @@ uint16_t VEML6040::getWhite(void)
 
 void VEML6040::readFixedColors(void)
 {
+  uint16_t rawR = getRed(), rawG = getGreen(), rawB = getBlue(), rawW = getWhite();
+  NRD_LOG_THROTTLED(500,
+    "[NRD/VEML] readFixedColors raw: R=%u G=%u B=%u W=%u\n", rawR, rawG, rawB, rawW);
 
-  fixedRed = map(getRed(), minValues[0], maxValues[0], 0, 255);
-  fixedGreen = map(getGreen(), minValues[1], maxValues[1], 0, 255);
-  fixedBlue = map(getBlue(), minValues[2], maxValues[2], 0, 255);
-  fixedWhite = map(getWhite(), minValues[3], maxValues[3], 0, 100);
+  fixedRed = map(rawR, minValues[0], maxValues[0], 0, 255);
+  fixedGreen = map(rawG, minValues[1], maxValues[1], 0, 255);
+  fixedBlue = map(rawB, minValues[2], maxValues[2], 0, 255);
+  fixedWhite = map(rawW, minValues[3], maxValues[3], 0, 100);
+
+  NRD_LOG_THROTTLED(500,
+    "[NRD/VEML]   post-map: R=%.1f G=%.1f B=%.1f W=%.1f\n",
+    fixedRed, fixedGreen, fixedBlue, fixedWhite);
 
   double colorsTogether = ((double)fixedRed + fixedGreen + fixedBlue);
   int min;
@@ -162,6 +195,10 @@ void VEML6040::readFixedColors(void)
     fixedGreen = fixedGreen * factor;
     fixedBlue = fixedBlue * factor;
   }
+  NRD_LOG_THROTTLED(500,
+    "[NRD/VEML]   final fixed: R=%.1f G=%.1f B=%.1f → uint8 R=%u G=%u B=%u\n",
+    fixedRed, fixedGreen, fixedBlue,
+    (uint8_t)fixedRed, (uint8_t)fixedGreen, (uint8_t)fixedBlue);
 }
 
 uint8_t VEML6040::getFixedRed(void)

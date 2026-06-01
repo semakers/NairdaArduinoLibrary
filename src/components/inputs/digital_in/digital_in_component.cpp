@@ -21,7 +21,10 @@ uint8_t readDigitalIn(component_t *component) {
   uint8_t values[1];
   digitalInSense(pins, values);
   nairdaLoop();
-  return values[0];
+  // Wire protocol: real (0..100) + 1, range 1..101. The user-app macro
+  // in nairda_user.h subtracts 1 to recover the real value.
+  uint8_t v = values[0] > 100 ? 100 : values[0];
+  return v + 1;
 }
 
 void digitalInCreate(uint16_t *args, component_t *component)

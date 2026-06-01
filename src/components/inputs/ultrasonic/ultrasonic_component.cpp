@@ -16,7 +16,9 @@ uint8_t readUltrasonic(component_t *component) {
   uint8_t values[1];
   ultrasonicSenseImpl(component, values);
   nairdaLoop();
-  return values[0];
+  // Wire protocol: real (0..100) + 1, range 1..101. User-app macro undoes it.
+  uint8_t v = values[0] > 100 ? 100 : values[0];
+  return v + 1;
 }
 
 void ultrasonicDebugLoad(VolatileMemory *volatileMemory)
