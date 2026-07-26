@@ -42,6 +42,11 @@ void nairdaBegin(const char *deviceName, long int bauds)
         NRD_LOGLN("[NRD] entering calibrateKidsyColorSensor (no-op unless BTN A/C held)");
         calibrateKidsyColorSensor(RGBWSensor);
         NRD_LOGLN("[NRD] calibrateKidsyColorSensor returned");
+
+        NRD_LOGLN("[NRD] entering calibrateKidsyTouchSensors (no-op unless BTN B held)");
+        calibrateKidsyTouchSensors();
+        NRD_LOGLN("[NRD] calibrateKidsyTouchSensors returned");
+        readKidsyTouchCalibration();
     }
 
     if (currentKit == LK32_KIT)

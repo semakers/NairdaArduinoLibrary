@@ -8,6 +8,7 @@
 #include "extern_libraries/veml6040/VEML6040.h"
 #include "extern_libraries/dht11/DHT.h"
 #include "kits/zeego.h"
+#include "kits/kidsy.h"
 
 extern VEML6040 RGBWSensor;
 extern DHT dht;
@@ -108,28 +109,20 @@ void analogicSense(uint8_t *pins, uint8_t *tempRead)
 
 // ── Digital Input ──────────────────────────────────────────────────
 
-static uint8_t isKidsyArrowPin(uint8_t pin)
-{
-    uint8_t kidsyArrowsPins[4] = {12, 13, 15, 14};
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        if (pin == kidsyArrowsPins[i])
-            return 1;
-    }
-    return 0;
-}
-
 void digitalInSense(uint8_t *pins, uint8_t *tempRead)
 {
     if (currentKit == ROBBUS_KIDSY_KIT)
     {
 #if !defined(CONFIG_IDF_TARGET_ESP32C3)
-        if (isKidsyArrowPin(pins[0]) == 1) {
+        int8_t idx = kidsyArrowIndex(pins[0]);
+        if (idx >= 0) {
             // Kidsy touch pads: untouched ~850-1150, touched approaches 0.
-            // Pressed when value drops below 200.
+            // Per-pad threshold from calibration (falls back to the default
+            // when the pad was never calibrated). Pressed when value < threshold.
             uint32_t tval = touchRead(pins[0]);
-            NRD_LOG_THROTTLED(200, "[NRD/TOUCH] pin=%u raw=%u threshold=200\n", pins[0], (unsigned)tval);
-            tempRead[0] = tval < 200 ? 1 : 0;
+            uint16_t thr = kidsyTouchThresholds[idx];
+            NRD_LOG_THROTTLED(200, "[NRD/TOUCH] pin=%u raw=%u threshold=%u\n", pins[0], (unsigned)tval, thr);
+            tempRead[0] = tval < thr ? 1 : 0;
         } else {
             tempRead[0] = digitalRead(pins[0]);
         }
