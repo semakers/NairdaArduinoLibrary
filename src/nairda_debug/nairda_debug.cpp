@@ -2,6 +2,7 @@
 #include "virtual_machine/virtual_machine.h"
 #include "blue_methods/blue_methods.h"
 #include "platform/platform_hal.h"
+#include "nairda_log.h"
 
 uint8_t declaratedCommands[] = {endServos, endDC, endLeds, endFrequencies, endNeopixels, endAnalogics, endDigitals,
                                 endUltrasonics};
@@ -79,10 +80,14 @@ int executeComponent(uint8_t *currentValue, VolatileMemory *volatileMemory)
                 componentId = currentValue[0] - ((i == 0) ? 0 : indexArray[i - 1]);
                 if (i < ACTUATORS_SIZE)
                 {
+                    NRD_LOG("[NRD/VM] key %u -> actuador tipo %d id %u, espero %u args\n",
+                            currentValue[0], (int)i, componentId, execArgsSizeByComponent[i]);
                     volatileMemory->executedComponent = i;
                 }
                 else
                 {
+                    NRD_LOG("[NRD/VM] key %u -> sensor tipo %d id %u\n",
+                            currentValue[0], (int)i, componentId);
                     sendSensVal(i, volatileMemory->components[i].get(componentId));
                     return 0;
                 }

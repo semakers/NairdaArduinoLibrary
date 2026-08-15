@@ -11,9 +11,19 @@ void ultrasonicCreate(uint16_t *args, component_t *component)
     pinMode(args[2], INPUT);
 }
 
+// Mock para la auditoria del protocolo (misma bandera que esp32_sensors.cpp):
+// devuelve SIEMPRE el numero del pin de trigger. Si la app enseña otro valor
+// para un ultrasonico, la clave viajo cruzada. Ademas evita el pulseIn de
+// hasta 10 ms, que en el banco es solo ruido de latencia.
+#define NAIRDA_MOCK_SENSORS 0
+
 void ultrasonicSenseImpl(component_t *component, uint8_t *tempRead)
 {
     uint8_t *pins = component->pins;
+#if NAIRDA_MOCK_SENSORS
+    tempRead[0] = pins[0] <= 100 ? pins[0] : 100;
+    return;
+#endif
     digitalWrite(pins[0], LOW);
     delayMicroseconds(2);
     digitalWrite(pins[0], HIGH);

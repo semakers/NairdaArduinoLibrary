@@ -11,11 +11,24 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
+#include "nairda_log.h"
+
 extern VolatileMemory volatileMemory;
 
 BLECharacteristic *pCharacteristic;
-uint8_t bleBuffer[255];
-uint8_t bleIndex = 0;
+
+// Anillo FIFO de recepcion BLE. Sustituye a la pila LIFO original, que
+// entregaba los paquetes EN ORDEN INVERSO cuando llegaba un segundo write
+// antes de drenar el primero (el main task consume ~1 byte/ms: un chunk de
+// config de 20 bytes tarda ~20 ms en drenarse, y la app los manda cada
+// 20 ms — justo en el filo). Con 256 posiciones y indices uint8_t, el
+// desbordamiento del indice ES el modulo: head==tail significa vacio.
+// Un solo productor (tarea BLE, onWrite) y un solo consumidor (main task),
+// cada indice lo escribe solo su lado: no hace falta mutex, si `volatile`.
+uint8_t bleBuffer[256];
+static volatile uint8_t bleHead = 0; // proximo hueco a escribir (productor)
+static volatile uint8_t bleTail = 0; // proximo byte a leer (consumidor)
+static volatile uint16_t bleDropped = 0; // bytes tirados por buffer lleno
 
 // Cross-thread flag: set from the BLE task (inside onDisconnect callback) and
 // consumed from the main task (via blePollActions, called from nairdaLoop).
@@ -32,10 +45,12 @@ class MyServerCallbacks : public BLEServerCallbacks
 {
     void onConnect(BLEServer *pServer)
     {
+        NRD_LOG("[NRD/BLE] onConnect — clearVolatileMemory\n");
         clearVolatileMemory(&volatileMemory, true);
     };
     void onDisconnect(BLEServer *pServer)
     {
+        NRD_LOG("[NRD/BLE] onDisconnect — se re-anunciara desde el main task\n");
         // Don't call startAdvertising() here — defer to main task.
         bleNeedsRestartAdvertising = true;
     };
@@ -48,38 +63,54 @@ class MyCallbacks : public BLECharacteristicCallbacks
         String rxValue = pCharacteristic->getValue();
         if (rxValue.length() > 0)
         {
-            for (int i = rxValue.length() - 1; i >= 0; i--)
+            NRD_LOG("[NRD/BLE] RX %dB:", (int)rxValue.length());
+            for (int i = 0; i < (int)rxValue.length(); i++)
             {
-                if (bleIndex < 255) {
-                    bleBuffer[bleIndex] = (uint8_t)rxValue[i];
-                    bleIndex++;
+                // FIFO: en orden de llegada. Lleno cuando avanzar head lo
+                // pondria sobre tail (dejamos 1 hueco de separacion).
+                uint8_t next = (uint8_t)(bleHead + 1);
+                if (next != bleTail)
+                {
+                    bleBuffer[bleHead] = (uint8_t)rxValue[i];
+                    bleHead = next;
+                    NRD_LOG(" %02X", (uint8_t)rxValue[i]);
+                }
+                else
+                {
+                    bleDropped++;
+                    NRD_LOG(" !DROP(%u)", (unsigned)bleDropped);
                 }
             }
+            NRD_LOG("\n");
         }
     }
 };
 
 bool bleAvailable()
 {
-    return bleIndex > 0;
+    return bleHead != bleTail;
 }
 
 uint8_t bleRead()
 {
     if (bleAvailable())
     {
-        bleIndex--;
-        return bleBuffer[bleIndex];
+        uint8_t b = bleBuffer[bleTail];
+        bleTail = (uint8_t)(bleTail + 1);
+        return b;
     }
     return 0;
 }
 
 void bleWrite(uint8_t byte)
 {
-    std::string myStringForUnit8((char *)&byte, 1);
-    String arduinoStr = String(myStringForUnit8.c_str());
-    pCharacteristic->setValue(arduinoStr);
+    // setValue con puntero+longitud: la version anterior pasaba por c_str(),
+    // que corta en el primer NUL — un hipotetico byte 0x00 dejaba la
+    // caracteristica VACIA en vez de valer un byte a cero. Hoy el protocolo
+    // +1 nunca emite 0, pero el transporte no debe depender de eso.
+    pCharacteristic->setValue(&byte, 1);
     pCharacteristic->notify();
+    NRD_LOG("[NRD/BLE] TX %02X (notify)\n", byte);
 }
 
 void bleInit(const char *deviceName)
